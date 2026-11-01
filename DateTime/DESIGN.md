@@ -55,6 +55,18 @@ locale.library runs on its own built-in region (united_states, GMT offset
 Tested in lab `gcc16-c` (a copy of Instance-32), built into OpenBench and
 stand-alone.
 
+## 0.2.3 (1 November 2026): the battery clock follows ENVARC:
+
+On a real Amiga the battery clock keeps local time on the offset ENVARC:'s
+Locale prefs hold, since both are what the next start reads. KEEP moved the
+battery clock only when it moved the system clock, so when ENVARC: couldn't
+be written at a summer-time change and was written on a later look, the
+battery clock stayed on the old offset and the next start was an hour out.
+Now the battery clock is set from the system clock whenever ENVARC: is
+written with an offset other than the one it held (tzrule.c,
+tz_battery_follows; DateTime/test has the spring change with ENVARC:
+written at once, a look later, and never).
+
 ## 0.2.2 (13 October 2026): KEEP no longer spins
 
 After a Ctrl-E the keeper aborts its timer request and waits for it. The reply left the timer port's signal set, and `WaitIO` doesn't clear it, so every later `Wait` returned at once: the keeper read Locale prefs over and over, holding `ENV:Sys/Locale.prefs` open so often that writing it could fail with "object is in use". One `SetSignal` after `WaitIO` clears it. Found by the ZoneRules work (amigachrome-guest #107), whose library keeper had the same loop.

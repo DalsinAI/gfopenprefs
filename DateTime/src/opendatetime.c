@@ -61,7 +61,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: OpenDateTime 0.2.2 (13.10.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: OpenDateTime 0.2.3 (1.11.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 
 #ifdef IN_OPENBENCH
 /* inside OpenBench, a global UtilityBase could be another built-in's: every UtilityBase below, and in
@@ -519,7 +519,7 @@ static void when_text(char *out, int size, tz_t local)
 }
 
 /* The system clock's seconds (from 1978) through timer.device; *battery the battery clock's, or 0 with none.
- * With move, the system clock goes on move seconds first, and with keep_battery the battery clock with it. */
+ * With move, the system clock goes on move seconds first; with keep_battery the battery clock is set to it. */
 static int clock_times(LONG move, int keep_battery, ULONG *system, ULONG *battery)
 {
     struct MsgPort *port = CreateMsgPort();
@@ -543,7 +543,7 @@ static int clock_times(LONG move, int keep_battery, ULONG *system, ULONG *batter
             }
             if (system) *system = tv.tv_secs;
             if ((BattClockBase = OpenResource((STRPTR)BATTCLOCKNAME))) {
-                if (ok && move && keep_battery) WriteBattClock(tv.tv_secs);
+                if (ok && keep_battery) WriteBattClock(tv.tv_secs);   /* to the system clock, moved or not */
                 if (battery) *battery = ReadBattClock();
             }
             CloseDevice((struct IORequest *)tr);
@@ -604,8 +604,8 @@ static LONG keep_once(struct keeper *k)
     struct tz_zone z;
     char place[40], rule[56], a[16], b[16];
     ULONG flags, sys = 0, bat = 0;
-    LONG saved_west, want_west, move = 0, wait = 3600;
-    int host = k->chrome && ask_host(&hc), archive;
+    LONG saved_west, want_west, archived_west, move = 0, wait = 3600;
+    int host = k->chrome && ask_host(&hc), archive, battery;
     tz_t local = clock_local(), utc, when;
     long east_after, want;
 
@@ -650,8 +650,10 @@ static LONG keep_once(struct keeper *k)
         return 60;
     }
     load_locale(LOCALE_ENVARC);
+    archived_west = lp.lp_GMTOffset;                   /* the offset the battery clock is on (tz_battery_follows) */
     archive = region_saved && (host || !strcmp(zp.zp_Place, place)) && keep_file(LOCALE_ENVARC, want_west, place, rule, flags, 0);
-    if (move) clock_times(move, !k->chrome && archive, NULL, NULL);
+    battery = tz_battery_follows(k->chrome, archive, archived_west, want_west);
+    if (move || battery) clock_times(move, battery, NULL, NULL);
     offset_text(a, sizeof a, want);
     offset_text(b, sizeof b, -saved_west * 60L);
     if (move)
