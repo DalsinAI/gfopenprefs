@@ -68,8 +68,9 @@
 #include "om_kbd.h"
 #include "ogt_theme.h"
 #include "../../Common/prefsapp.h"           /* where OpenPrefs is (SYS:Preferences) */
+#include "../../Common/idlepace.h"           /* the bar's tick slowed when nobody is there */
 
-static const char version[] __attribute__((used)) = "$VER: OpenMenus 0.4.6 (25.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";   /* 0.4.6: built -fno-late-combine-instructions (Menus/engine/build.sh: GCC 16.2.0-open3 stored wbclose.h's "OpenWBNotify" one byte late, so the semaphore was named ""); 0.4.5: no WORKBENCH port (OpenBench): the right button opens the window's own menus */
+static const char version[] __attribute__((used)) = "$VER: OpenMenus 0.4.7 (01.11.2026) MIT, Copyright (c) 2026 AmigaChrome Team";   /* 0.4.7: the bar ticks every 500 ms after 2 s with no input, and at full speed again from the first input (Common/idlepace.h); 0.4.6: built -fno-late-combine-instructions (Menus/engine/build.sh: GCC 16.2.0-open3 stored wbclose.h's "OpenWBNotify" one byte late, so the semaphore was named ""); 0.4.5: no WORKBENCH port (OpenBench): the right button opens the window's own menus */
 
 #define PREFS_ENV "ENV:OpenMenus/Menus"
 #define TRAY_DIR "ENV:OpenMenus/Tray"     /* one file per tray program: "width order" (OpenSpeaker, the clock) */
@@ -165,7 +166,9 @@ static void read_settings(void)
 /* ---- the input stream (input.device's task: no waiting, no DOS) ----------------- */
 
 static struct Task *me;
-static ULONG sig_start, sig_event;
+static ULONG sig_start, sig_event, sig_wake;
+/* The bar's tick: 100 ms (500 ms for the title bar), and 500 ms after 2 s with no input; sig_wake brings it back */
+static struct idle_pace pace;
 static volatile int on = 1, session, cancelled;
 static volatile int rbutton, lbutton, rdown_seen, ldown_seen, moved;
 static volatile WORD start_x, start_y;
@@ -226,8 +229,13 @@ static int kbd_opens(struct InputEvent *ie)
 
 static void custom(CxMsg *msg, CxObj *co)
 {
-    struct InputEvent *ie = (struct InputEvent *)CxMsgData(msg);
+    struct InputEvent *ie = (struct InputEvent *)CxMsgData(msg), *e;
     (void)co;
+    for (e = ie; e; e = e->ie_NextEvent)
+        if (idle_pace_is_input(e->ie_Class)) {
+            if (idle_pace_input(&pace)) Signal(me, sig_wake);   /* the bar ticks slowly: back to full speed now */
+            break;
+        }
     if (!on || !prefs.enabled) return;
     for (; ie; ie = ie->ie_NextEvent) {
         if (!session && ie->ie_Class == IECLASS_RAWKEY) {
@@ -1835,7 +1843,7 @@ out:
 /* ---- the commodity ----------------------------------------------------------------------------- */
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"OpenMenus", (STRPTR)"OpenMenus 0.4.6", (STRPTR)"The Open family's own menus",
+    NB_VERSION, (STRPTR)"OpenMenus", (STRPTR)"OpenMenus 0.4.7", (STRPTR)"The Open family's own menus",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 
@@ -1843,8 +1851,9 @@ int main(void)
 {
     struct MsgPort *port = NULL;
     CxObj *broker = NULL, *cust;
-    LONG s1 = -1, s2 = -1;
+    LONG s1 = -1, s2 = -1, s3 = -1;
     int quit = 0, timer = 0;
+    ULONG asked = 20000;
     (void)version;
     IntuitionBase = (struct IntuitionBase *)OpenLibrary((STRPTR)"intuition.library", 39);
     GfxBase = (struct GfxBase *)OpenLibrary((STRPTR)"graphics.library", 39);
@@ -1854,8 +1863,9 @@ int main(void)
     if (!IntuitionBase || !GfxBase || !LayersBase || !CxBase) goto out;
     wbc_start();
     me = FindTask(NULL);
-    if ((s1 = AllocSignal(-1)) < 0 || (s2 = AllocSignal(-1)) < 0) goto out;
-    sig_start = 1UL << s1; sig_event = 1UL << s2;
+    if ((s1 = AllocSignal(-1)) < 0 || (s2 = AllocSignal(-1)) < 0 || (s3 = AllocSignal(-1)) < 0) goto out;
+    sig_start = 1UL << s1; sig_event = 1UL << s2; sig_wake = 1UL << s3;
+    idle_pace_init(&pace, 100000, 500000);
     if (!(port = CreateMsgPort()) || !(reply_port = CreateMsgPort())) goto out;
     nb.nb_Port = port;
     if (!(broker = CxBroker(&nb, NULL))) goto out;
@@ -1872,9 +1882,10 @@ int main(void)
     SendIO((struct IORequest *)tr);
     ActivateCxObj(broker, 1);
     while (!quit) {
-        ULONG got = Wait((1UL << port->mp_SigBit) | sig_start | sig_event | (1UL << reply_port->mp_SigBit) | (1UL << tport->mp_SigBit) |
-                         SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F | wbc_sigmask());
+        ULONG got = Wait((1UL << port->mp_SigBit) | sig_start | sig_event | sig_wake | (1UL << reply_port->mp_SigBit) |
+                         (1UL << tport->mp_SigBit) | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F | wbc_sigmask());
         CxMsg *m;
+        int due;
         if (got & SIGBREAKF_CTRL_C) quit = 1;
         /* Workbench is shutting down (Font prefs' Use, a screen mode): no bar window on its screen until it is back */
         switch (wbc_take()) {
@@ -1883,15 +1894,24 @@ int main(void)
         }
         if (got & SIGBREAKF_CTRL_F) { read_settings(); bar_close(); }   /* the bar comes back as the settings say */
         reap();
-        if ((got & sig_start) && session == 2) rc_session();
-        else if ((got & sig_start) && session) menu_session();
-        if (CheckIO((struct IORequest *)tr)) {        /* the timer: kept going, so a menu's 20 ms ticks can follow on */
+        /* the timer: kept going, so a menu's 20 ms ticks can follow on. Input while it is out for the idle
+         * 500 ms: cut short, so the bar (and a menu about to open) ticks at full speed from now */
+        due = CheckIO((struct IORequest *)tr) != NULL;
+        if (!due && (got & sig_wake) && pace.slow) { AbortIO((struct IORequest *)tr); due = 2; }
+        if (due) {
+            ULONG next;
             WaitIO((struct IORequest *)tr);
             bar_tick();
+            pace.busy_us = prefs.bar != OM_BAR_TITLE ? 100000 : 500000;
+            Forbid();                                 /* the input handler marks input between our reads otherwise */
+            next = idle_pace_tick(&pace, due == 2 ? 0 : asked);
+            Permit();
             tr->tr_node.io_Command = TR_ADDREQUEST; tr->tr_time.tv_secs = 0;
-            tr->tr_time.tv_micro = prefs.bar != OM_BAR_TITLE ? 100000 : 500000;
+            tr->tr_time.tv_micro = asked = next;
             SendIO((struct IORequest *)tr);
         }
+        if ((got & sig_start) && session == 2) rc_session();
+        else if ((got & sig_start) && session) menu_session();
         while ((m = (CxMsg *)GetMsg(port))) {
             ULONG type = CxMsgType(m), id = CxMsgID(m);
             ReplyMsg((struct Message *)m);
@@ -1923,6 +1943,7 @@ out:
         while ((mm = GetMsg(port))) ReplyMsg(mm);
         DeleteMsgPort(port);
     }
+    if (s3 >= 0) FreeSignal(s3);
     if (s2 >= 0) FreeSignal(s2);
     if (s1 >= 0) FreeSignal(s1);
     if (theme_loaded) ogt_theme_free(&theme);
