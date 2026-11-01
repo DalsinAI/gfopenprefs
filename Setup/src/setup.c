@@ -57,7 +57,7 @@
 #include "../../Common/prefsapp.h"           /* where OpenPrefs is (SYS:Preferences) */
 
 #ifndef IN_OPENBENCH
-const char version[] __attribute__((used)) = "$VER: OpenUp-Setup 0.1.6 (24.10.2026) OpenPrefs, AmigaChrome Team";
+const char version[] __attribute__((used)) = "$VER: OpenUp-Setup 0.1.7 (1.11.2026) OpenPrefs, AmigaChrome Team";
 #endif
 
 #define USER_STARTUP "S:User-Startup"
@@ -96,20 +96,128 @@ static char *read_file(const char *path, LONG *lenp)
     return buf;
 }
 
+/* ---- a file written whole or not at all (1 Nov 2026) -------------------------------------------
+ * write_file opened the file itself with MODE_NEWFILE, which cuts it to nothing first, and didn't look at Close:
+ * a full or write-protected SYS:, or a reset, left S:User-Startup empty or cut short, and the next boot missed
+ * the user's own lines. Now the bytes go to a short name in the same drawer, every Write and the Close are
+ * checked, and only then the old file steps aside (.bak), the new one takes its name and the .bak goes; if the
+ * new one can't take the name, the old one gets it back. As OpenUpTool does since openamigaup #179. On the RAM
+ * disk (ENV:, T:) the file is written in place as before: OS 3.2's ENV: shows ENVARC:'s files through a link,
+ * where a name stays taken after Rename (openamigaup #179), and the RAM disk is gone at a reboot anyway. */
+
+/* 1 when nothing has the name, 0 when something has, -1 when it can't be told. No DOS requester. */
+static int name_free(const char *path)
+{
+    struct Process *me = (struct Process *)FindTask(NULL);
+    APTR win = me->pr_WindowPtr;
+    BPTR l;
+    LONG err;
+    me->pr_WindowPtr = (APTR)-1;
+    l = Lock((STRPTR)path, ACCESS_READ);
+    err = l ? 0 : IoErr();
+    me->pr_WindowPtr = win;
+    if (l) { UnLock(l); return 0; }
+    return err == ERROR_OBJECT_NOT_FOUND ? 1 : -1;
+}
+
+/* Two free names beside path: the new copy's (.tmp) and the old file's while the new one takes its name (.bak).
+ * "Setup", the task's address and a count in hex: 19 characters, for a 30-character file system. 1, else 0. */
+static int side_names(const char *path, char *temp, char *backup, int size)
+{
+    static const char hex[] = "0123456789abcdef";
+    static UBYTE count;
+    ULONG id = (ULONG)FindTask(NULL);
+    int dir = strlen(path), tries, i, t, b = 0;
+    while (dir && path[dir - 1] != '/' && path[dir - 1] != ':') dir--;
+    if (dir + 20 > size) return 0;
+    for (tries = 0; tries < 256; tries++) {
+        unsigned n = count++;
+        char *name = temp + dir;
+        memcpy(temp, path, dir);
+        memcpy(name, "Setup", 5);
+        for (i = 0; i < 8; i++) name[5 + i] = hex[(id >> (28 - 4 * i)) & 15];
+        name[13] = hex[(n >> 4) & 15];
+        name[14] = hex[n & 15];
+        strcpy(name + 15, ".tmp");
+        strcpy(backup, temp);
+        strcpy(backup + dir + 15, ".bak");
+        if ((t = name_free(temp)) < 0 || (t && (b = name_free(backup)) < 0)) return 0;
+        if (t && b) return 1;
+    }
+    return 0;
+}
+
+/* temp (written and closed) takes dest's name, with the old file's protection bits and comment (S:User-Startup
+ * keeps its -s--rw-d). A drawer, or a file protected from writing or deleting, isn't replaced: it couldn't be
+ * written over before either. temp goes whenever it doesn't take the name. 1 done. */
+static int put_in_place(const char *temp, const char *backup, const char *dest)
+{
+    struct Process *me = (struct Process *)FindTask(NULL);
+    APTR win = me->pr_WindowPtr;
+    struct FileInfoBlock *fib = AllocDosObject(DOS_FIB, NULL);
+    BPTR l;
+    int ok = 0;
+    me->pr_WindowPtr = (APTR)-1;
+    l = fib ? Lock((STRPTR)dest, ACCESS_READ) : 0;
+    me->pr_WindowPtr = win;
+    if (!fib) {
+        /* no memory to look at it with: nothing replaced */
+    } else if (!l) {
+        ok = Rename((STRPTR)temp, (STRPTR)dest) != 0;
+    } else {
+        ok = Examine(l, fib) && fib->fib_DirEntryType < 0 && !(fib->fib_Protection & (FIBF_WRITE | FIBF_DELETE));
+        UnLock(l);
+        if (ok) {
+            SetProtection((STRPTR)temp, fib->fib_Protection & ~FIBF_ARCHIVE);
+            if (fib->fib_Comment[0]) SetComment((STRPTR)temp, (STRPTR)fib->fib_Comment);
+        }
+        if (ok && !Rename((STRPTR)dest, (STRPTR)backup)) ok = 0;
+        else if (ok && !Rename((STRPTR)temp, (STRPTR)dest)) { Rename((STRPTR)backup, (STRPTR)dest); ok = 0; }
+        else if (ok) DeleteFile((STRPTR)backup);
+    }
+    if (!ok) DeleteFile((STRPTR)temp);
+    if (fib) FreeDosObject(DOS_FIB, fib);
+    return ok;
+}
+
+/* 1 when path is on the RAM disk (ENV:, T:) */
+static int in_ram(const char *path)
+{
+    struct Process *me = (struct Process *)FindTask(NULL);
+    APTR win = me->pr_WindowPtr;
+    struct DevProc *p, *r;
+    int ram;
+    me->pr_WindowPtr = (APTR)-1;
+    p = GetDeviceProc((STRPTR)path, NULL);
+    r = GetDeviceProc((STRPTR)"RAM:", NULL);
+    me->pr_WindowPtr = win;
+    ram = p && r && p->dvp_Port == r->dvp_Port;
+    if (p) FreeDeviceProc(p);
+    if (r) FreeDeviceProc(r);
+    return ram;
+}
+
 static int write_file(const char *path, const void *data, LONG len)
 {
-    char dir[96], *slash;
+    char dir[96], temp[128], backup[128], *slash;
     BPTR fh, lock;
+    int ram, ok;
     strncpy(dir, path, sizeof dir - 1); dir[sizeof dir - 1] = 0;
     if ((slash = strrchr(dir, '/'))) {              /* make the drawer; a file at a volume's root needs none */
         *slash = 0;
         if ((lock = Lock((STRPTR)dir, ACCESS_READ))) UnLock(lock);
         else if ((lock = CreateDir((STRPTR)dir))) UnLock(lock);
     }
-    if (!(fh = Open((STRPTR)path, MODE_NEWFILE))) return 0;
-    if (Write(fh, (APTR)data, len) != len) { Close(fh); return 0; }
-    Close(fh);
-    return 1;
+    ram = in_ram(path);
+    if (ram) fh = Open((STRPTR)path, MODE_NEWFILE);
+    else if (!side_names(path, temp, backup, sizeof temp)) return 0;
+    else fh = Open((STRPTR)temp, MODE_NEWFILE);
+    if (!fh) return 0;
+    ok = Write(fh, (APTR)data, len) == len;
+    if (!Close(fh)) ok = 0;
+    if (ram) return ok;
+    if (!ok) { DeleteFile((STRPTR)temp); return 0; }
+    return put_in_place(temp, backup, path);
 }
 
 static int exists(const char *path)

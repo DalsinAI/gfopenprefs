@@ -86,6 +86,21 @@ page's printing button; its other three are Screen mode, Network and Fonts,
 two to a row. Paper settings are going to an OpenPrefs Printing page.
 OpenBench's built-in OpenUp-Setup changes with OpenBench's next build.
 
+## 0.1.7 (1 November 2026)
+
+Finish writes S:User-Startup (and its other files) whole or not at all. It
+used to open the file with MODE_NEWFILE, which cuts it to nothing first, and
+didn't check Close, so a full or write-protected SYS:, or a reset part way,
+left S:User-Startup empty or cut short, and the next boot missed the user's
+own lines. Now the new text goes to a short name in the same drawer
+(`Setup`, the task's address and a count in hex, `.tmp`), every Write and
+the Close are checked, and only then the old file steps aside as `.bak`,
+the new one takes its name (with the old one's protection bits and comment)
+and the `.bak` is deleted. If the new one can't take the name, the old one
+gets it back. This is what OpenUpTool does since openamigaup #179. Files on
+the RAM disk (ENV:, T:) are written in place as before. OpenBench's
+built-in OpenUp-Setup changes with OpenBench's next build.
+
 ## Next
 
 OpenUp Picks (ticking programs to add) joins as a page once the Picks list
