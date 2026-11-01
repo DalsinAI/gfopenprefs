@@ -5,7 +5,7 @@ every other screen. GFOpenPrefs Windows is its editor. GFOpenWindows watches the
 input stream and moves, sizes and activates windows with the OS's own calls.
 Since 0.7 it patches one pair of Intuition calls, OpenWindowTagList and
 OpenWindow, so that a window with a kept place opens there (below); the
-editor patches nothing. MIT, Copyright (c) 2026 AmigaChrome
+editor patches nothing. MIT, Copyright (c) 2026 AmiCradle
 Team.
 
 ![GFOpenPrefs Windows 0.3](docs/window.png)

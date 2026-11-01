@@ -18,7 +18,7 @@
  *
  * 1.3 (24 October 2026): Labels close to the image on the Workbench tab, icon.library's ENV:Sys/IconLabels.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <intuition/intuition.h>
 #include <proto/exec.h>

@@ -28,7 +28,7 @@
  * ob_builtin.c starts it, with no arguments and no tooltypes, and writes nothing to Output(); Ctrl-C quits as
  * Cancel does and Ctrl-F brings the window to the front. The stand-alone Look builds as before.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <exec/ports.h>

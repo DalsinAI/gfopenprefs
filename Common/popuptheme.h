@@ -11,7 +11,7 @@
  * did. The program links opengadtools' lib/ogt_theme.c (OGT=dir, as the
  * Menus engine does) and opens cybergraphics.library (CyberGfxBase).
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef POPUPTHEME_H
 #define POPUPTHEME_H
 

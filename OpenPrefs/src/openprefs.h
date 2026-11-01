@@ -1,5 +1,5 @@
 /* openprefs.h: GFOpenPrefs's pages (each editor's main, renamed when it is built into GFOpenPrefs) and APPLY.
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef OPENPREFS_H
 #define OPENPREFS_H
 

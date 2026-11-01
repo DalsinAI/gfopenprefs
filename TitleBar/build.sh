@@ -3,7 +3,7 @@
 #   TitleBar/build.sh [OUT_DIR]     (default build/os3)
 # src/logo.h comes from tools/mklogo.py and AmiCradle's logo; it is kept in
 # the repository, so the build needs no Python.
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 # CPU= and OPT= change -m68040 and -O2 (the ROM's build: OPT=-Os).
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)

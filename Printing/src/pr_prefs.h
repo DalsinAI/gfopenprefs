@@ -15,7 +15,7 @@
  * devices/gfopenprinter.device, opr_default_prefs: the generic driver on the parallel port), so a save changes
  * nothing but the fields the page shows. Plain C: tested on the host by Printing/tests/run.sh.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef PR_PREFS_H
 #define PR_PREFS_H
 

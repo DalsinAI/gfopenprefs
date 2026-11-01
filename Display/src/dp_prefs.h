@@ -6,7 +6,7 @@
  * settings put back unchanged give the file's own bytes. A chunk that isn't there yet is added, its other
  * bytes zero. Plain C: tested on the host by Display/tests/run.sh.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef DP_PREFS_H
 #define DP_PREFS_H
 

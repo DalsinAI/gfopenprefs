@@ -3,7 +3,7 @@
  * release, a press and a move drags at once and never fronts first), a
  * Gestures file's rows, and the qualifiers.
  *   Windows/tests/run.sh
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <stdio.h>
 #include <string.h>
 #include "../src/gestures.h"

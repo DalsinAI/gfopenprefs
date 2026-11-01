@@ -11,7 +11,7 @@
  * (GFOpenUp, salvor/Design-No-ROM-Volume-20261024.md, section 9.3). It stays for OS 3.2.3's own ROM, as
  * SYS:Preferences/GFOpenPrefs APPLY, by its full path (the small body, C:GFOpenPrefs, is no longer built).
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <dos/dos.h>
 #include <proto/exec.h>

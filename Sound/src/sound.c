@@ -25,7 +25,7 @@
  * brings the window to the front; each start begins as a new program would, since GFOpenBench's data
  * stays from one start to the next. GFOpenSpeaker stays a program of its own.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>

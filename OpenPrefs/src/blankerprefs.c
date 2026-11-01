@@ -6,7 +6,7 @@
  *
  *   Blanker [SECONDS=n] [USE] [SAVE]          (from GFOpenPrefs: GFOpenPrefs BLANKER SECONDS=600 SAVE)
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <dos/dos.h>
 #include <dos/dostags.h>

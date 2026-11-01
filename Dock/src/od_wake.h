@@ -1,5 +1,5 @@
 /* GFOpenDock's timer: how long it sleeps, and what each wake looks at (0.6.11).
- * MIT, Copyright (c) 2026 AmigaChrome Team.
+ * MIT, Copyright (c) 2026 AmiCradle Team.
  *
  * Most of what the dock does comes to it as a signal: clicks and refreshes (IDCMP), icons dropped on it
  * (AppMessages), Ctrl-F from its editor, Ctrl-C, Workbench closing and opening. Three things come with no

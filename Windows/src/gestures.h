@@ -9,7 +9,7 @@
  * at the first move past the threshold, which gesture it was.
  *
  * Pure (no Amiga calls): Windows/tests/test_gestures.c runs it on the host.
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef OPENWINDOWS_GESTURES_H
 #define OPENWINDOWS_GESTURES_H
 

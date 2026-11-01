@@ -36,7 +36,7 @@
  * holds with LT_ONE, as a page of GFOpenLook. GFOpenMenus' settings code, om_prefs.c, is linked once into
  * GFOpenBench for every built-in that reads it. The stand-alone Menus builds as before.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <exec/ports.h>

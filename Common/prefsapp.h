@@ -6,7 +6,7 @@
  *   op_app_path(1)   the same, or else "GFOpenPrefs", for the Shell's path to find
  *
  * Header-only (each program includes it once); a process's call (pr_WindowPtr: no "insert volume" requester).
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef OPENPREFS_PREFSAPP_H
 #define OPENPREFS_PREFSAPP_H
 

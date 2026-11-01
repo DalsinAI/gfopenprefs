@@ -4,7 +4,7 @@ GFOpenTitle fills the Workbench screen's title bar: AmiCradle's logo at the
 far left, the free chip and fast memory after Workbench's title, and at the
 right end the day, date and time, the network icons, GFOpenSpeaker's speaker
 and a cog with the settings editors. GFOpenPrefs Title bar is its editor.
-MIT, Copyright (c) 2026 AmigaChrome Team.
+MIT, Copyright (c) 2026 AmiCradle Team.
 
 ![The cog's list of settings editors, open on the Workbench screen](docs/cog.png)
 

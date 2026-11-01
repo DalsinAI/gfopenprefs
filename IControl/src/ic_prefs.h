@@ -6,7 +6,7 @@
  * bytes. With no file, a 28-byte chunk (the size every release reads) is added. Plain C: tested on the host
  * by IControl/tests/run.sh.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef IC_PREFS_H
 #define IC_PREFS_H
 

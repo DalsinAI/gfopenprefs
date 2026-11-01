@@ -1,6 +1,6 @@
 #!/bin/sh
 # Host tests for the Gamepads editor's settings and formats (gp_core.c), with the host's cc.
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${TMPDIR:-/tmp}/gp_core_test

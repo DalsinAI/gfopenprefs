@@ -13,7 +13,7 @@
  * and byte this section doesn't edit is kept as the file had it (ic_prefs.c), OS 3.2's longer chunk too.
  * On the open ROM, intuition's prefs task reads the file but doesn't act on it yet; on OS 3.2.3, IPrefs does.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <dos/dos.h>
 #include <intuition/intuition.h>
@@ -39,7 +39,7 @@
 #include "pf_iff.h"
 #include "ic_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenIControl 0.1 (21.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenIControl 0.1 (21.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define IC_ENV "ENV:Sys/icontrol.prefs"
 #define IC_ENVARC "ENVARC:Sys/icontrol.prefs"

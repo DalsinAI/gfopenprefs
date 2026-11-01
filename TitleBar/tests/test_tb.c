@@ -1,6 +1,6 @@
 /* Host tests for tb_prefs.h (ENV:GFOpenPrefs/TitleBar) and tb_fade.h (the see-through bar's fade, and the pointer's
  * part in it).
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "tb_prefs.h"
 #include "tb_fade.h"
 #include <stdio.h>

@@ -11,7 +11,7 @@
  *     so it can't come between reading the input mark and setting slow.
  *
  * Plain C with no Amiga headers, so Common/tests builds it on the host as it is.
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef IDLEPACE_H
 #define IDLEPACE_H
 

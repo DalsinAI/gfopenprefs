@@ -3,7 +3,7 @@
  *
  * Pure (no Amiga calls): Windows/tests/test_places.c runs it on the host,
  * built with -DPLACES_HOST, which gives the few NDK types and tags it needs.
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef OPENWINDOWS_PLACES_H
 #define OPENWINDOWS_PLACES_H
 

@@ -17,7 +17,7 @@
  *                                GameControllerDB format; written by
  *                                gfopeninput.library (OIN_SetMapping)
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef GP_CORE_H
 #define GP_CORE_H
 

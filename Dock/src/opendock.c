@@ -17,7 +17,7 @@
  * once when the dock opens and kept, so a redraw is one blit and the icons,
  * and a real 68040 is never slowed. No magnification.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <exec/ports.h>

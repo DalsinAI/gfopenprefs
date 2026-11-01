@@ -3,7 +3,7 @@
 # With an openamigaup checkout beside this one (OAU=dir), also: the two samples are still the bytes its GFOpenPrinter
 # part writes (tools/build_pack.py printer_prefs and printergfx_prefs), so the page's no-file files stay the part's.
 #   sh Printing/tests/run.sh
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${TMPDIR:-/tmp}/pr_test

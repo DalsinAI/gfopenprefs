@@ -18,7 +18,7 @@
  * position for a monitor that has none yet are taken from the standard rectangle and the monitor's view
  * position, and the rectangles are in the chosen mode's own pixels.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>
@@ -49,7 +49,7 @@
 #include "pf_iff.h"
 #include "dp_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenScreenMode 0.1 (21.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenScreenMode 0.1 (21.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define MODE_ENV "ENV:Sys/screenmode.prefs"
 #define MODE_ENVARC "ENVARC:Sys/screenmode.prefs"

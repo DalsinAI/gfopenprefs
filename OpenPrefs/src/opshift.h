@@ -16,7 +16,7 @@
  * The protos are included here first, so each page's own #include of them is empty, and the calls are
  * redefined on the NDK's inline __X_base forms.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef OPSHIFT_H
 #define OPSHIFT_H
 

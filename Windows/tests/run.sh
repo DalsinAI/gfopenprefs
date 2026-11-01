@@ -2,7 +2,7 @@
 # GFOpenWindows' gesture table (src/gestures.c) and places (src/places.c) built
 # for the host and run.
 #   Windows/tests/run.sh          needs a host C compiler (cc or gcc)
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${OUT:-$HERE/../build/host}

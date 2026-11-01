@@ -14,7 +14,7 @@
  *   tbp_on_bar(&p, x, y, on)    whether the pointer counts as on the bar (GFOpenTitle 0.7.7): on it, and moved since
  *                               GFOpenTitle first looked
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef TB_FADE_H
 #define TB_FADE_H
 

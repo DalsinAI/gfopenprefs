@@ -30,7 +30,7 @@
  * copied when the menu opens, and before a choice is given or a check mark
  * changed the item is looked up again in the window's strip as it is then.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>
@@ -70,7 +70,7 @@
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 #include "../../Common/idlepace.h"           /* the bar's tick slowed when nobody is there */
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenMenus 0.4.7 (01.11.2026) MIT, Copyright (c) 2026 AmigaChrome Team";   /* 0.4.7: the bar ticks every 500 ms after 2 s with no input, and at full speed again from the first input (Common/idlepace.h); 0.4.6: built -fno-late-combine-instructions (Menus/engine/build.sh: GCC 16.2.0-open3 stored wbclose.h's "OpenWBNotify" one byte late, so the semaphore was named ""); 0.4.5: no WORKBENCH port (GFOpenBench): the right button opens the window's own menus */
+static const char version[] __attribute__((used)) = "$VER: GFOpenMenus 0.4.7 (01.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";   /* 0.4.7: the bar ticks every 500 ms after 2 s with no input, and at full speed again from the first input (Common/idlepace.h); 0.4.6: built -fno-late-combine-instructions (Menus/engine/build.sh: GCC 16.2.0-open3 stored wbclose.h's "OpenWBNotify" one byte late, so the semaphore was named ""); 0.4.5: no WORKBENCH port (GFOpenBench): the right button opens the window's own menus */
 
 #define PREFS_ENV "ENV:GFOpenMenus/Menus"
 #define TRAY_DIR "ENV:GFOpenMenus/Tray"     /* one file per tray program: "width order" (GFOpenSpeaker, the clock) */

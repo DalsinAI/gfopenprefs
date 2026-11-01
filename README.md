@@ -57,4 +57,4 @@ GFOpenPrefs was created by the AmiCradle Team, for AmiCradle.
 
 ## Contributors
 
-GFOpenPrefs is created and maintained by [SacredTrees](https://github.com/SacredTrees) with The AmiCradle Team, copyright AmigaChrome Team. Everyone whose work it includes is credited in [`CONTRIBUTORS.md`](CONTRIBUTORS.md).
+GFOpenPrefs is created and maintained by [SacredTrees](https://github.com/SacredTrees) with The AmiCradle Team, copyright AmiCradle Team. Everyone whose work it includes is credited in [`CONTRIBUTORS.md`](CONTRIBUTORS.md).

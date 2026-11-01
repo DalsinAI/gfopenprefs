@@ -1,6 +1,6 @@
 #!/bin/sh
 # Host tests for GFOpenMenus' settings (om_prefs.c), with the host's cc.
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${TMPDIR:-/tmp}/om_prefs_test

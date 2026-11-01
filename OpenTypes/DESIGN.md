@@ -1,4 +1,4 @@
-<!-- GFOpenTypes' design, written in AmiCradle's development tree on 4 October 2026. Copyright (c) 2026 AmigaChrome Team, MIT licence (../LICENSE). -->
+<!-- GFOpenTypes' design, written in AmiCradle's development tree on 4 October 2026. Copyright (c) 2026 AmiCradle Team, MIT licence (../LICENSE). -->
 
 # GFOpenTypes
 
@@ -12,7 +12,7 @@ the current solution is a bit... pants".
 
 **GFOpenTypes** (a working name, our to change) is the first of GFOpenPrefs,
 our preferences editors, in the repository `DalsinAI/openamigaprefs`. MIT,
-Copyright (c) 2026 AmigaChrome Team, credit kept. GadTools, as OS 3.x
+Copyright (c) 2026 AmiCradle Team, credit kept. GadTools, as OS 3.x
 applications are.
 
 ## 1. What OS 3.2 has, and what is missing

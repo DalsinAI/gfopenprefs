@@ -7,7 +7,7 @@
 #     page object calls the frame's lt_wait (opshift.h routes the pages' Wait and WaitPort through it, so
 #     Ctrl-C ends GFOpenPrefs: GFOpenBench's Quit).
 #   sh OpenPrefs/tests/run.sh
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 P=$HERE/..

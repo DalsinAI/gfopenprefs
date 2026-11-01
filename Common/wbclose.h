@@ -61,7 +61,7 @@
  *
  * The record layout must stay the same as opengadtools' look/wbnotify.h.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef WBCLOSE_H
 #define WBCLOSE_H
 

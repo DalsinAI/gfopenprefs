@@ -1,6 +1,6 @@
 /* Host tests for the IControl section's fields (ic_prefs.c), on pf_iff's list.
  *   IControl/tests/run.sh
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "pf_iff.h"
 #include "ic_prefs.h"
 

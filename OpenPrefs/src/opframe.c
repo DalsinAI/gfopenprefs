@@ -20,7 +20,7 @@
  * (ENV: only) and says so in the page's status line; from the Shell they are made without asking, and one
  * line says what was made.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>

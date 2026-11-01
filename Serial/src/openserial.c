@@ -21,7 +21,7 @@
  * run sets again the ones it counts on. The stand-alone GFOpenSerial builds as
  * before.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>
@@ -48,7 +48,7 @@
 #endif
 
 #ifndef IN_OPENBENCH
-static const char version[] __attribute__((used)) = "$VER: GFOpenSerial 0.1 (10.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenSerial 0.1 (10.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 #endif
 
 /* sp_SerialFlags' bits, as the OS's Serial editor sets them (not in every NDK's prefs/serial.h) */

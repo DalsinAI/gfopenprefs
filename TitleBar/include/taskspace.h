@@ -40,7 +40,7 @@
  * the clock and network icons do. Orders taken: the cog -5, GFOpenSpeaker 0,
  * the network icons 5, the clock 10. Programs use 1 to 4 (Tata is 2).
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef TASKSPACE_H
 #define TASKSPACE_H
 

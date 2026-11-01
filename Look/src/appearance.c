@@ -23,7 +23,7 @@
  *
  * Built into GFOpenLook only (LT_ONE, Look/build-one.sh): the page runs in GFOpenLook's one window.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>

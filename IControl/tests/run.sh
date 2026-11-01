@@ -1,6 +1,6 @@
 #!/bin/sh
 # Host tests for the IControl section's fields (IControl/src/ic_prefs.c) on Look's PREF reader and writer.
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${TMPDIR:-/tmp}/ic_test

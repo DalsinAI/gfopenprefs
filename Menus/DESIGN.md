@@ -1,7 +1,7 @@
 # GFOpenPrefs Menus
 
 The editor for GFOpenMenus, the GFOpen family's own menus (MIT). GFOpenMenus draws;
-Menus sets what it draws. MIT, Copyright (c) 2026 AmigaChrome Team.
+Menus sets what it draws. MIT, Copyright (c) 2026 AmiCradle Team.
 
 ## 0.1 (6 October 2026)
 

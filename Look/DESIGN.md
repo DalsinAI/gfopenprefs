@@ -2,7 +2,7 @@
 
 The editor for GFOpenLook, the GFOpenGadTools look on Workbench and every
 GadTools program. GFOpenLook draws; Look sets what it draws. MIT, Copyright
-(c) 2026 AmigaChrome Team.
+(c) 2026 AmiCradle Team.
 
 ![Look 0.1, testing the Graphite theme](docs/window.png)
 

@@ -11,7 +11,7 @@
 # 16. GCC 16.2.0b has a trap of its own: at -O2 it can turn a loop that
 # shifts an array up into a forward copy, so GFOpenMenus is built
 # -fno-tree-loop-distribute-patterns, as GFOpenFTP is (the stove leaves it on).
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 # The 68040, soft float: the specs file links libnix's soft libm (maths through

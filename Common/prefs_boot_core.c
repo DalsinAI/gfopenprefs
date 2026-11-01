@@ -1,4 +1,4 @@
-/* GFOpenIntuition: prefs_boot_core.h's readers. Copyright (c) 2026 AmigaChrome Team. MIT. */
+/* GFOpenIntuition: prefs_boot_core.h's readers. Copyright (c) 2026 AmiCradle Team. MIT. */
 #include "prefs_boot_core.h"
 
 static int pbc_clamp(long v, long lo, long hi) { return (int)(v < lo ? lo : v > hi ? hi : v); }
