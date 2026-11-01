@@ -1,4 +1,4 @@
-/* OpenMenus' keyboard control (om_kbd.h): the keys of Menus/DESIGN.md and
+/* GFOpenMenus' keyboard control (om_kbd.h): the keys of Menus/DESIGN.md and
  * the design note KEYBOARD_CONTROL.md, on a model of the copied strip.
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include "om_kbd.h"

@@ -1,6 +1,6 @@
-/* barpaint.h: the screen bar's own colours behind a bar window (OpenTitle's
- * icons and clock, OpenSpeaker's speaker). The bar is a gradient the theme
- * draws straight into the screen (OpenLook), so a bar window filled with the
+/* barpaint.h: the screen bar's own colours behind a bar window (GFOpenTitle's
+ * icons and clock, GFOpenSpeaker's speaker). The bar is a gradient the theme
+ * draws straight into the screen (GFOpenLook), so a bar window filled with the
  * BARBLOCKPEN looks like a white box on it. These read the bar's colour, a
  * row at a time, from a strip in the middle of the bar (the commonest colour
  * of each row, so title text in the strip doesn't count) and paint it.
@@ -9,7 +9,7 @@
  * draws the pen when there is none, or the bar isn't the screen's title bar.
  * A program includes this once.
  *
- * bp_paint_kept() and bp_text_pen_kept() (OpenSpeaker 0.1.3; the Team,
+ * bp_paint_kept() and bp_text_pen_kept() (GFOpenSpeaker 0.1.3; the Team,
  * 11 October 2026: the speaker was seen in a white box on the black bar) never
  * fall back to the pen's white on the title bar. When a reading fails (the
  * bar covered as the program starts, or not read yet) they use the colours

@@ -1,30 +1,30 @@
-/* OpenPrefs Look 0.1: the editor for OpenLook (the OpenGadTools look on
+/* GFOpenPrefs Look 0.1: the editor for GFOpenLook (the GFOpenGadTools look on
  * Workbench and every GadTools program). A GadTools prefs editor, as the
  * OS's own: Save, Use, Test (put back after 15 seconds unless kept) and
- * Cancel. What it sets lives where OpenLook already keeps it,
- * ENV:OpenGadTools/Look (ENVARC: when saved); OpenLook draws.
+ * Cancel. What it sets lives where GFOpenLook already keeps it,
+ * ENV:GFOpenGadTools/Look (ENVARC: when saved); GFOpenLook draws.
  *
  *   - the theme, from SYS:Prefs/Presets/Themes, with a preview
  *   - light, dark, or automatic by the clock
  *   - an accent colour of the user's over the theme's
  *   - Lite: shadows, rounding and gradients left out; automatic on a real
- *     68040 or 68060 without OpenGPU
+ *     68040 or 68060 without GFOpenGPU
  *   - which screens are themed (Workbench, other public screens, game
  *     screens) and programs never touched
- *   - Scale (100, 125, 150, 200%): every Open app's font, the screen font
+ *   - Scale (100, 125, 150, 200%): every GFOpen app's font, the screen font
  *     and the bars; and old apps scaled whole 2x to 4x ("Old apps": "Ed 2")
  *   - icon labels (Font prefs' Workbench icon text: plain, fields, shadow, outline)
- *   - desktop profiles (SYS:Prefs/Presets/OpenPrefs/<name>.profile), and
+ *   - desktop profiles (SYS:Prefs/Presets/GFOpenPrefs/<name>.profile), and
  *     "choose a profile by machine at start"
  *   - focus: ClickToFront and AutoPoint, on at start or not, from one place
  *
- * Holding Shift while OpenLook starts gives the OS's own look (safe start).
+ * Holding Shift while GFOpenLook starts gives the OS's own look (safe start).
  *
  *   Look [FROM file] [USE] [SAVE]
  *
- * Built into OpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open preferences in OpenBench natively),
- * it follows OpenBench's desktop/ob_builtin.h: it declares no library base, so dos, intuition, graphics,
- * gadtools and icon are OpenBench's, never opened or closed here; its globals are static; it starts as
+ * Built into GFOpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open preferences in GFOpenBench natively),
+ * it follows GFOpenBench's desktop/ob_builtin.h: it declares no library base, so dos, intuition, graphics,
+ * gadtools and icon are GFOpenBench's, never opened or closed here; its globals are static; it starts as
  * ob_builtin.c starts it, with no arguments and no tooltypes, and writes nothing to Output(); Ctrl-C quits as
  * Cancel does and Ctrl-F brings the window to the front. The stand-alone Look builds as before.
  *
@@ -60,22 +60,22 @@
 #include "../../Common/looktabs.h"
 
 #ifdef IN_OPENBENCH
-static                                     /* built in: OpenBench's globals are its own */
+static                                     /* built in: GFOpenBench's globals are its own */
 #endif
-const char version[] __attribute__((used)) = "$VER: Look 0.5.1 (12.10.2026) OpenPrefs, AmigaChrome Team";
+const char version[] __attribute__((used)) = "$VER: Look 0.5.1 (12.10.2026) GFOpenPrefs, AmiCradle Team";
 
-#define PREFS_ENV "ENV:OpenGadTools/Look"
-#define PREFS_ENVARC "ENVARC:OpenGadTools/Look"
+#define PREFS_ENV "ENV:GFOpenGadTools/Look"
+#define PREFS_ENVARC "ENVARC:GFOpenGadTools/Look"
 #define THEME_DIR "SYS:Prefs/Presets/Themes"
-#define PROFILE_DIR "SYS:Prefs/Presets/OpenPrefs"
+#define PROFILE_DIR "SYS:Prefs/Presets/GFOpenPrefs"
 #define FONT_ENV "ENV:Sys/font.prefs"
 #define FONT_ENVARC "ENVARC:Sys/font.prefs"
 #define CTF_TOOL "SYS:Tools/Commodities/ClickToFront"
 #define AP_TOOL "SYS:Tools/Commodities/AutoPoint"
 #define WBSTARTUP "SYS:WBStartup/"
 #define TEST_SECONDS 15
-#define VIEW_ENV "ENV:OpenAmiga/PrefsView"           /* shared by every OpenPrefs editor: simple or advanced */
-#define VIEW_ENVARC "ENVARC:OpenAmiga/PrefsView"
+#define VIEW_ENV "ENV:GFOpenAmiga/PrefsView"           /* shared by every GFOpenPrefs editor: simple or advanced */
+#define VIEW_ENVARC "ENVARC:GFOpenAmiga/PrefsView"
 
 /* ---- the settings --------------------------------------------------------------------- */
 
@@ -96,7 +96,7 @@ struct look {
     char oldapps[160];            /* "ShowConfig 2, Ed 3": old programs scaled whole, 2x to 4x (amigachrome-guest docs/design/old-apps-scale.md) */
     int profile_auto;
     char desktop[112];            /* kept as read: the editor has no gadget for it yet */
-    int no_zoom, no_size, auto_scrollers;   /* OpenLook 0.5: zoom off, sizegadget off, scrollers auto */
+    int no_zoom, no_size, auto_scrollers;   /* GFOpenLook 0.5: zoom off, sizegadget off, scrollers auto */
 };
 
 static struct look cur, orig;
@@ -160,7 +160,7 @@ static void defaults(struct look *l)
     l->wb_themed = l->pub_themed = 1;
 }
 
-/* The prefs text (OpenLook 0.4's format) into the settings. */
+/* The prefs text (GFOpenLook 0.4's format) into the settings. */
 static void parse_look(struct look *l, const char *text)
 {
     char *t, *line, *p, w[112], v[112];
@@ -225,7 +225,7 @@ static void make_look_text(const struct look *l, char *out, int size)
     static const char *modes[3] = { "light", "dark", "auto" };
     char *o = out;
     int n;
-    n = snprintf(o, size, "%s %s\n; OpenPrefs Look 0.3 wrote the lines below; OpenLook 0.5 reads them\n", l->theme, modes[l->mode]);
+    n = snprintf(o, size, "%s %s\n; GFOpenPrefs Look 0.3 wrote the lines below; GFOpenLook 0.5 reads them\n", l->theme, modes[l->mode]);
     o += n; size -= n;
     if (l->mode == 2) { n = snprintf(o, size, "mode auto %d %d\n", l->dark_from, l->dark_to); o += n; size -= n; }
     if (l->own_accent) { n = snprintf(o, size, "accent %s\n", l->accent); o += n; size -= n; }
@@ -274,13 +274,13 @@ static void make_look_text(const struct look *l, char *out, int size)
     if (l->profile_auto) snprintf(o, size, "profile auto\n");
 }
 
-/* ---- OpenLook: telling it ---------------------------------------------------------------- */
+/* ---- GFOpenLook: telling it ---------------------------------------------------------------- */
 
 static int tell_openlook(void)
 {
     struct MsgPort *p;
     Forbid();
-    if ((p = FindPort((STRPTR)"OpenLook"))) Signal(p->mp_SigTask, SIGBREAKF_CTRL_F);
+    if ((p = FindPort((STRPTR)"GFOpenLook"))) Signal(p->mp_SigTask, SIGBREAKF_CTRL_F);
     Permit();
     return p != NULL;
 }
@@ -566,7 +566,7 @@ static const char *mode_labels[] = { "Light", "Dark", "By the clock", NULL };
 static const char *lite_labels[] = { "Automatic", "On", "Off", NULL };
 static const char *themed_labels[] = { "Themed", "Classic", NULL };
 static const char *scale_labels[] = { "100%", "125%", "150%", "200%", NULL };
-static const char *label_labels[] __attribute__((unused)) = { "Plain", "Fields", "Shadow", "Outline", NULL };   /* not in OpenLook (LT_ONE) */
+static const char *label_labels[] __attribute__((unused)) = { "Plain", "Fields", "Shadow", "Outline", NULL };   /* not in GFOpenLook (LT_ONE) */
 static const char *qual_labels[] = { "Any click", "Left Alt", "Left Amiga", "Ctrl", NULL };
 static const char *qual_values[] = { "NONE", "LALT", "LCOMMAND", "CONTROL" };
 static STRPTR profile_labels[MAX_PROFILES + 2];
@@ -721,7 +721,7 @@ static int gui_once(void)
     lh = fh + 6;
     top = scr->WBorTop + fh + 1 + 6;
     tabs_y = top;
-    /* Advanced on a screen under 400 lines is laid out to fit 640 x 256 with Topaz 8 (OpenLook 1.2) */
+    /* Advanced on a screen under 400 lines is laid out to fit 640 x 256 with Topaz 8 (GFOpenLook 1.2) */
     compact = advanced && scr->Height < 400;
     {   /* the right column's switches with their words after them stay inside the page (Topaz 8: 14 pixels left) */
         int over = R + 110 + 34 + TextLength(&scr->RastPort, (STRPTR)"Scroll bars when needed", 23) - (W - 10);
@@ -732,7 +732,7 @@ static int gui_once(void)
     for (i = 0; i < nprofiles; i++) profile_labels[i] = (STRPTR)profile_names[i];
     if (!nprofiles) profile_labels[nprofiles++] = (STRPTR)"(no profiles)";
     profile_labels[nprofiles] = NULL;
-    strcpy(status_text, cur.profile_auto ? "By machine is on: OpenLook uses the profile that fits this machine."
+    strcpy(status_text, cur.profile_auto ? "By machine is on: GFOpenLook uses the profile that fits this machine."
                                          : "Choose a theme. Test shows it for 15 seconds.");
 
     g = CreateContext(&glist);
@@ -748,7 +748,7 @@ static int gui_once(void)
     /* the left column: themes and the preview */
     row = top + fh + 4;
     G(LISTVIEW_KIND, G_THEMES, L, row, 270, 6 * (fh + 1) + 4, "Theme", PLACETEXT_ABOVE, GTLV_Labels, (ULONG)&theme_list, GTLV_ShowSelected, NULL);
-    /* the preview: shorter on a screen under 400 lines, so the Simple view fits 640 x 256 (OpenLook 1.1) */
+    /* the preview: shorter on a screen under 400 lines, so the Simple view fits 640 x 256 (GFOpenLook 1.1) */
     px = L; py = row + 6 * (fh + 1) + 10; pw = 270; ph = scr->Height < 400 ? 56 : 120;
 
     /* the right column */
@@ -756,9 +756,9 @@ static int gui_once(void)
     G(CYCLE_KIND, G_MODE, R + 110, row, 200, lh, "Mode", PLACETEXT_LEFT, GTCY_Labels, (ULONG)mode_labels); row += lh + 4;
     G(INTEGER_KIND, G_FROM, R + 110, row, 50, lh, "Dark from", PLACETEXT_LEFT, GTIN_MaxChars, 2);
     G(INTEGER_KIND, G_TO, R + 220, row, 50, lh, "to", PLACETEXT_LEFT, GTIN_MaxChars, 2); row += lh + 4;
-    /* Scale: every Open app's font, the screen font and the bars grow with it */
+    /* Scale: every GFOpen app's font, the screen font and the bars grow with it */
     G(CYCLE_KIND, G_SCALE, R + 110, row, 100, lh, "Scale", PLACETEXT_LEFT, GTCY_Labels, (ULONG)scale_labels); row += lh + 8;
-    /* how windows look and behave (OpenLook 0.5): the approved look has all three */
+    /* how windows look and behave (GFOpenLook 0.5): the approved look has all three */
     G(CHECKBOX_KIND, G_SCROLL, R + 110, row, 26, lh, "Scroll bars when needed", PLACETEXT_RIGHT, GTCB_Scaled, TRUE); row += lh + 2;
     G(CHECKBOX_KIND, G_NOSIZE, R + 110, row, 26, lh, "No size gadget", PLACETEXT_RIGHT, GTCB_Scaled, TRUE); row += lh + 2;
     G(CHECKBOX_KIND, G_NOZOOM, R + 110, row, 26, lh, "No zoom gadget", PLACETEXT_RIGHT, GTCB_Scaled, TRUE); row += lh + 8;
@@ -774,7 +774,7 @@ static int gui_once(void)
     G(CYCLE_KIND, G_CUSTOM, R + 110, row, 200, lh, "Game screens", PLACETEXT_LEFT, GTCY_Labels, (ULONG)themed_labels); row += lh + 4;
     G(STRING_KIND, G_NEVER, R + 110, row, 200, lh, "Never touch", PLACETEXT_LEFT, GTST_MaxChars, 150); row += lh + 4;
     G(STRING_KIND, G_OLDAPPS, R + 110, row, 200, lh, "Old apps", PLACETEXT_LEFT, GTST_MaxChars, 150); row += lh + 8;
-#ifndef LT_ONE                                     /* in OpenLook the icon labels are on the Fonts tab */
+#ifndef LT_ONE                                     /* in GFOpenLook the icon labels are on the Fonts tab */
     G(CYCLE_KIND, G_LABELS, R + 110, row, 200, lh, "Icon labels", PLACETEXT_LEFT, GTCY_Labels, (ULONG)label_labels); row += lh + 8;
 #endif
     }
@@ -789,7 +789,7 @@ static int gui_once(void)
     }
     if (py + ph + 10 > row) row = py + ph + 10;
     } else {
-        /* Advanced on a screen under 400 lines (OpenLook 1.2): every setting in 640 x 256 with Topaz 8. No preview
+        /* Advanced on a screen under 400 lines (GFOpenLook 1.2): every setting in 640 x 256 with Topaz 8. No preview
          * (Simple has it, and Test shows the real thing); under a theme list four lines tall, the screens, the programs
          * never touched and the profile; on the right the mode, windows, accent, Lite and focus, a line apart. */
         static const char *const left_words[] = { "Workbench", "Other screens", "Game screens", "Never touch", "Old apps", "Profile", "By machine",
@@ -852,7 +852,7 @@ static int gui_once(void)
     wt = scr->BarHeight + (scr->Height < 400 ? 1 : 10);
     lt_place(&wl, &wt);
     menus[6].nm_Flags = CHECKIT | MENUTOGGLE | (advanced ? CHECKED : 0);
-    win = lt_open(scr, wl, wt, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | LISTVIEWIDCMP | BUTTONIDCMP | CYCLEIDCMP | STRINGIDCMP | CHECKBOXIDCMP | INTEGERIDCMP, "OpenPrefs Look 0.3");
+    win = lt_open(scr, wl, wt, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | LISTVIEWIDCMP | BUTTONIDCMP | CYCLEIDCMP | STRINGIDCMP | CHECKBOXIDCMP | INTEGERIDCMP, "GFOpenPrefs Look 0.3");
     if (!win) { rc = RETURN_FAIL; goto out; }
     if ((menu = CreateMenus(menus, TAG_DONE)) && LayoutMenus(menu, vi, GTMN_NewLookMenus, TRUE, TAG_DONE)) SetMenuStrip(win, menu);
     GT_RefreshWindow(win, NULL);
@@ -895,7 +895,7 @@ static int gui_once(void)
             }
         }
 #ifdef IN_OPENBENCH
-        /* OpenBench's Ctrl-C (it is quitting): as Cancel; its Ctrl-F (Look opened again): the window to the front */
+        /* GFOpenBench's Ctrl-C (it is quitting): as Cancel; its Ctrl-F (Look opened again): the window to the front */
         if (got & SIGBREAKF_CTRL_C) { if (test_until) go_back(); test_until = 0; quit = 1; }
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
 #endif
@@ -971,7 +971,7 @@ static int gui_once(void)
                 case G_SAVE: put_in_place(1); focus_now(); test_until = 0; quit = 1; break;
                 case G_CANCEL: if (test_until) go_back(); quit = 1; break;
                 default:
-                    if (lt_hit(gg, code) >= 0) {   /* another tab: keep, as Use, and hand over (OpenPrefs: when changed) */
+                    if (lt_hit(gg, code) >= 0) {   /* another tab: keep, as Use, and hand over (GFOpenPrefs: when changed) */
                         if (LT_DIRTY) { put_in_place(0); focus_now(); }
                         test_until = 0; lt_go(win, lt_hit(gg, code)); quit = 1;
                     }
@@ -1005,7 +1005,7 @@ int main(int argc, char **argv)
 #ifdef IN_OPENBENCH
     /* Built in, it starts as ob_builtin.c starts it (argc 0, argv NULL, no WBStartup message, so no tooltypes):
      * as from Workbench below, with nothing read from the Shell or written to Output(). Its statics live on in
-     * OpenBench from the run before, so what a run counts on starts afresh (the preview was freed, not cleared). */
+     * GFOpenBench from the run before, so what a run counts on starts afresh (the preview was freed, not cleared). */
     argc = 0;
     preview_loaded = 0; npens = 0; test_until = 0; ctf_qual = 0;
 #endif

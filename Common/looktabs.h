@@ -1,5 +1,5 @@
 /* looktabs.h: Look, Windows, Title bar and Menus as one editor with tabs (the user, 10 October 2026:
- * "combine windows and look into a single, tabbed interface under OpenLook ... title bar and menus
+ * "combine windows and look into a single, tabbed interface under GFOpenLook ... title bar and menus
  * should live under here too"; then "the tab option is weird and should be closer to MUI").
  *
  * The tabs are drawn as MUI's Register class draws them: each tab a raised shape on a line, as wide as its
@@ -8,14 +8,14 @@
  * does), opens that editor where this window is, and closes this one. Each editor is still its own
  * program, so each still opens alone from the cog, the menu or Workbench.
  *
- * OpenLook 1.1 (12 October 2026, the combined preferences' Appearance): ten tabs, Look's named Theme, then
+ * GFOpenLook 1.1 (12 October 2026, the combined preferences' Appearance): ten tabs, Look's named Theme, then
  * Pointer, Fonts, Colours, Backdrops, Workbench and File requesters (Look/src/appearance.c), then Windows,
  * Title bar and Menus. When one row can't hold them they wrap into a second (Topaz 8 needs about 850 pixels
  * for the ten); the row with the open tab stands next to the page, the other above it.
  *
  * Each tab is a GadTools GENERIC_KIND gadget (no imagery: the tab is drawn here) with the ID LT_ID + n,
  * so a click comes as IDCMP_GADGETUP like any other (the open page's own tab is left out of each
- * editor's cases: a click on it does nothing). The place passes in ENV:OpenPrefs/LookTab
+ * editor's cases: a click on it does nothing). The place passes in ENV:GFOpenPrefs/LookTab
  * ("left top"), read once and deleted by the editor that opens.
  *
  * An editor calls lt_make() while it makes its gadgets, lt_draw() after GT_RefreshWindow() and between
@@ -39,12 +39,12 @@
 #include <string.h>
 
 #ifdef LT_OP
-/* OpenPrefs (Dale, 17 October 2026, 08:18: "We should just combine them into a single app, prefs editors that
+/* GFOpenPrefs (Dale, 17 October 2026, 08:18: "We should just combine them into a single app, prefs editors that
  * is"): every editor is a section of one window, the sections down the left and the page on the right; on a
  * screen too narrow for both (640 x 256), the sections in a cycle gadget above the page. The frame is
- * OpenPrefs/src/opframe.c, linked once into SYS:Prefs/OpenPrefs; each page is the editor it was, built with
+ * OpenPrefs/src/opframe.c, linked once into SYS:Prefs/GFOpenPrefs; each page is the editor it was, built with
  * LT_OP (and so LT_ONE) and OpenPrefs/src/opshift.h, which moves its gadgets and drawing right of the list.
- * The tabs below stay for the editors built alone and for OpenLook. */
+ * The tabs below stay for the editors built alone and for GFOpenLook. */
 #ifndef LT_ONE
 #define LT_ONE
 #endif
@@ -78,7 +78,7 @@ const char *lt_note_take(void);           /* the same note, or NULL, for a page 
 #else
 
 /* One program, one window (LT_ONE, the user, 10 October 2026: "openlook shouldn't open new windows for the
- * tabs", "the overall window should remain the same size"): the four editors are built into SYS:Prefs/OpenLook
+ * tabs", "the overall window should remain the same size"): the four editors are built into SYS:Prefs/GFOpenLook
  * (Look/src/openlookprefs.c), each page's gadgets swapped into the one window, which only ever grows. Without
  * LT_ONE each editor is its own program and a tab hands over to the next, as before. */
 #ifdef LT_ONE
@@ -87,19 +87,19 @@ extern int lt_next;                        /* the tab clicked: the page to open 
 extern int lt_win_w, lt_win_h;             /* the inner size the window has reached */
 #endif
 
-/* Built into OpenBench (IN_OPENBENCH, its desktop/ob_builtin.h; the Team, 11 October 2026: the Open preferences in
- * OpenBench natively): a tab starts the next editor through OpenBench when that one is built in too. */
+/* Built into GFOpenBench (IN_OPENBENCH, its desktop/ob_builtin.h; the Team, 11 October 2026: the Open preferences in
+ * GFOpenBench natively): a tab starts the next editor through GFOpenBench when that one is built in too. */
 #ifdef IN_OPENBENCH
-int ob_builtin_open(const char *path);     /* OpenBench's: 1 when path names a built-in (started, or sent Ctrl-F) */
+int ob_builtin_open(const char *path);     /* GFOpenBench's: 1 when path names a built-in (started, or sent Ctrl-F) */
 #endif
 
-/* The pages, by number (OpenLook's own order of pages: Look/src/openlookprefs.c); lt_order is the order
+/* The pages, by number (GFOpenLook's own order of pages: Look/src/openlookprefs.c); lt_order is the order
  * the tabs stand in. */
 enum { LT_LOOK, LT_WINDOWS, LT_TITLEBAR, LT_MENUS, LT_POINTER, LT_FONTS, LT_COLOURS, LT_BACKDROPS, LT_WORKBENCH,
        LT_ASL, LT_N };
 #define LT_ID 900
 #define LT_IS(id) ((id) >= LT_ID && (id) < LT_ID + LT_N)
-#define LT_PLACE "ENV:OpenPrefs/LookTab"
+#define LT_PLACE "ENV:GFOpenPrefs/LookTab"
 #define LT_PAD 12                          /* each side of a tab's name */
 #define LT_LIFT 2                          /* how much taller the open page's tab stands */
 #define LT_ROWS 3                          /* at most */
@@ -109,8 +109,8 @@ static const char *const lt_label[LT_N] = { "Theme", "Windows", "Title bar", "Me
                                             "Backdrops", "Workbench", "File requesters" };
 /* what a tab starts when each editor is its own program (no LT_ONE): the program, and the page to open */
 static const char *const lt_path[LT_N] = { "SYS:Prefs/Look", "SYS:Prefs/Windows", "SYS:Prefs/TitleBar", "SYS:Prefs/Menus",
-                                           "SYS:Prefs/OpenLook", "SYS:Prefs/OpenLook", "SYS:Prefs/OpenLook",
-                                           "SYS:Prefs/OpenLook", "SYS:Prefs/OpenLook", "SYS:Prefs/OpenLook" };
+                                           "SYS:Prefs/GFOpenLook", "SYS:Prefs/GFOpenLook", "SYS:Prefs/GFOpenLook",
+                                           "SYS:Prefs/GFOpenLook", "SYS:Prefs/GFOpenLook", "SYS:Prefs/GFOpenLook" };
 static const char *const lt_arg[LT_N] = { "", "", "", "", " POINTER", " FONTS", " COLOURS", " BACKDROPS", " WORKBENCH",
                                           " FILEREQUESTERS" };
 static const unsigned char lt_order[LT_N] = { LT_LOOK, LT_POINTER, LT_FONTS, LT_COLOURS, LT_BACKDROPS, LT_WORKBENCH,
@@ -164,7 +164,7 @@ static BP_UNUSED_LT int lt_layout(struct TextAttr *ta, int x, int y, int w, int 
     return row + 1;
 }
 
-/* The width the tabs may take: the page's own; in OpenLook (LT_ONE) at least LT_ONE_W, and the window's when
+/* The width the tabs may take: the page's own; in GFOpenLook (LT_ONE) at least LT_ONE_W, and the window's when
  * another page made it wider, so every page has the same rows of tabs and a narrow page (Title bar) gets no
  * third row (lt_open() makes the window wide enough for them). */
 #define LT_ONE_W 600
@@ -303,7 +303,7 @@ static void lt_go(struct Window *win, int to)
     return;
 #endif
     if (win) {
-        BPTR dir = CreateDir((STRPTR)"ENV:OpenPrefs");
+        BPTR dir = CreateDir((STRPTR)"ENV:GFOpenPrefs");
         if (dir) UnLock(dir);
         if ((f = Open((STRPTR)LT_PLACE, MODE_NEWFILE))) {
             char line[32];
@@ -313,7 +313,7 @@ static void lt_go(struct Window *win, int to)
         }
     }
 #ifdef IN_OPENBENCH
-    if (!lt_arg[to][0] && ob_builtin_open(lt_path[to])) return;   /* built in too: a process of OpenBench's, at this window's place */
+    if (!lt_arg[to][0] && ob_builtin_open(lt_path[to])) return;   /* built in too: a process of GFOpenBench's, at this window's place */
 #endif
     snprintf(cmd, sizeof cmd, "\"%s\"%s", lt_path[to], lt_arg[to]);
     in = Open((STRPTR)"NIL:", MODE_OLDFILE);
@@ -350,13 +350,13 @@ static BP_UNUSED_LT struct Window *lt_open(struct Screen *scr, int left, int top
         return lt_win;
     }
     lt_win_w = W; lt_win_h = H;
-    lt_win = OpenWindowTags(NULL, WA_Title, (ULONG)"OpenLook", WA_ScreenTitle, (ULONG)screen_title, WA_PubScreen, (ULONG)scr,
+    lt_win = OpenWindowTags(NULL, WA_Title, (ULONG)"GFOpenLook", WA_ScreenTitle, (ULONG)screen_title, WA_PubScreen, (ULONG)scr,
                             WA_Left, left, WA_Top, top, WA_InnerWidth, W, WA_InnerHeight, H,
                             WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
                             WA_SmartRefresh, TRUE, WA_NewLookMenus, TRUE, WA_IDCMP, idcmp, TAG_DONE);
     return lt_win;
 #else
-    return OpenWindowTags(NULL, WA_Title, (ULONG)"OpenLook", WA_ScreenTitle, (ULONG)screen_title, WA_PubScreen, (ULONG)scr,
+    return OpenWindowTags(NULL, WA_Title, (ULONG)"GFOpenLook", WA_ScreenTitle, (ULONG)screen_title, WA_PubScreen, (ULONG)scr,
                           WA_Left, left, WA_Top, top, WA_InnerWidth, W, WA_InnerHeight, H,
                           WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
                           WA_SmartRefresh, TRUE, WA_NewLookMenus, TRUE, WA_IDCMP, idcmp, TAG_DONE);

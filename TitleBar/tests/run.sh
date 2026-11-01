@@ -1,5 +1,5 @@
 #!/bin/sh
-# Host tests for OpenTitle's settings (src/tb_prefs.h) and its see-through bar's fade (src/tb_fade.h), with the
+# Host tests for GFOpenTitle's settings (src/tb_prefs.h) and its see-through bar's fade (src/tb_fade.h), with the
 # host's cc.
 #   sh TitleBar/tests/run.sh
 # MIT, Copyright (c) 2026 AmigaChrome Team.

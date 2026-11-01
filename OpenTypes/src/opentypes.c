@@ -1,37 +1,37 @@
-/* OpenTypes: which program opens each kind of file (DESIGN.md).
+/* GFOpenTypes: which program opens each kind of file (DESIGN.md).
  *
- *   OpenTypes                         the window
- *   OpenTypes LIST                    the kinds of file and their programs
- *   OpenTypes SET <type> TO <program> [SAVE]
- *   OpenTypes SCAN <type> IN <drawer> [APPLY]
- *   OpenTypes TYPE <file>             what kind of file it is
- *   OpenTypes UNDO                    puts back every icon OpenTypes changed
- *   OpenTypes SWITCH <program> TO <program> [SAVE] [IN <drawer>]
+ *   GFOpenTypes                         the window
+ *   GFOpenTypes LIST                    the kinds of file and their programs
+ *   GFOpenTypes SET <type> TO <program> [SAVE]
+ *   GFOpenTypes SCAN <type> IN <drawer> [APPLY]
+ *   GFOpenTypes TYPE <file>             what kind of file it is
+ *   GFOpenTypes UNDO                    puts back every icon GFOpenTypes changed
+ *   GFOpenTypes SWITCH <program> TO <program> [SAVE] [IN <drawer>]
  *                                     every kind of file the first program
  *                                     opens goes to the second, sounds and
  *                                     fonts aside; with IN, icons there too
  *
  * - The kinds of file are the OS's default icons for projects
  *   (ENVARC:Sys/def_<type>.info): a file without an icon gets one, and its
- *   default tool opens the file. OpenTypes changes that default tool, in ENV:
+ *   default tool opens the file. GFOpenTypes changes that default tool, in ENV:
  *   (Use) or ENV: and ENVARC: (Save).
  * - Icons files already have that still name the type's old program are
  *   found (SCAN) and, when asked, changed too. A file's kind comes from
  *   datatypes.library, as Workbench's own DefIcons finds it.
- * - Never a silent change: every icon is copied to ENVARC:OpenTypes/Backup
- *   before it changes and listed in ENVARC:OpenTypes/Changes; UNDO puts them
+ * - Never a silent change: every icon is copied to ENVARC:GFOpenTypes/Backup
+ *   before it changes and listed in ENVARC:GFOpenTypes/Changes; UNDO puts them
  *   all back. Icons are read and written with icon.library only.
  *
- * Built into OpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open
- * preferences in OpenBench natively) as OpenTypes, it follows OpenBench's
- * desktop/ob_builtin.h: icon.library and gadtools.library are OpenBench's,
- * never opened or closed here; datatypes.library (OpenBench opens its own
+ * Built into GFOpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open
+ * preferences in GFOpenBench natively) as GFOpenTypes, it follows GFOpenBench's
+ * desktop/ob_builtin.h: icon.library and gadtools.library are GFOpenBench's,
+ * never opened or closed here; datatypes.library (GFOpenBench opens its own
  * only for a backdrop picture) and asl.library are its own, under its own
  * names; its globals are static. It starts as ob_builtin.c starts it, argc 0
  * and no WBStartup message: the window, and none of the Shell's commands
  * (they write to Output(), and are left out). Ctrl-C quits as Cancel does,
  * Ctrl-F brings the window to the front, and as its statics outlive a run,
- * each run sets again the ones it counts on. The stand-alone OpenTypes builds
+ * each run sets again the ones it counts on. The stand-alone GFOpenTypes builds
  * as before.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
@@ -60,7 +60,7 @@
 
 #include <string.h>
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -70,20 +70,20 @@
 #endif
 
 #ifndef IN_OPENBENCH
-static const char version[] __attribute__((used)) = "$VER: OpenTypes 0.2.3 (11.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
-/* The window runs on 32 KB, however OpenTypes is started: on a Shell's 4 KB
+static const char version[] __attribute__((used)) = "$VER: GFOpenTypes 0.2.3 (11.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
+/* The window runs on 32 KB, however GFOpenTypes is started: on a Shell's 4 KB
  * (Run, a script, the dock's default) the window's calls overran the stack and
  * closing the window rebooted the machine (11 Oct 2026). libnix's start code
  * swaps to a stack of this size when the one it was given is smaller. */
 unsigned long __stack = 32768;
 #endif
 
-#define STATE "ENVARC:OpenTypes"
-#define BACKUP "ENVARC:OpenTypes/Backup"
-#define CHANGES "ENVARC:OpenTypes/Changes"
+#define STATE "ENVARC:GFOpenTypes"
+#define BACKUP "ENVARC:GFOpenTypes/Backup"
+#define CHANGES "ENVARC:GFOpenTypes/Changes"
 
 #ifdef IN_OPENBENCH
-extern struct Library *IconBase, *GadToolsBase;          /* OpenBench's (ob_builtin.h) */
+extern struct Library *IconBase, *GadToolsBase;          /* GFOpenBench's (ob_builtin.h) */
 #define DataTypesBase opentypes_DataTypesBase              /* its own, under its own names */
 #define AslBase opentypes_AslBase
 static struct Library *DataTypesBase, *AslBase;
@@ -102,7 +102,7 @@ typedef struct {
     char label[260];
     int switched;                /* SWITCH changed it */
 } ftype;
-static ftype *types;                     /* MAXTYPES (45 KB), made at the start of main(): OpenPrefs holds every editor at once (W49) */
+static ftype *types;                     /* MAXTYPES (45 KB), made at the start of main(): GFOpenPrefs holds every editor at once (W49) */
 static int ntypes;
 
 static ftype *find_type(const char *name)
@@ -116,7 +116,7 @@ static ftype *find_type(const char *name)
 
 /* The programs we know open a type; shown only where they are installed. */
 static const struct { const char *types, *label, *tool; } catalogue[] = {
-    { " picture iff anim pdf officedocs ", "OpenView", "C:OpenView" },
+    { " picture iff anim pdf officedocs ", "GFOpenView", "C:GFOpenView" },
     { " picture iff anim pdf officedocs amigaguide font sound music video ", "MultiView", "SYS:Utilities/MultiView" },
     { " ascii asm c cpp h i rexx script src ", "TextEdit", "SYS:Tools/TextEdit" },
     { " ascii asm c cpp h i rexx script src ", "Ed", "C:Ed" },
@@ -124,7 +124,7 @@ static const struct { const char *types, *label, *tool; } catalogue[] = {
     { " install ", "Installer", "SYS:System/Installer" },
     { " adf diskarchive ", "DAControl", "C:DAControl" },
     { " prefs ", "Prefs", "SYS:Prefs/Pointer" },
-    { " prefs ", "Prefs", "SYS:Prefs/Classic/Pointer" },      /* after OpenUp's RECONCILE */
+    { " prefs ", "Prefs", "SYS:Prefs/Classic/Pointer" },      /* after GFOpenUp's RECONCILE */
 };
 #define NCAT (int)(sizeof catalogue / sizeof catalogue[0])
 
@@ -277,7 +277,7 @@ static int already_kept(const char *icon)
     return found;
 }
 
-/* Keeps the icon file's original, once, before OpenTypes changes it. */
+/* Keeps the icon file's original, once, before GFOpenTypes changes it. */
 static int keep_original(const char *icon_file)
 {
     char backup[64];
@@ -482,13 +482,13 @@ static int apply_found(const char *tool)
 }
 
 #ifndef IN_OPENBENCH
-/* The Shell's commands, SWITCH among them: built into OpenBench there are no arguments and no Output(),
+/* The Shell's commands, SWITCH among them: built into GFOpenBench there are no arguments and no Output(),
  * so they are left out there. */
 
 /* ---- SWITCH: one program's kinds of file to another ---------------------------------- */
 
 /* Kinds a viewer doesn't take over from MultiView: sounds, music, video and
- * fonts stay with what plays or shows them (OpenPlay, MultiView). */
+ * fonts stay with what plays or shows them (GFOpenPlay, MultiView). */
 static int keeps_its_program(const char *name)
 {
     static const char *const keep[] = { "sound", "music", "audio", "8svx", "wav", "aif", "mp3", "ogg", "flac",
@@ -563,8 +563,8 @@ static int shell_switch(LONG *a)
 {
     const char *from = (const char *)a[9], *to = (const char *)a[2];
     int i, n = 0, failed = 0;
-    if (!to) { PutStr((STRPTR)"OpenTypes: SWITCH needs TO <program>\n"); return RETURN_ERROR; }
-    if (!exists(to)) Printf((STRPTR)"OpenTypes: note: %s isn't there (yet)\n", (LONG)to);
+    if (!to) { PutStr((STRPTR)"GFOpenTypes: SWITCH needs TO <program>\n"); return RETURN_ERROR; }
+    if (!exists(to)) Printf((STRPTR)"GFOpenTypes: note: %s isn't there (yet)\n", (LONG)to);
     for (i = 0; i < ntypes; i++) {
         ftype *t = &types[i];
         if (!t->tool[0] || !same_program(t->tool, from) || keeps_its_program(t->name))
@@ -576,7 +576,7 @@ static int shell_switch(LONG *a)
         } else
             failed++;
     }
-    Printf((STRPTR)"OpenTypes: %ld kind%s of file now open with %s%s\n", (LONG)n, (LONG)(n == 1 ? "" : "s"), (LONG)to,
+    Printf((STRPTR)"GFOpenTypes: %ld kind%s of file now open with %s%s\n", (LONG)n, (LONG)(n == 1 ? "" : "s"), (LONG)to,
            (LONG)(a[3] ? " (saved)" : " (until reboot)"));
     if (a[5] && n) {
         switched_icons = 0;
@@ -590,10 +590,10 @@ static int shell_switch(LONG *a)
                 switched_icons++;
             FreeVec(p);
         }
-        Printf((STRPTR)"OpenTypes: %ld icon%s in %s changed from %s\n", (LONG)switched_icons,
+        Printf((STRPTR)"GFOpenTypes: %ld icon%s in %s changed from %s\n", (LONG)switched_icons,
                (LONG)(switched_icons == 1 ? "" : "s"), a[5], (LONG)from);
     }
-    if (failed) { Printf((STRPTR)"OpenTypes: %ld default icon%s couldn't be changed\n", (LONG)failed, (LONG)(failed == 1 ? "" : "s")); return RETURN_WARN; }
+    if (failed) { Printf((STRPTR)"GFOpenTypes: %ld default icon%s couldn't be changed\n", (LONG)failed, (LONG)(failed == 1 ? "" : "s")); return RETURN_WARN; }
     return RETURN_OK;
 }
 
@@ -605,8 +605,8 @@ static int shell(LONG *a)
     ftype *t;
     if (a[8]) {
         int n;
-        if (!undo_all(&n)) { PutStr((STRPTR)"OpenTypes: some icons couldn't be put back; their originals are in " BACKUP "\n"); return RETURN_ERROR; }
-        Printf((STRPTR)"OpenTypes: %ld icon%s put back as they were\n", n, (LONG)(n == 1 ? "" : "s"));
+        if (!undo_all(&n)) { PutStr((STRPTR)"GFOpenTypes: some icons couldn't be put back; their originals are in " BACKUP "\n"); return RETURN_ERROR; }
+        Printf((STRPTR)"GFOpenTypes: %ld icon%s put back as they were\n", n, (LONG)(n == 1 ? "" : "s"));
         return RETURN_OK;
     }
     if (a[7]) {
@@ -615,19 +615,19 @@ static int shell(LONG *a)
         return k ? RETURN_OK : RETURN_WARN;
     }
     if (a[1]) {
-        if (!(t = find_type((char *)a[1]))) { Printf((STRPTR)"OpenTypes: there is no default icon for %s files\n", a[1]); return RETURN_ERROR; }
-        if (!a[2]) { PutStr((STRPTR)"OpenTypes: SET needs TO <program>\n"); return RETURN_ERROR; }
-        if (!exists((char *)a[2])) Printf((STRPTR)"OpenTypes: note: %s isn't there (yet)\n", a[2]);
-        if (!set_type(t, (char *)a[2], a[3] != 0)) { PutStr((STRPTR)"OpenTypes: couldn't change the default icon\n"); return RETURN_ERROR; }
-        Printf((STRPTR)"OpenTypes: %s files open with %s%s\n", (LONG)t->name, a[2], (LONG)(a[3] ? " (saved)" : " (until reboot)"));
+        if (!(t = find_type((char *)a[1]))) { Printf((STRPTR)"GFOpenTypes: there is no default icon for %s files\n", a[1]); return RETURN_ERROR; }
+        if (!a[2]) { PutStr((STRPTR)"GFOpenTypes: SET needs TO <program>\n"); return RETURN_ERROR; }
+        if (!exists((char *)a[2])) Printf((STRPTR)"GFOpenTypes: note: %s isn't there (yet)\n", a[2]);
+        if (!set_type(t, (char *)a[2], a[3] != 0)) { PutStr((STRPTR)"GFOpenTypes: couldn't change the default icon\n"); return RETURN_ERROR; }
+        Printf((STRPTR)"GFOpenTypes: %s files open with %s%s\n", (LONG)t->name, a[2], (LONG)(a[3] ? " (saved)" : " (until reboot)"));
         return RETURN_OK;
     }
     if (a[4]) {
         int i, n;
-        if (!(t = find_type((char *)a[4]))) { Printf((STRPTR)"OpenTypes: there is no default icon for %s files\n", a[4]); return RETURN_ERROR; }
-        /* the old program: what the saved default icon named before OpenTypes */
+        if (!(t = find_type((char *)a[4]))) { Printf((STRPTR)"GFOpenTypes: there is no default icon for %s files\n", a[4]); return RETURN_ERROR; }
+        /* the old program: what the saved default icon named before GFOpenTypes */
         n = scan(t, a[5] ? (char *)a[5] : "SYS:");
-        Printf((STRPTR)"OpenTypes: %ld %s file%s with icons naming %s\n", n, (LONG)t->name, (LONG)(n == 1 ? "" : "s"), (LONG)t->tool);
+        Printf((STRPTR)"GFOpenTypes: %ld %s file%s with icons naming %s\n", n, (LONG)t->name, (LONG)(n == 1 ? "" : "s"), (LONG)t->tool);
         for (i = 0; i < nfound; i++) Printf((STRPTR)"  %s\n", (LONG)found[i].path);
         return RETURN_OK;
     }
@@ -645,11 +645,11 @@ static int shell_apply(LONG *a)
     ftype *t = find_type((char *)a[4]);
     char old[200];
     int n;
-    if (!t || !a[2]) { PutStr((STRPTR)"OpenTypes: SCAN <type> IN <drawer> APPLY needs TO <program>\n"); return RETURN_ERROR; }
+    if (!t || !a[2]) { PutStr((STRPTR)"GFOpenTypes: SCAN <type> IN <drawer> APPLY needs TO <program>\n"); return RETURN_ERROR; }
     strcpy(old, t->tool);
     n = scan(t, a[5] ? (char *)a[5] : "SYS:");
     n = apply_found((char *)a[2]);
-    Printf((STRPTR)"OpenTypes: %ld icon%s changed from %s to %s\n", n, (LONG)(n == 1 ? "" : "s"), (LONG)old, a[2]);
+    Printf((STRPTR)"GFOpenTypes: %ld icon%s changed from %s to %s\n", n, (LONG)(n == 1 ? "" : "s"), (LONG)old, a[2]);
     return RETURN_OK;
 }
 #endif /* !IN_OPENBENCH: the Shell's commands */
@@ -720,7 +720,7 @@ static int gui(void)
     fh = scr->Font->ta_YSize;
     top = scr->WBorTop + fh + 1 + 6;
 #ifdef LT_ONE
-    lt_make(NULL, NULL, 10, top, W - 20, fh + 6, LT_TYPES);     /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, 10, top, W - 20, fh + 6, LT_TYPES);     /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 20, fh + 6);
 #endif
     label_types();
@@ -764,9 +764,9 @@ static int gui(void)
     }
     if (!g) { rc = RETURN_FAIL; goto out; }
 #ifdef LT_ONE
-    win = lt_open(scr, 30, scr->BarHeight + 10, W - scr->WBorLeft - scr->WBorRight, ng.ng_TopEdge + ng.ng_Height + 8 - (scr->WBorTop + fh + 1) - scr->WBorBottom, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | LISTVIEWIDCMP | BUTTONIDCMP | CYCLEIDCMP | STRINGIDCMP, "OpenTypes 0.2.3");
+    win = lt_open(scr, 30, scr->BarHeight + 10, W - scr->WBorLeft - scr->WBorRight, ng.ng_TopEdge + ng.ng_Height + 8 - (scr->WBorTop + fh + 1) - scr->WBorBottom, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | LISTVIEWIDCMP | BUTTONIDCMP | CYCLEIDCMP | STRINGIDCMP, "GFOpenTypes 0.2.3");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"OpenTypes: which program opens each kind of file", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"GFOpenTypes: which program opens each kind of file", WA_PubScreen, (ULONG)scr,
                          WA_Left, 30, WA_Top, scr->BarHeight + 10, WA_Width, W, WA_Height, ng.ng_TopEdge + ng.ng_Height + 8,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
                          WA_SmartRefresh, TRUE,
@@ -786,7 +786,7 @@ static int gui(void)
     while (!quit) {
         struct IntuiMessage *m;
 #ifdef IN_OPENBENCH
-        /* OpenBench's Ctrl-C (it is quitting): as Cancel; its Ctrl-F (opened again): the window to the front */
+        /* GFOpenBench's Ctrl-C (it is quitting): as Cancel; its Ctrl-F (opened again): the window to the front */
         ULONG got = Wait((1UL << win->UserPort->mp_SigBit) | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_C) quit = 1;
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -885,7 +885,7 @@ static int gui(void)
                 undo_all(&n);
                 load_types();
                 SET(G_TYPES, GTLV_Labels, ~0UL); label_types(); SET(G_TYPES, GTLV_Labels, (ULONG)&type_list);
-                strcpy(status_text, n ? "Every icon OpenTypes changed is back as it was." : "OpenTypes hasn't changed any icons.");
+                strcpy(status_text, n ? "Every icon GFOpenTypes changed is back as it was." : "GFOpenTypes hasn't changed any icons.");
                 SET(G_STATUS, GTTX_Text, (ULONG)status_text);
                 break;
             }
@@ -922,7 +922,7 @@ out:
 
 #ifdef IN_OPENBENCH
 /* Built in, it starts as ob_builtin.c starts it: argc 0, argv NULL and no WBStartup message, so the window,
- * as from Workbench. Its statics outlive a run inside OpenBench: what a run counts on starts again here. */
+ * as from Workbench. Its statics outlive a run inside GFOpenBench: what a run counts on starts again here. */
 int main(int argc, char **argv)
 {
     int rc = RETURN_FAIL;
@@ -955,18 +955,18 @@ int main(int argc, char **argv)
     AslBase = OpenLibrary((STRPTR)"asl.library", 39);
     GadToolsBase = OpenLibrary((STRPTR)"gadtools.library", 39);
     if (!IconBase || !DataTypesBase || !AslBase || !GadToolsBase) {
-        PutStr((STRPTR)"OpenTypes needs AmigaOS 3.5 or later (icon.library 44)\n");
+        PutStr((STRPTR)"GFOpenTypes needs AmigaOS 3.5 or later (icon.library 44)\n");
         goto out;
     }
     if (!types && !(types = calloc(MAXTYPES, sizeof *types))) {
-        PrintFault(ERROR_NO_FREE_STORE, (STRPTR)"OpenTypes");
+        PrintFault(ERROR_NO_FREE_STORE, (STRPTR)"GFOpenTypes");
         goto out;
     }
     load_types();
     /* from Workbench (argc 0) there are no arguments: ReadArgs would read them from
      * libnix's console window, which opens empty and waits */
     if (argc > 0 && !(rda = ReadArgs((STRPTR)"LIST/S,SET/K,TO/K,SAVE/S,SCAN/K,IN/K,APPLY/S,TYPE/K,UNDO/S,SWITCH/K", a, NULL))) {
-        PrintFault(IoErr(), (STRPTR)"OpenTypes");
+        PrintFault(IoErr(), (STRPTR)"GFOpenTypes");
         goto out;
     }
     if (a[9])
@@ -978,7 +978,7 @@ int main(int argc, char **argv)
     if (rda) FreeArgs(rda);
 out:
     if (found) FreeVec(found);
-    found = NULL;                            /* OpenPrefs opens this page again in the same run */
+    found = NULL;                            /* GFOpenPrefs opens this page again in the same run */
     nfound = 0;
     if (GadToolsBase) CloseLibrary(GadToolsBase);
     if (AslBase) CloseLibrary(AslBase);

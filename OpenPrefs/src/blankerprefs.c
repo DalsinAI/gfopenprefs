@@ -1,10 +1,10 @@
-/* Blanker: OpenBlanker's one setting as a page of OpenPrefs (Blanker/DESIGN.md, Settings): how many seconds
- * without a key or the mouse before the show. ENV:OpenPrefs/Blanker holds the number and a newline, as
- * OpenUp writes it ("300\n"); Save writes ENVARC: too; either sends Ctrl-F to the running OpenBlanker (its
- * port "OpenBlanker"), which reads the file again. A file is written only when its bytes change. "Show it
- * now" runs OpenBlanker NOW.
+/* Blanker: GFOpenBlanker's one setting as a page of GFOpenPrefs (Blanker/DESIGN.md, Settings): how many seconds
+ * without a key or the mouse before the show. ENV:GFOpenPrefs/Blanker holds the number and a newline, as
+ * GFOpenUp writes it ("300\n"); Save writes ENVARC: too; either sends Ctrl-F to the running GFOpenBlanker (its
+ * port "GFOpenBlanker"), which reads the file again. A file is written only when its bytes change. "Show it
+ * now" runs GFOpenBlanker NOW.
  *
- *   Blanker [SECONDS=n] [USE] [SAVE]          (from OpenPrefs: OpenPrefs BLANKER SECONDS=600 SAVE)
+ *   Blanker [SECONDS=n] [USE] [SAVE]          (from GFOpenPrefs: GFOpenPrefs BLANKER SECONDS=600 SAVE)
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include <exec/types.h>
@@ -23,9 +23,9 @@
 
 #include "looktabs.h"
 
-#define BL_ENV "ENV:OpenPrefs/Blanker"
-#define BL_ENVARC "ENVARC:OpenPrefs/Blanker"
-#define BL_TOOL "SYS:Tools/Commodities/OpenBlanker"
+#define BL_ENV "ENV:GFOpenPrefs/Blanker"
+#define BL_ENVARC "ENVARC:GFOpenPrefs/Blanker"
+#define BL_TOOL "SYS:Tools/Commodities/GFOpenBlanker"
 #define BL_DEFAULT 300
 
 enum { G_SECS = 1, G_NOW, G_STATUS, G_SAVE, G_USE, G_CANCEL, G_COUNT };
@@ -65,7 +65,7 @@ static void tell(void)
 {
     struct MsgPort *p;
     Forbid();
-    if ((p = FindPort((STRPTR)"OpenBlanker")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
+    if ((p = FindPort((STRPTR)"GFOpenBlanker")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
     Permit();
 }
 
@@ -82,8 +82,8 @@ static int put_in_place(int save)
     LONG n = secs;
     if (gad[G_SECS] && win) GT_GetGadgetAttrs(gad[G_SECS], win, NULL, GTIN_Number, (ULONG)&n, TAG_DONE);
     secs = clamp(n);
-    if (save && !write_secs(BL_ENVARC, secs)) { status("Couldn't write ENVARC:OpenPrefs/Blanker."); return 0; }
-    if (!write_secs(BL_ENV, secs)) { status("Couldn't write ENV:OpenPrefs/Blanker."); return 0; }
+    if (save && !write_secs(BL_ENVARC, secs)) { status("Couldn't write ENVARC:GFOpenPrefs/Blanker."); return 0; }
+    if (!write_secs(BL_ENV, secs)) { status("Couldn't write ENV:GFOpenPrefs/Blanker."); return 0; }
     tell();
     return 1;
 }
@@ -94,7 +94,7 @@ static void show_now(void)
     if (!in || !out || SystemTags((STRPTR)"Run >NIL: " BL_TOOL " NOW", SYS_Input, in, SYS_Output, out, TAG_DONE) == -1) {
         if (in) Close(in);
         if (out) Close(out);
-        status("OpenBlanker isn't installed (SYS:Tools/Commodities/OpenBlanker).");
+        status("GFOpenBlanker isn't installed (SYS:Tools/Commodities/GFOpenBlanker).");
         return;
     }
     Close(in); Close(out);
@@ -122,8 +122,8 @@ static int gui(void)
     lh = fh + 6;
     top = scr->WBorTop + fh + 1 + 8;
     X = 12 + TextLength(&scr->RastPort, (STRPTR)"Show after", 10) + 8;
-    snprintf(status_text, sizeof status_text, "%s", FindPort((STRPTR)"OpenBlanker") ? "OpenBlanker is running."
-                                                     : "OpenBlanker isn't running: it starts at the next boot.");
+    snprintf(status_text, sizeof status_text, "%s", FindPort((STRPTR)"GFOpenBlanker") ? "GFOpenBlanker is running."
+                                                     : "GFOpenBlanker isn't running: it starts at the next boot.");
     g = CreateContext(&glist);
     memset(&ng, 0, sizeof ng);
     ng.ng_TextAttr = scr->Font;
@@ -156,9 +156,9 @@ static int gui(void)
     if (!g) { rc = RETURN_FAIL; goto out; }
 #ifdef LT_ONE
     win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1,
-                  glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | BUTTONIDCMP | INTEGERIDCMP, "OpenPrefs Blanker");
+                  glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | BUTTONIDCMP | INTEGERIDCMP, "GFOpenPrefs Blanker");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Blanker", WA_ScreenTitle, (ULONG)"OpenPrefs Blanker", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Blanker", WA_ScreenTitle, (ULONG)"GFOpenPrefs Blanker", WA_PubScreen, (ULONG)scr,
                          WA_Left, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, WA_Top, scr->BarHeight + 20,
                          WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,

@@ -1,18 +1,18 @@
-/* OpenPrefs Title bar: the editor for OpenTitle (the logo, free memory,
+/* GFOpenPrefs Title bar: the editor for GFOpenTitle (the logo, free memory,
  * clock, network icons and the cog with the settings editors on the
  * Workbench screen's title bar, the black border around the screen, and,
  * since 0.3.4, the bar see-through until the pointer is on it).
  *
  *   TitleBar [FROM file] [USE] [SAVE]
  *
- * Save writes ENV:OpenPrefs/TitleBar and ENVARC:; Use writes ENV: only;
- * Cancel leaves both. Either way OpenTitle is told (Ctrl-F to the task of its
+ * Save writes ENV:GFOpenPrefs/TitleBar and ENVARC:; Use writes ENV: only;
+ * Cancel leaves both. Either way GFOpenTitle is told (Ctrl-F to the task of its
  * public port) or, when something is switched on and it isn't running,
  * started from SYS:C.
  *
- * Built into OpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open preferences in OpenBench natively),
- * it follows OpenBench's desktop/ob_builtin.h: it declares no library base, so dos, intuition, graphics and
- * gadtools are OpenBench's, never opened or closed here; its globals are static; it starts as ob_builtin.c
+ * Built into GFOpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open preferences in GFOpenBench natively),
+ * it follows GFOpenBench's desktop/ob_builtin.h: it declares no library base, so dos, intuition, graphics and
+ * gadtools are GFOpenBench's, never opened or closed here; its globals are static; it starts as ob_builtin.c
  * starts it, with no arguments and no tooltypes, and writes nothing to Output(); Ctrl-C quits as Cancel does
  * and Ctrl-F brings the window to the front. The stand-alone TitleBar builds as before.
  *
@@ -35,7 +35,7 @@
 #include "tb_prefs.h"
 #include "../../Common/looktabs.h"
 
-static const char version[] __attribute__((used)) = "$VER: TitleBar 0.3.4 (25.10.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: TitleBar 0.3.4 (25.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 
 static tb_prefs cur;
 
@@ -158,7 +158,7 @@ static int gui(void)
     memset(gad, 0, sizeof gad);
     fh = scr->Font->ta_YSize;
     lh = fh + 6;
-    strcpy(status_text, running() ? "OpenTitle is running." : "OpenTitle isn't running: Use or Save starts it.");
+    strcpy(status_text, running() ? "GFOpenTitle is running." : "GFOpenTitle isn't running: Use or Save starts it.");
 
     g = CreateContext(&glist);
     memset(&ng, 0, sizeof ng);
@@ -171,7 +171,7 @@ static int gui(void)
     row = scr->WBorTop + fh + 1 + 8;
     g = lt_make(g, &ng, 10, row, W - 20, lh, LT_TITLEBAR);
     row += lt_space(scr->Font, W - 20, lh) + 8;     /* below the tabs (looktabs.h): one row, or two */
-    G(CHECKBOX_KIND, G_LOGO, X, row, 26, lh, "AmigaChrome logo at the left", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
+    G(CHECKBOX_KIND, G_LOGO, X, row, 26, lh, "AmiCradle logo at the left", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
     G(CHECKBOX_KIND, G_MEMORY, X, row, 26, lh, "Free chip and fast memory", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
     G(CHECKBOX_KIND, G_CLOCK, X, row, 26, lh, "Clock at the right", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
     G(CHECKBOX_KIND, G_DATE, X, row, 26, lh, "Day and date with the clock", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
@@ -179,7 +179,7 @@ static int gui(void)
     /* the cog: always on the bar (Dale, 17 October 2026, 08:26), so no switch; the file keeps its "cog" line */
     row += 6;
     G(CHECKBOX_KIND, G_BORDER, X, row, 26, lh, "Black border around the screen", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
-    /* 0.3.4: OpenTitle 0.7.5's see-through bar (the user, 24 October 2026): only where the screen can, an RTG screen
+    /* 0.3.4: GFOpenTitle 0.7.5's see-through bar (the user, 24 October 2026): only where the screen can, an RTG screen
      * the compositor draws; elsewhere the bar stays solid whatever this says */
     G(CHECKBOX_KIND, G_SEE, X, row, 26, lh, "See-through until pointed at", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 10;
     G(TEXT_KIND, G_STATUS, 10, row, W - 20, lh, NULL, 0, GTTX_Text, (ULONG)status_text, GTTX_Border, TRUE); row += lh + 6;
@@ -193,7 +193,7 @@ static int gui(void)
     if (!g) { rc = RETURN_FAIL; goto out; }
     wt = scr->BarHeight + 20;
     lt_place(&wl, &wt);
-    win = lt_open(scr, wl, wt, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | BUTTONIDCMP | CHECKBOXIDCMP, "OpenPrefs Title bar 0.2");
+    win = lt_open(scr, wl, wt, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | BUTTONIDCMP | CHECKBOXIDCMP, "GFOpenPrefs Title bar 0.2");
     if (!win) { rc = RETURN_FAIL; goto out; }
     if ((menu = CreateMenus(menus, TAG_DONE)) && LayoutMenus(menu, vi, GTMN_NewLookMenus, TRUE, TAG_DONE)) SetMenuStrip(win, menu);
     GT_RefreshWindow(win, NULL);
@@ -204,7 +204,7 @@ static int gui(void)
     while (!quit) {
         struct IntuiMessage *m;
 #ifdef IN_OPENBENCH
-        /* OpenBench's Ctrl-C (it is quitting): as Cancel; its Ctrl-F (TitleBar opened again): the window to the front */
+        /* GFOpenBench's Ctrl-C (it is quitting): as Cancel; its Ctrl-F (TitleBar opened again): the window to the front */
         ULONG got = Wait((1UL << win->UserPort->mp_SigBit) | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_C) quit = 1;
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -245,7 +245,7 @@ static int gui(void)
                 case G_SAVE: put_in_place(1); quit = 1; break;
                 case G_CANCEL: quit = 1; break;
                 default:
-                    if (lt_hit(gg, code) >= 0) {   /* another tab: keep, as Use, and hand over (OpenPrefs: when changed) */
+                    if (lt_hit(gg, code) >= 0) {   /* another tab: keep, as Use, and hand over (GFOpenPrefs: when changed) */
                         if (LT_DIRTY) put_in_place(0);
                         lt_go(win, lt_hit(gg, code)); quit = 1;
                     }

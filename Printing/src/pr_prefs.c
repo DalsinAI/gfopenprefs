@@ -1,5 +1,5 @@
 /* pr_prefs: printer.prefs and printergfx.prefs, the fields the Printing section edits (pr_prefs.h). The offsets are
- * those of OpenNDK's struct PrinterTxtPrefs, PrinterUnitPrefs, PrinterDeviceUnitPrefs and PrinterGfxPrefs,
+ * those of GFOpenNDK's struct PrinterTxtPrefs, PrinterUnitPrefs, PrinterDeviceUnitPrefs and PrinterGfxPrefs,
  * big-endian with the 68k's two-byte alignment (amigachrome-guest's printer_core.cpp asserts the same sizes).
  * Plain C: tested on the host by Printing/tests/run.sh.
  *
@@ -41,7 +41,7 @@ const unsigned char pr_paper_order[PR_PAPERS] = { PR_A4, PR_US_LETTER, PR_US_LEG
 
 static const char *const paper_names[PR_PAPERS] = { "US Letter", "US Legal", "Narrow tractor", "Wide tractor", "Custom",
                                                     "A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8" };
-/* the Shell's words for them (OpenPrefs PRINTING PAPER letter) */
+/* the Shell's words for them (GFOpenPrefs PRINTING PAPER letter) */
 static const char *const paper_words[PR_PAPERS] = { "LETTER", "LEGAL", "NARROW", "WIDE", "CUSTOM",
                                                     "A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8" };
 
@@ -109,11 +109,11 @@ static void put_name(uint8_t *at, int size, const char *name)
     memcpy(at, name, (size_t)(n < size ? n : size));
 }
 
-/* A chunk's bytes when there is no file: OpenPrinter's (openprint) or printer.device's own no-file state */
+/* A chunk's bytes when there is no file: GFOpenPrinter's (openprint) or printer.device's own no-file state */
 static void txt_chunk(uint8_t *b, int openprint)
 {
     memset(b, 0, PR_PTXT_LEN);
-    put_name(b + T_DRIVER, T_DRIVER_LEN, openprint ? "OpenPrint" : "generic");
+    put_name(b + T_DRIVER, T_DRIVER_LEN, openprint ? "GFOpenPrint" : "generic");
     if (openprint) {
         pf_put16(b + T_TYPE, 1);                                 /* single sheets */
         pf_put16(b + T_SIZE, PR_A4);
@@ -130,7 +130,7 @@ static void gfx_chunk(uint8_t *b, int openprint)
     pf_put16(b + G_THRESHOLD, 7);
     if (openprint) {
         pf_put16(b + G_SHADE, 2);                                /* colour */
-        b[G_DENSITY] = 2;                                        /* OpenPrint's driver: 100 dots to the inch */
+        b[G_DENSITY] = 2;                                        /* GFOpenPrint's driver: 100 dots to the inch */
     } else {
         b[G_DENSITY] = 1;
         pf_put16(b + G_MAXWIDTH, 80);
@@ -145,9 +145,9 @@ int pr_new_txt(pf_file *f, int openprint)
     if (!pf_new(f) || !pf_add(f, PR_PTXT, t, sizeof t)) { pf_free(f); return 0; }
     if (!openprint) return 1;                    /* no PUNT: the port pt_Port names; no PDEV: unit 0's own name */
     memset(u, 0, sizeof u);                      /* unit 0, no flags */
-    put_name(u + U_NAME, NAME_LEN, "oapspool");  /* oapspool.device, OpenPrint's spooler */
+    put_name(u + U_NAME, NAME_LEN, "oapspool");  /* oapspool.device, GFOpenPrint's spooler */
     memset(d, 0, sizeof d);
-    put_name(d + D_NAME, NAME_LEN, "OpenPrint");
+    put_name(d + D_NAME, NAME_LEN, "GFOpenPrint");
     if (!pf_add(f, PR_PUNT, u, sizeof u) || !pf_add(f, PR_PDEV, d, sizeof d)) { pf_free(f); return 0; }
     return 1;
 }

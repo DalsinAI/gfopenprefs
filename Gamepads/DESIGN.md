@@ -1,8 +1,8 @@
-# OpenPrefs Gamepads
+# GFOpenPrefs Gamepads
 
-The game controllers editor, built on OpenInput (`openinput.library`,
+The game controllers editor, built on GFOpenInput (`gfopeninput.library`,
 DalsinAI/openamigainput; its design's section 8 is this page). Pad mapping
-moves here from OpenUSB Prefs. MIT, Copyright (c) 2026 AmigaChrome Team.
+moves here from GFOpenUSB Prefs. MIT, Copyright (c) 2026 AmigaChrome Team.
 
 ![The Gamepads editor testing a modern pad: the pad drawn as a controller, the d-pad's left arm and the triggers' amounts lit in the accent colour](docs/window.png)
 
@@ -14,10 +14,10 @@ moves here from OpenUSB Prefs. MIT, Copyright (c) 2026 AmigaChrome Team.
 
 ### The window
 
-- **Game controllers:** every controller OpenInput lists, live (they come and
+- **Game controllers:** every controller GFOpenInput lists, live (they come and
   go as they are plugged in): its name and maker. Beside it, for the chosen
   one: what it is and whether it is connected, the maker, where it comes
-  from (an Amiga port, USB, AmigaChrome), whether it is mapped (and whether
+  from (an Amiga port, USB, AmiCradle), whether it is mapped (and whether
   the mapping is the user's own), and which Amiga port it feeds. A pad that
   goes away stays in the list, marked "not connected", and is picked again
   when it comes back.
@@ -28,7 +28,7 @@ moves here from OpenUSB Prefs. MIT, Copyright (c) 2026 AmigaChrome Team.
     X left, B right, A bottom), each with its letter (a PlayStation pad's
     cross, circle, square and triangle; on a CD32 pad red, blue, green and
     yellow in their places, dim at rest and bright when pressed);
-  - **the sticks** show their dead zone (OpenInput's, `ENV:OpenInput/DeadZone`,
+  - **the sticks** show their dead zone (GFOpenInput's, `ENV:OpenInput/DeadZone`,
     or a tenth of the travel when none is set) and a thumb dot that takes
     the accent colour once it leaves it; pressing a stick down lights its
     ring;
@@ -42,10 +42,10 @@ moves here from OpenUSB Prefs. MIT, Copyright (c) 2026 AmigaChrome Team.
   The layout is a grid scaled to the window and the font, mirrored left
   and right (`src/gp_pad.c`, tested on the host for overlaps, margins and
   symmetry). It is drawn in the screen's own pens (a light pad with a dark
-  outline on the panel) and one accent colour for "pressed": the OpenLook
+  outline on the panel) and one accent colour for "pressed": the GFOpenLook
   theme's accent (or the user's own) on screens of 64 colours or more,
   else the fill pen. Only the parts that changed are drawn again. Plain
-  graphics.library calls (`src/gp_draw.c`), so OpenGfx draws them where
+  graphics.library calls (`src/gp_draw.c`), so GFOpenGfx draws them where
   it runs. A joystick shows its stick and its two buttons. **Rumble**
   shakes a pad that can. The Advanced view adds the raw buttons, axes and
   hat as the device reports them. The view is as tall as the font asks,
@@ -60,7 +60,7 @@ moves here from OpenUSB Prefs. MIT, Copyright (c) 2026 AmigaChrome Team.
   typed or pasted in; the Simple view no longer shows a cut-off summary of
   it. Choosing Built in
   again takes the user's line out of `mappings.txt`.
-- **Let older games see modern pads (CD32 pad on port 2):** OpenInput's
+- **Let older games see modern pads (CD32 pad on port 2):** GFOpenInput's
   `ReadJoyPort` patch, **off by default** (decided 8 October 2026: opt-in
   only). Switched on, games that read the port through `lowlevel.library`
   see a modern pad there as a CD32 pad or a joystick. **Port** (the joystick
@@ -70,13 +70,13 @@ moves here from OpenUSB Prefs. MIT, Copyright (c) 2026 AmigaChrome Team.
   is in the mouse port (1), not the mouse** (`lowlevel.library` reads a
   mouse there as a stick too, so only the user can say which it is). Games that read
   the chips themselves can't be reached this way on a real Amiga; on
-  AmigaChrome every game already sees the pads, through Cradle's Game pads.
+  AmiCradle every game already sees the pads, through Cradle's Game pads.
 
 Save writes `ENV:` and `ENVARC:`, Use writes `ENV:`, **Test** writes `ENV:`
-and waits (up to 3 s) until OpenInput has put the patch in or taken it out,
+and waits (up to 3 s) until GFOpenInput has put the patch in or taken it out,
 and Cancel puts `ENV:` and any mapping back as they were.
 `Gamepads [USE] [SAVE] [ADVANCED]` from the Shell. **`Gamepads USE` at
-boot** (OpenUp's startup) opens `openinput.library`, which then puts the
+boot** (GFOpenUp's startup) opens `gfopeninput.library`, which then puts the
 patch in when it is switched on; nothing else does.
 
 ### Files
@@ -84,24 +84,24 @@ patch in when it is switched on; nothing else does.
 | File | What |
 | --- | --- |
 | `ENV:OpenInput/LowLevelPatch` | `1`: the `ReadJoyPort` patch is on. No file, or anything else: off |
-| `ENV:OpenInput/ports.prefs` | Which pad feeds which port through the patch, a line per port: `port 1 cd32 any`, `port 0 none`, or a GUID (32 hex digits) in place of `any`. openinput.library reads the same lines, once a second |
-| `ENV:OpenInput/MousePort` | `joystick`: a joystick is in the mouse port, and OpenInput lists it. Anything else: the mouse |
-| `ENV:OpenInput/mappings.txt` | The user's own mappings, SDL's format; written by openinput.library (`OIN_SetMapping`) |
-| `ENV:OpenAmiga/PrefsView` | Simple or Advanced, shared by every OpenPrefs editor |
+| `ENV:OpenInput/ports.prefs` | Which pad feeds which port through the patch, a line per port: `port 1 cd32 any`, `port 0 none`, or a GUID (32 hex digits) in place of `any`. gfopeninput.library reads the same lines, once a second |
+| `ENV:OpenInput/MousePort` | `joystick`: a joystick is in the mouse port, and GFOpenInput lists it. Anything else: the mouse |
+| `ENV:OpenInput/mappings.txt` | The user's own mappings, SDL's format; written by gfopeninput.library (`OIN_SetMapping`) |
+| `ENV:GFOpenAmiga/PrefsView` | Simple or Advanced, shared by every GFOpenPrefs editor |
 
 `src/gp_pad.c` (where the Test view's parts go) and `src/gp_core.c` (the settings, the files' formats, building mapping lines
 and seeing what the wizard's pad did) is plain C, tested on the host:
 `tests/run.sh`. `src/gamepads.c` is the window. `include/` holds
-openinput.library's headers, copied from openamigainput (frozen for 0.1:
+gfopeninput.library's headers, copied from openamigainput (frozen for 0.1:
 they change only by adding).
 
-Needs openinput.library 1.2 or later; with 1.1 (the skeleton) or none it
+Needs gfopeninput.library 1.2 or later; with 1.1 (the skeleton) or none it
 says so, and the switch can still be set.
 
 ## Not yet
 
 - The Amiga ports section of the design: which pad feeds each port on
-  AmigaChrome (the instance's `padMap`, through `OIN_SetLegacyPortA`), with
+  AmiCradle (the instance's `padMap`, through `OIN_SetLegacyPortA`), with
   Cradle's presets and the keyboard as a joystick.
 - The dead zone and the player order (Settings).
 - A picture of each pad by type and family in the list.

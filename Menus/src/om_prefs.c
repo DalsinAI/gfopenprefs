@@ -1,4 +1,4 @@
-/* om_prefs: OpenMenus' settings and taking over MagicMenu's (om_prefs.h).
+/* om_prefs: GFOpenMenus' settings and taking over MagicMenu's (om_prefs.h).
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include "om_prefs.h"
 
@@ -94,7 +94,7 @@ static int is_colour(const char *s)
     return 1;
 }
 
-/* ---- OpenMenus' own format ----------------------------------------------------------- */
+/* ---- GFOpenMenus' own format ----------------------------------------------------------- */
 
 int om_parse(om_prefs *p, const char *text)
 {
@@ -164,7 +164,7 @@ int om_write(const om_prefs *p, char *out, int size)
 {
     char *o = out, q[520];
     const char *onoff[2] = { "off", "on" };
-    ADD("; OpenMenus settings, format 1. OpenPrefs Menus writes this file; OpenMenus reads it.\n");
+    ADD("; GFOpenMenus settings, format 1. GFOpenPrefs Menus writes this file; GFOpenMenus reads it.\n");
     ADD("enabled %s\n", onoff[!!p->enabled]);
     ADD("open %s\n", open_words[clamp(p->open, 0, 2)]);
     ADD("pulldown %s\n", use_words[clamp(p->use[OM_PD], 0, 2)]);
@@ -291,7 +291,7 @@ static int mm_use(long mode)
 
 int om_from_magicmenu(om_prefs *p, const char *text, char *err, int errlen)
 {
-    static mm_file *fm;                      /* 27 KB, made at the first MagicMenu file read: OpenPrefs holds every editor at once (W49) */
+    static mm_file *fm;                      /* 27 KB, made at the first MagicMenu file read: GFOpenPrefs holds every editor at once (W49) */
     const char *line, *s;
     char head[32];
     long v;

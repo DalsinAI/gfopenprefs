@@ -1,5 +1,5 @@
 /* ic_prefs: icontrol.prefs, the fields the IControl section edits (ic_prefs.h). The offsets are those of
- * OpenNDK's struct IControlPrefs, big-endian and unpadded. Plain C: tested on the host by
+ * GFOpenNDK's struct IControlPrefs, big-endian and unpadded. Plain C: tested on the host by
  * IControl/tests/run.sh.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */

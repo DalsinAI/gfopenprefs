@@ -1,4 +1,4 @@
-/* OpenWindows' gesture table (src/gestures.c) on the host: the built-in
+/* GFOpenWindows' gesture table (src/gestures.c) on the host: the built-in
  * table (OS 3.2.3's behaviour with the extras: a click fronts at its
  * release, a press and a move drags at once and never fronts first), a
  * Gestures file's rows, and the qualifiers.
@@ -29,7 +29,7 @@ int main(void)
     a = gestures_actions(&t, GT_BODY, GB_SELECT, GK_MOVE, 0, NULL);
     CHECK(a == 0, "inside a window, press and move (an icon or a selection): nothing of ours");
     a = gestures_actions(&t, GT_EDGE, GB_SELECT, GK_MOVE, 0, &take);
-    CHECK(a == GA_RESIZE && take, "an edge: OpenWindows' own resize, the press taken");
+    CHECK(a == GA_RESIZE && take, "an edge: GFOpenWindows' own resize, the press taken");
     a = gestures_actions(&t, GT_TITLE, GB_SELECT, GK_DOUBLE, 0, NULL);
     CHECK(a == GA_FRONT, "a double-click on the title bar: to the front");
     a = gestures_actions(&t, GT_GADGET, GB_SELECT, GK_CLICK, 0, &take);
@@ -90,10 +90,10 @@ int main(void)
     }
     gestures_default(&t, 1, 1, 1);
     a = gestures_actions(&t, GT_GADGET, GB_SELECT, GK_CLICK, 0, &take);
-    CHECK(a == 0 && !take, "a click on a program's gadget (the drawer's scroller, OpenFiles' toolbar): nothing of ours");
+    CHECK(a == 0 && !take, "a click on a program's gadget (the drawer's scroller, GFOpenFiles' toolbar): nothing of ours");
     a = gestures_actions(&t, GT_BODY, GB_SELECT, GK_CLICK, 0, NULL);
     CHECK(gestures_release(a, 0, 0) == GA_FRONT, "a plain click on the body: still to the front at the release");
-    CHECK(gestures_release(a, 0, 1) == 0, "... not when the press brought a window up (OpenBench's ... popup)");
+    CHECK(gestures_release(a, 0, 1) == 0, "... not when the press brought a window up (GFOpenBench's ... popup)");
     CHECK(gestures_release(a, 1, 0) == 0, "... nor when the menu button came while it was held");
     CHECK(gestures_release(GA_DRAG | GA_SNAP, 0, 1) == (GA_DRAG | GA_SNAP), "a drag's snap stays");
     CHECK(gestures_release(GA_FRONT | GA_ACTIVATE, 0, 1) == GA_ACTIVATE, "only the front goes");

@@ -1,11 +1,11 @@
-/* obmsg.h: asking OpenBench, our Workbench (openamigabench desktop/openbench.c), to open something as
+/* obmsg.h: asking GFOpenBench, our Workbench (openamigabench desktop/openbench.c), to open something as
  * Workbench's OpenWorkbenchObject does: a tool runs, a project opens with its default tool, a drawer
- * or disk opens in a drawer window. Programs of the Team that start things (the dock) ask OpenBench
- * first, and Workbench when OpenBench isn't there.
+ * or disk opens in a drawer window. Programs of the Team that start things (the dock) ask GFOpenBench
+ * first, and Workbench when GFOpenBench isn't there.
  *
- *   ob_open(path)   1 opened, 0 OpenBench couldn't, -1 no OpenBench
+ *   ob_open(path)   1 opened, 0 GFOpenBench couldn't, -1 no GFOpenBench
  *
- * The message's layout is OpenBench's: keep it the same there. MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * The message's layout is GFOpenBench's: keep it the same there. MIT, Copyright (c) 2026 AmigaChrome Team. */
 #ifndef OBMSG_H
 #define OBMSG_H
 
@@ -15,13 +15,13 @@
 #include <proto/exec.h>
 #include <string.h>
 
-#define OB_PORT_NAME "OPENBENCH"
+#define OB_PORT_NAME "GFOPENBENCH"
 #define OB_MSG_MAGIC 0x4F424D31UL                  /* 'OBM1' */
 
 struct ob_msg {
     struct Message m;
     ULONG magic;
-    LONG ok;                                       /* OpenBench's answer */
+    LONG ok;                                       /* GFOpenBench's answer */
     char path[256];
 };
 

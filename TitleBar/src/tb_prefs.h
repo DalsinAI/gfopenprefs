@@ -1,15 +1,15 @@
-/* OpenPrefs Title bar: the settings OpenTitle and the editor share.
+/* GFOpenPrefs Title bar: the settings GFOpenTitle and the editor share.
  *
- * ENV:OpenPrefs/TitleBar (and ENVARC: when saved), one setting a line:
- *   logo on|off            AmigaChrome's logo at the title bar's far left
+ * ENV:GFOpenPrefs/TitleBar (and ENVARC: when saved), one setting a line:
+ *   logo on|off            AmiCradle's logo at the title bar's far left
  *   memory on|off          free chip and fast memory after Workbench's title
- *   clock on|off           the time at the right end, left of OpenSpeaker
+ *   clock on|off           the time at the right end, left of GFOpenSpeaker
  *   clock.date on|off      the day and date before the time
- *   network on|off         LAN and Wi-Fi icons between the clock and OpenSpeaker
- *   cog on|off             a cog at the bar's far end, right of OpenSpeaker:
+ *   network on|off         LAN and Wi-Fi icons between the clock and GFOpenSpeaker
+ *   cog on|off             a cog at the bar's far end, right of GFOpenSpeaker:
  *                          a click lists the settings editors
  *   border.black on|off    the display's border around the screen black
- *   seethrough on|off      (OpenTitle 0.7.5) the bar's background see-through until the pointer is on it,
+ *   seethrough on|off      (GFOpenTitle 0.7.5) the bar's background see-through until the pointer is on it,
  *                          where the screen can (an RTG screen the compositor draws); on by default
  *   seethrough.opacity N   how solid its background is at rest, 10 to 100 percent; 40 by default (no
  *                          switch in the editor: for trying other levels)
@@ -22,10 +22,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TB_ENV    "ENV:OpenPrefs/TitleBar"
-#define TB_ENVARC "ENVARC:OpenPrefs/TitleBar"
-#define TB_PORT   "OpenTitle"                 /* OpenTitle's public port: Ctrl-F to its task reads the settings again */
-#define TB_TOOL   "SYS:C/OpenTitle"
+#define TB_ENV    "ENV:GFOpenPrefs/TitleBar"
+#define TB_ENVARC "ENVARC:GFOpenPrefs/TitleBar"
+#define TB_PORT   "GFOpenTitle"                 /* GFOpenTitle's public port: Ctrl-F to its task reads the settings again */
+#define TB_TOOL   "SYS:C/GFOpenTitle"
 
 #define TB_SEE_OPACITY 40                     /* the see-through bar's background at rest, in percent */
 
@@ -73,7 +73,7 @@ static __attribute__((unused)) void tb_parse(tb_prefs *p, char *text)
 static __attribute__((unused)) int tb_text(const tb_prefs *p, char *out, int size)
 {
     static const char *const oo[2] = { "off", "on" };
-    return snprintf(out, size, "; OpenPrefs Title bar 0.2: what OpenTitle shows\n"
+    return snprintf(out, size, "; GFOpenPrefs Title bar 0.2: what GFOpenTitle shows\n"
                     "logo %s\nmemory %s\nclock %s\nclock.date %s\nnetwork %s\ncog %s\nborder.black %s\n"
                     "seethrough %s\nseethrough.opacity %d\n",
                     oo[!!p->logo], oo[!!p->memory], oo[!!p->clock], oo[!!p->date], oo[!!p->network], oo[!!p->cog],

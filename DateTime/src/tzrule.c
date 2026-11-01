@@ -1,8 +1,8 @@
-/* OpenDateTime's time zone rules: a POSIX TZ rule ("GMT0BST,M3.5.0/1,M10.5.0", the
+/* GFOpenDateTime's time zone rules: a POSIX TZ rule ("GMT0BST,M3.5.0/1,M10.5.0", the
  * rule a tz database TZif file ends with) read and run, with no library: what offset
  * from UTC a place has at a moment, and when it next changes. Plain C with no
  * AmigaOS calls, so the host tests build it too (DateTime/test). Everything is
- * static: opendatetime.c includes this file, and OpenBench builds that one file.
+ * static: opendatetime.c includes this file, and GFOpenBench builds that one file.
  *
  * Times are seconds since 1 January 1970, UTC (tz_t). A "local" time is the same
  * count read on the place's own clock, as the Amiga's clock keeps it.
@@ -312,7 +312,7 @@ static long tz_keep_step(const struct tz_zone *z, tz_t local, long saved_east, l
 /* The background part on a real Amiga: the battery clock keeps local time on the offset ENVARC:'s Locale prefs hold,
  * as both are what the next start reads (SetClock LOAD, then ENV: from ENVARC:). 1 when the battery clock is to be
  * set from the system clock now: ENVARC: was just written (archived) with want_west, and held another offset before
- * (archived_west). Not on AmigaChrome, where the battery clock is the host's. 1 Nov 2026: the battery clock moved
+ * (archived_west). Not on AmiCradle, where the battery clock is the host's. 1 Nov 2026: the battery clock moved
  * only with the system clock, so a change whose ENVARC: write failed, written on a later look, left it an hour out
  * for the next start. */
 static int tz_battery_follows(int chrome, int archived, long archived_west, long want_west)

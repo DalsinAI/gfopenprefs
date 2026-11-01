@@ -1,9 +1,9 @@
-/* openprefs.h: OpenPrefs's pages (each editor's main, renamed when it is built into OpenPrefs) and APPLY.
+/* openprefs.h: GFOpenPrefs's pages (each editor's main, renamed when it is built into GFOpenPrefs) and APPLY.
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #ifndef OPENPREFS_H
 #define OPENPREFS_H
 
-#define OP_VERSION "2.6"                   /* higher than every editor it replaces (OpenLook 1.2, Windows 0.6.5, ...) */
+#define OP_VERSION "2.6"                   /* higher than every editor it replaces (GFOpenLook 1.2, Windows 0.6.5, ...) */
 
 int look_main(int argc, char **argv);
 int windows_main(int argc, char **argv);
@@ -27,8 +27,8 @@ int printing_main(int argc, char **argv); /* the Printing page (2.4): printer.pr
 /* A page by its name ("Date & Time", "Title Bar"), letters in either case; -1 for none (opframe.c) */
 int lt_page_named(const char *name);
 
-/* OpenPrefs APPLY (op_apply.c): what the boot's OpenSound USE, OpenGamepads USE and OpenSystem APPLY did */
+/* GFOpenPrefs APPLY (op_apply.c): what the boot's GFOpenSound USE, GFOpenGamepads USE and GFOpenSystem APPLY did */
 int op_apply(void);
-extern char *op_argv[];                    /* { "OpenPrefs", NULL }: a page given lt_args */
+extern char *op_argv[];                    /* { "GFOpenPrefs", NULL }: a page given lt_args */
 
 #endif

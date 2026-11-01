@@ -1,17 +1,17 @@
 /* gp_draw: the Test view's controller (gp_draw.h).
  *
- * The look follows the Open family's (OpenLook's flat themes): a light
+ * The look follows the GFOpen family's (GFOpenLook's flat themes): a light
  * pad (SHINEPEN) with a dark outline (SHADOWPEN) on the panel
  * (BACKGROUNDPEN); controls at rest in the panel's pen with an outline;
  * a pressed control in the one accent colour, with its name in the
- * accent's text colour. The accent is the OpenLook theme's (or the user's
- * own accent from ENV:OpenGadTools/Look) where the screen has 64 colours
+ * accent's text colour. The accent is the GFOpenLook theme's (or the user's
+ * own accent from ENV:GFOpenGadTools/Look) where the screen has 64 colours
  * or more, and FILLPEN and FILLTEXTPEN otherwise (Classic, 4 to 32
  * colours). A CD32 pad's buttons keep their colours, dim at rest and
  * bright when pressed, when the screen has the colours for them.
  *
  * Everything is RectFill, Move/Draw, DrawEllipse and Text, so it goes
- * through OpenGfx where it runs, and needs no TmpRas or area buffers.
+ * through GFOpenGfx where it runs, and needs no TmpRas or area buffers.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include <exec/types.h>
@@ -49,7 +49,7 @@ struct gpv_view {
     int valid;
 };
 
-/* ---- the accent, from the OpenLook theme --------------------------------------------- */
+/* ---- the accent, from the GFOpenLook theme --------------------------------------------- */
 
 static int hexv(char c) { return c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1; }
 
@@ -94,10 +94,10 @@ static LONG theme_rgb(const char *t, const char *section, const char *key)
     return -1;
 }
 
-/* The accent and its text colour from ENV:OpenGadTools/Look and the theme; FALSE for Classic or none. */
+/* The accent and its text colour from ENV:GFOpenGadTools/Look and the theme; FALSE for Classic or none. */
 static BOOL look_accent(LONG *accent, LONG *text)
 {
-    char *look = read_small("ENV:OpenGadTools/Look", 2048), *t = NULL, name[48], mode[16], path[96];
+    char *look = read_small("ENV:GFOpenGadTools/Look", 2048), *t = NULL, name[48], mode[16], path[96];
     const char *section;
     int i = 0, j = 0;
     LONG own = -1;
@@ -114,7 +114,7 @@ static BOOL look_accent(LONG *accent, LONG *text)
     FreeVec(look);
     if (!name[0] || !strcmp(name, "Classic")) return FALSE;
     if (!strcmp(mode, "dark")) section = "dark";
-    else if (!strcmp(mode, "auto")) {                             /* by the clock, as OpenLook does: dark from 7 pm to 7 am */
+    else if (!strcmp(mode, "auto")) {                             /* by the clock, as GFOpenLook does: dark from 7 pm to 7 am */
         struct DateStamp ds;
         DateStamp(&ds);
         section = ds.ds_Minute >= 19 * 60 || ds.ds_Minute < 7 * 60 ? "dark" : "light";

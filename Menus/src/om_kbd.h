@@ -1,4 +1,4 @@
-/* OpenMenus' keyboard control: where a key moves the highlight in a menu
+/* GFOpenMenus' keyboard control: where a key moves the highlight in a menu
  * strip, and what it does. Plain C with no Amiga calls, so the host tests
  * (Menus/tests/test_om_kbd.c) check it; the engine draws what it says.
  * MIT, Copyright (c) 2026 AmigaChrome Team. */

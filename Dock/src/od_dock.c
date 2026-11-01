@@ -1,4 +1,4 @@
-/* od_dock: OpenDock's settings, and taking over other docks' (od_dock.h).
+/* od_dock: GFOpenDock's settings, and taking over other docks' (od_dock.h).
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include "od_dock.h"
 
@@ -143,18 +143,18 @@ void od_starter(od_dock *d)
 {
     d->n = 0;
     add_program(d, NULL, OD_CLI, "Shell", "NewShell");      /* the Shell's icon moves between OS releases; NewShell doesn't */
-    add_program(d, NULL, OD_WB, "OpenFiles", "SYS:Utilities/OpenFiles");
-    add_program(d, NULL, OD_WB, "OpenView", "SYS:Utilities/OpenPrint/OpenView");
-    /* the Open apps on the dock from the start (the user, 10 October 2026); those not installed are dropped */
-    add_program(d, NULL, OD_WB, "OpenWrite", "SYS:Utilities/OpenWrite/OpenWrite");
-    add_program(d, NULL, OD_WB, "OpenPlay", "SYS:Utilities/OpenPlay");
-    add_program(d, NULL, OD_WB, "OpenCompress", "SYS:Utilities/OpenCompress");
-    add_program(d, NULL, OD_WB, "OpenFTP", "SYS:Utilities/OpenFTP/OpenFTP");
-    add_program(d, NULL, OD_WB, "OpenPuTTY", "SYS:Utilities/OpenPuTTY/OpenPuTTY");
+    add_program(d, NULL, OD_WB, "GFOpenFiles", "SYS:Utilities/GFOpenFiles");
+    add_program(d, NULL, OD_WB, "GFOpenView", "SYS:Utilities/GFOpenPrint/GFOpenView");
+    /* the GFOpen apps on the dock from the start (the user, 10 October 2026); those not installed are dropped */
+    add_program(d, NULL, OD_WB, "GFOpenWrite", "SYS:Utilities/GFOpenWrite/GFOpenWrite");
+    add_program(d, NULL, OD_WB, "GFOpenPlay", "SYS:Utilities/GFOpenPlay");
+    add_program(d, NULL, OD_WB, "GFOpenCompress", "SYS:Utilities/GFOpenCompress");
+    add_program(d, NULL, OD_WB, "GFOpenFTP", "SYS:Utilities/GFOpenFTP/GFOpenFTP");
+    add_program(d, NULL, OD_WB, "GFOpenPuTTY", "SYS:Utilities/GFOpenPuTTY/GFOpenPuTTY");
     add_program(d, NULL, OD_WB, "Clock", "SYS:Utilities/Clock");
     add_program(d, NULL, OD_WB, "Calculator", "SYS:Tools/Calculator");
     add_program(d, NULL, OD_WB, "Prefs", "SYS:Prefs");
-    add_program(d, NULL, OD_WB, "Preferences", "SYS:Preferences/OpenPrefs");   /* every page (0.6.7; was OpenLook) */
+    add_program(d, NULL, OD_WB, "Preferences", "SYS:Preferences/GFOpenPrefs");   /* every page (0.6.7; was GFOpenLook) */
     add_separator(d);                                        /* 0.4: the trashcan stands apart, as on the Mac */
     add_program(d, NULL, OD_WB, "Trashcan", "SYS:Trashcan");
 }
@@ -200,7 +200,7 @@ int od_ensure(od_dock *d, const char *command)
     return add_program(d, NULL, OD_WB, NULL, command) ? 1 : -1;
 }
 
-/* ---- OpenDock's own format ------------------------------------------------------------ */
+/* ---- GFOpenDock's own format ------------------------------------------------------------ */
 
 int od_parse(od_dock *d, const char *text)
 {
@@ -258,7 +258,7 @@ int od_write(const od_dock *d, char *out, int size)
 {
     char *o = out, q[520];
     const char *onoff[2] = { "off", "on" };
-    ADD("; OpenDock settings, format 1. OpenPrefs Dock writes this file; OpenDock reads it.\n");
+    ADD("; GFOpenDock settings, format 1. GFOpenPrefs Dock writes this file; GFOpenDock reads it.\n");
     ADD("place %s\n", place_words[d->place >= 0 && d->place < 4 ? d->place : 0]);
     ADD("size %s\n", size_words[d->size >= 0 && d->size < 3 ? d->size : 1]);
     ADD("labels %s\n", onoff[!!d->labels]);
@@ -317,7 +317,7 @@ int od_sniff(const unsigned char *data, long len)
 
 #define TM_MAX 96
 
-/* TM_MAX of each (62 KB), made at the first ToolManager file read: OpenPrefs holds every editor at once (W49) */
+/* TM_MAX of each (62 KB), made at the first ToolManager file read: GFOpenPrefs holds every editor at once (W49) */
 static struct tm_exec_s { char name[48], command[256], dir[128]; int type; long stack; } *tm_exec;
 static struct tm_image_s { char name[48], file[160]; } *tm_image;
 static int tm_nexec, tm_nimage;
@@ -439,7 +439,7 @@ int od_from_toolmanager(od_dock *d, const unsigned char *data, long len, od_repo
                             }
                             if (tm_exec[e].stack > 4096 && tm_exec[e].stack < 1024 * 1024) b->stack = tm_exec[e].stack;
                             if (img && img[0]) {
-                                /* an icon (with or without .info); an IFF picture stays out: OpenDock draws icons */
+                                /* an icon (with or without .info); an IFF picture stays out: GFOpenDock draws icons */
                                 copy(b->icon, img, sizeof b->icon);
                                 if (ends_with(b->icon, ".info")) b->icon[strlen(b->icon) - 5] = 0;
                                 else if (ends_with(b->icon, ".iff") || ends_with(b->icon, ".ilbm") || ends_with(b->icon, ".anim") || ends_with(b->icon, ".brush"))

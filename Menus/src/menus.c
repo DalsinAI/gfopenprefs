@@ -1,40 +1,40 @@
-/* OpenPrefs Menus 0.1: the editor for OpenMenus, our own menus (MIT). A
+/* GFOpenPrefs Menus 0.1: the editor for GFOpenMenus, our own menus (MIT). A
  * GadTools prefs editor, as the OS's own: Save, Use, Test (put back after
  * 15 seconds unless kept) and Cancel. What it sets lives in
- * ENV:OpenMenus/Menus (ENVARC: when saved), in the format of om_prefs.h;
- * OpenMenus draws.
+ * ENV:GFOpenMenus/Menus (ENVARC: when saved), in the format of om_prefs.h;
+ * GFOpenMenus draws.
  *
  *   - how menus open: from the screen bar, at the pointer, or by where
  *     the pointer is; hold and release, or sticky
  *   - a short delay before a menu opens, for each kind
  *   - submenus centred and marked, a single or double border
  *   - a shadow (size and strength), a solid, see-through or image background
- *   - colours from the theme (OpenLook), the screen's own, or the user's
+ *   - colours from the theme (GFOpenLook), the screen's own, or the user's
  *   - keyboard control, with its key
  *   - whether programs keep running while a menu is open
  *   - MagicMenu's settings, taken over on the first start, or on request
  *
- * It opens in the Simple view, theme first: whether OpenMenus is on, how menus
+ * It opens in the Simple view, theme first: whether GFOpenMenus is on, how menus
  * open and work, colours from the theme, a shadow. View > Advanced (Amiga-A)
- * shows every setting. The view is shared by every OpenPrefs editor, in
- * ENV:OpenAmiga/PrefsView ("simple" or "advanced"); it hides gadgets only and
+ * shows every setting. The view is shared by every GFOpenPrefs editor, in
+ * ENV:GFOpenAmiga/PrefsView ("simple" or "advanced"); it hides gadgets only and
  * never changes a setting.
  *
  *   Menus [FROM file] [MAGICMENU file] [USE] [SAVE] [ADVANCED]
  *
  * From the Shell, MAGICMENU takes over a MagicMenu settings file (by default
  * ENVARC:MagicMenu.prefs) and USE or SAVE puts it in place with no window:
- * OpenUp's part does this once when it installs OpenMenus.
+ * GFOpenUp's part does this once when it installs GFOpenMenus.
  *
- * Built into OpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open preferences in OpenBench natively)
- * as Menus, it follows OpenBench's desktop/ob_builtin.h: dos, intuition, graphics and gadtools are OpenBench's
+ * Built into GFOpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open preferences in GFOpenBench natively)
+ * as Menus, it follows GFOpenBench's desktop/ob_builtin.h: dos, intuition, graphics and gadtools are GFOpenBench's
  * and asl.library its own, under its own name; its globals are static, and its version string is left out
- * (OpenDock's, built in too, is global); it starts as ob_builtin.c starts it, argc 0 and no WBStartup
+ * (GFOpenDock's, built in too, is global); it starts as ob_builtin.c starts it, argc 0 and no WBStartup
  * message, so it reads no arguments and writes nothing to Output(); Ctrl-C quits as Cancel does, a Test put
  * back first, and Ctrl-F brings the window to the front; as its statics outlive a run, each run sets again
- * the ones it counts on; and Look... opens OpenLook through OpenBench when OpenLook is built in too. The same
- * holds with LT_ONE, as a page of OpenLook. OpenMenus' settings code, om_prefs.c, is linked once into
- * OpenBench for every built-in that reads it. The stand-alone Menus builds as before.
+ * the ones it counts on; and Look... opens GFOpenLook through GFOpenBench when GFOpenLook is built in too. The same
+ * holds with LT_ONE, as a page of GFOpenLook. GFOpenMenus' settings code, om_prefs.c, is linked once into
+ * GFOpenBench for every built-in that reads it. The stand-alone Menus builds as before.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include <exec/types.h>
@@ -61,28 +61,28 @@
 #include "om_prefs.h"
 #include "ogt_theme.h"
 #include "../../Common/looktabs.h"
-#include "../../Common/prefsapp.h"           /* where OpenPrefs is (SYS:Preferences) */
+#include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
 #ifndef IN_OPENBENCH
-const char version[] __attribute__((used)) = "$VER: Menus 0.2.5 (12.10.2026) OpenPrefs, AmigaChrome Team";
+const char version[] __attribute__((used)) = "$VER: Menus 0.2.5 (12.10.2026) GFOpenPrefs, AmiCradle Team";
 #endif
 
-#define PREFS_ENV "ENV:OpenMenus/Menus"
-#define PREFS_ENVARC "ENVARC:OpenMenus/Menus"
+#define PREFS_ENV "ENV:GFOpenMenus/Menus"
+#define PREFS_ENVARC "ENVARC:GFOpenMenus/Menus"
 #define MM_ENV "ENV:MagicMenu.prefs"
 #define MM_ENVARC "ENVARC:MagicMenu.prefs"
-#define LOOK_ENV "ENV:OpenGadTools/Look"
+#define LOOK_ENV "ENV:GFOpenGadTools/Look"
 #define THEME_DIR "SYS:Prefs/Presets/Themes"
 #define TEST_SECONDS 15
-#define VIEW_ENV "ENV:OpenAmiga/PrefsView"
-#define VIEW_ENVARC "ENVARC:OpenAmiga/PrefsView"
-#define LOOK_TOOL "SYS:Prefs/OpenLook"   /* OpenBench's own Look editor's name (ob_builtin_open) */
-#define LOOK_RUN "Run >NIL: <NIL: \"%s\" THEME"   /* else OpenPrefs at its Theme page (prefsapp.h) */
+#define VIEW_ENV "ENV:GFOpenAmiga/PrefsView"
+#define VIEW_ENVARC "ENVARC:GFOpenAmiga/PrefsView"
+#define LOOK_TOOL "SYS:Prefs/GFOpenLook"   /* GFOpenBench's own Look editor's name (ob_builtin_open) */
+#define LOOK_RUN "Run >NIL: <NIL: \"%s\" THEME"   /* else GFOpenPrefs at its Theme page (prefsapp.h) */
 
 #ifdef IN_OPENBENCH
 #define AslBase menus_AslBase                    /* its own asl.library, under its own name (ob_builtin.h) */
 static struct Library *AslBase;
-int ob_builtin_open(const char *path);           /* OpenBench's: 1 when path names a built-in (started, or sent Ctrl-F) */
+int ob_builtin_open(const char *path);           /* GFOpenBench's: 1 when path names a built-in (started, or sent Ctrl-F) */
 #else
 struct Library *AslBase;
 #endif
@@ -134,7 +134,7 @@ static int tell_openmenus(void)
 {
     struct MsgPort *p;
     Forbid();
-    if ((p = FindPort((STRPTR)"OpenMenus"))) Signal(p->mp_SigTask, SIGBREAKF_CTRL_F);
+    if ((p = FindPort((STRPTR)"GFOpenMenus"))) Signal(p->mp_SigTask, SIGBREAKF_CTRL_F);
     Permit();
     return p != NULL;
 }
@@ -175,7 +175,7 @@ static const char *magicmenu_file(void)
     return exists(MM_ENVARC) ? MM_ENVARC : exists(MM_ENV) ? MM_ENV : NULL;
 }
 
-/* ---- the view: simple or advanced, shared by every OpenPrefs editor ----------------------------- */
+/* ---- the view: simple or advanced, shared by every GFOpenPrefs editor ----------------------------- */
 
 static int advanced;
 
@@ -227,7 +227,7 @@ static void load_theme(void)
     }
 }
 
-/* ---- the preview: a menu as OpenMenus would draw it -------------------------------------- */
+/* ---- the preview: a menu as GFOpenMenus would draw it -------------------------------------- */
 
 static LONG pens[32];
 static int npens;
@@ -455,13 +455,13 @@ static void go_back(void)
 
 static void opening_hint(void)
 {
-    if (magicmenu_running()) status("MagicMenu is running too: quit it (Exchange) so OpenMenus can draw the menus.");
+    if (magicmenu_running()) status("MagicMenu is running too: quit it (Exchange) so GFOpenMenus can draw the menus.");
     else if (cur.imported[0] && !orig.imported[0]) {
         snprintf(status_text, sizeof status_text, "Took over MagicMenu's settings. Save keeps them.");
         status(status_text);
     }
     else if (lite_on && (cur.shadow || cur.background == OM_BG_SEE || cur.background == OM_BG_SEEIMAGE))
-        status("Lite is on in Look: OpenMenus leaves out shadows and see-through.");
+        status("Lite is on in Look: GFOpenMenus leaves out shadows and see-through.");
 }
 
 static int handle_key(UWORD code)
@@ -493,7 +493,7 @@ static int text_w(struct Screen *scr, const char *s) { return TextLength(&scr->R
 static int make_gadgets(struct Screen *scr, APTR vi, struct Gadget **glist, int *Wp)
 {
     static const char *const left_words[] = { "Menus open", "From the bar", "At the pointer", "Bar delay", "Pointer delay", "Open on last",
-                                              "Centre submenus", "Programs run on", "Keyboard", "R.Amiga+R.Alt", "Use OpenMenus", "They work",
+                                              "Centre submenus", "Programs run on", "Keyboard", "R.Amiga+R.Alt", "Use GFOpenMenus", "They work",
                                               "Colours", "Shadow", "Delays", "They show", "Selected", "Name at the top", "Menu bar", NULL };
     static const char *const right_words[] = { "Colours", "Border", "Shadow", "Background", "Picture", "Icon menus", "They show",
                                                "Selected", NULL };
@@ -502,7 +502,7 @@ static int make_gadgets(struct Screen *scr, APTR vi, struct Gadget **glist, int 
     int fh = scr->Font->ta_YSize, lh = fh + 6, bl = scr->WBorLeft, top = scr->WBorTop + fh + 1 + 6, row, row2, i;
     /* the Advanced view is packed tight on every screen, so it measures the same as on a 256-line PAL Workbench */
     int gp = scr->Height < 320 || advanced ? 2 : 4, cb = 26, slv = 3 * scr->RastPort.TxWidth + 8;    /* a checkbox; a slider's number */
-    /* ... but on a screen under 400 lines Advanced has its own layout, to fit 640 x 256 with Topaz 8 (OpenLook 1.2) */
+    /* ... but on a screen under 400 lines Advanced has its own layout, to fit 640 x 256 with Topaz 8 (GFOpenLook 1.2) */
     int compact = advanced && scr->Height < 400;
     /* the left column: labels, then gadgets as wide as the widest choice */
     int lx = bl + 8 + widest(scr, left_words) + 8;
@@ -547,7 +547,7 @@ static int make_gadgets(struct Screen *scr, APTR vi, struct Gadget **glist, int 
     if (!advanced) {
         /* Simple: the theme first, and the few things people change */
         int look = text_w(scr, "Look...") + 20;
-        G(CHECKBOX_KIND, G_ENABLED, lx, row, cb, lh, "Use OpenMenus", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + gp;
+        G(CHECKBOX_KIND, G_ENABLED, lx, row, cb, lh, "Use GFOpenMenus", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + gp;
         G(CYCLE_KIND, G_OPEN, lx, row, lw, lh, "Menus open", PLACETEXT_LEFT, GTCY_Labels, (ULONG)open_labels); row += lh + gp;
         {
             /* where the menu bar sits, and Hide (bar.autohide) beside it */
@@ -576,9 +576,9 @@ static int make_gadgets(struct Screen *scr, APTR vi, struct Gadget **glist, int 
             G(TEXT_KIND, G_RCNOTE2, bl + 8, row, W - 16, fh + 2, NULL, 0, GTTX_Text, (ULONG)note2); row += fh + 2 + gp;
         }
     } else if (compact) {
-        /* Advanced on a screen under 400 lines (OpenLook 1.2): every setting in 640 x 256 with Topaz 8, a line apart.
+        /* Advanced on a screen under 400 lines (GFOpenLook 1.2): every setting in 640 x 256 with Topaz 8, a line apart.
          * No preview (Simple has it, and Test shows the real menus); on the left how menus open and the keys, then
-         * OpenMenus itself; on the right the look, the right-click menus and taking over MagicMenu's settings. */
+         * GFOpenMenus itself; on the right the look, the right-click menus and taking over MagicMenu's settings. */
         int st = lh + 1, hw = text_w(scr, "Hide") + 8 + cb, dw = (lw - 2 * slv - 8) / 2;
         int rcw = text_w(scr, "Name at the top") + 8 + cb;
         G(CYCLE_KIND, G_OPEN, lx, row, lw, lh, "Menus open", PLACETEXT_LEFT, GTCY_Labels, (ULONG)open_labels); row += st;
@@ -598,7 +598,7 @@ static int make_gadgets(struct Screen *scr, APTR vi, struct Gadget **glist, int 
         G(STRING_KIND, G_KEY, lx + cb + 8, row, lw - cb - 8, lh, NULL, 0, GTST_MaxChars, 60); row += st;
         G(CHECKBOX_KIND, G_RALT, lx, row, cb, lh, "R.Amiga+R.Alt", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
         G(CHECKBOX_KIND, G_TOP, lx + lw - cb, row, cb, lh, "Pointer up", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += st;
-        G(CHECKBOX_KIND, G_ENABLED, lx, row, cb, lh, "Use OpenMenus", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += st;
+        G(CHECKBOX_KIND, G_ENABLED, lx, row, cb, lh, "Use GFOpenMenus", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += st;
 
         G(CYCLE_KIND, G_COLOURS, rx, row2, rg, lh, "Colours", PLACETEXT_LEFT, GTCY_Labels, (ULONG)colours_labels); row2 += st;
         G(CYCLE_KIND, G_WHICH, rx, row2, rg - hexw - 6, lh, NULL, 0, GTCY_Labels, (ULONG)which_labels);
@@ -674,8 +674,8 @@ static int make_gadgets(struct Screen *scr, APTR vi, struct Gadget **glist, int 
         G(BUTTON_KIND, G_CHOOSE, rx + rg - chw, row2, chw, lh, "Choose...", 0, GA_Disabled, FALSE); row2 += lh + 2 * gp;
         G(BUTTON_KIND, G_TAKEOVER, rx0, row2, pw, lh, "Take over MagicMenu's...", 0, GA_Disabled, FALSE); row2 += lh + 2 * gp;
 
-        /* at the foot of the left column: OpenMenus itself, and the right-click menus on icons and the desktop */
-        G(CHECKBOX_KIND, G_ENABLED, lx, row, cb, lh, "Use OpenMenus", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
+        /* at the foot of the left column: GFOpenMenus itself, and the right-click menus on icons and the desktop */
+        G(CHECKBOX_KIND, G_ENABLED, lx, row, cb, lh, "Use GFOpenMenus", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
         G(CHECKBOX_KIND, G_RC, lx + lw - cb, row, cb, lh, "Icon menus", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + gp;
         G(CYCLE_KIND, G_RCEXTRAS, lx, row, lw, lh, "They show", PLACETEXT_LEFT, GTCY_Labels, (ULONG)rcshow_labels); row += lh + gp;
         G(CYCLE_KIND, G_RCSEL, lx, row, lw, lh, "Selected", PLACETEXT_LEFT, GTCY_Labels, (ULONG)rcsel_labels); row += lh + gp;
@@ -735,7 +735,7 @@ static int gui(void)
         if (wy + tall > scr->Height) wy = scr->Height - tall > 0 ? scr->Height - tall : 0;
         if (wx + wide > scr->Width) wx = scr->Width - wide > 0 ? scr->Width - wide : 0;
     }
-    win = lt_open(scr, wx, wy, W, inner, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_VANILLAKEY | IDCMP_MENUPICK | BUTTONIDCMP | CYCLEIDCMP | STRINGIDCMP | CHECKBOXIDCMP | SLIDERIDCMP, "OpenPrefs Menus 0.1");
+    win = lt_open(scr, wx, wy, W, inner, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_VANILLAKEY | IDCMP_MENUPICK | BUTTONIDCMP | CYCLEIDCMP | STRINGIDCMP | CHECKBOXIDCMP | SLIDERIDCMP, "GFOpenPrefs Menus 0.1");
     if (!win) { rc = RETURN_FAIL; goto out; }
     SetMenuStrip(win, menus);
     GT_RefreshWindow(win, NULL);
@@ -756,7 +756,7 @@ static int gui(void)
             SendIO((struct IORequest *)tr);
         }
 #ifdef IN_OPENBENCH
-        /* OpenBench's Ctrl-C (it is quitting): as Cancel, below, once the timer is back; its Ctrl-F (opened
+        /* GFOpenBench's Ctrl-C (it is quitting): as Cancel, below, once the timer is back; its Ctrl-F (opened
          * again): the window to the front */
         got = Wait((1UL << win->UserPort->mp_SigBit) | tsig | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -808,15 +808,15 @@ static int gui(void)
                 }
             }
             if (id < 0) continue;
-            if (LT_IS(id)) {                                  /* another tab: keep, as Use, and hand over (OpenPrefs: when changed) */
+            if (LT_IS(id)) {                                  /* another tab: keep, as Use, and hand over (GFOpenPrefs: when changed) */
                 int to = lt_hit(gg, code);
                 if (to >= 0 && (!LT_DIRTY || put_in_place(0))) { test_until = 0; lt_go(win, to); quit = 1; }
                 continue;
             }
-            /* settings kept for a later engine: OpenMenus 0.3 doesn't use them yet (DESIGN.md) */
+            /* settings kept for a later engine: GFOpenMenus 0.3 doesn't use them yet (DESIGN.md) */
             if (id == G_PDDELAY || id == G_PUDELAY || id == G_LAST ||
                 id == G_IMAGE || id == G_CHOOSE || (id == G_BG && code != OM_BG_SOLID))
-                status("Kept for later: OpenMenus 0.3 has no delays, see-through, images or open on last.");
+                status("Kept for later: GFOpenMenus 0.3 has no delays, see-through, images or open on last.");
             switch (id) {
             case G_OPEN: cur.open = code; break;
             case G_PDUSE: cur.use[OM_PD] = code; break;
@@ -865,7 +865,7 @@ static int gui(void)
                 break;
             case G_CHOOSE: choose_image(); break;
 #ifdef IN_OPENBENCH
-            /* OpenLook built into OpenBench too: started there; else OpenPrefs at its Theme page */
+            /* GFOpenLook built into GFOpenBench too: started there; else GFOpenPrefs at its Theme page */
             case G_LOOK: {
                 char cmd[80];
                 if (!ob_builtin_open(LOOK_TOOL)) { snprintf(cmd, sizeof cmd, LOOK_RUN, op_app_path(1)); SystemTags((STRPTR)cmd, TAG_DONE); }
@@ -932,7 +932,7 @@ int main(int argc, char **argv)
 #ifdef IN_OPENBENCH
     /* Built in, it starts as ob_builtin.c starts it: argc 0, argv NULL and no WBStartup message, so no
      * arguments and no tooltypes; the window opens, as from Workbench, and nothing below reads the Shell or
-     * writes to Output(). Its statics outlive a run inside OpenBench: what a run counts on starts again here. */
+     * writes to Output(). Its statics outlive a run inside GFOpenBench: what a run counts on starts again here. */
     advanced = 0;
     theme_loaded = theme_dark = lite_on = 0;
     npens = 0;

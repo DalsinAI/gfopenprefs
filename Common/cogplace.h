@@ -1,9 +1,9 @@
-/* cogplace.h: a window opened from OpenTitle's cog opens at the screen's top right (the user, 10 October 2026:
+/* cogplace.h: a window opened from GFOpenTitle's cog opens at the screen's top right (the user, 10 October 2026:
  * "have the preferences windows open near the cog wheel when they are opened by it, so right aligned, with 20
  * pixels spacing to the edge of the screen top and right hand side").
  *
- * OpenWindows keeps a public semaphore by this name with the request in it. The cog arms it just before it starts
- * an editor; OpenWindows' OpenWindowTagList patch places the next window with a drag bar that another program
+ * GFOpenWindows keeps a public semaphore by this name with the request in it. The cog arms it just before it starts
+ * an editor; GFOpenWindows' OpenWindowTagList patch places the next window with a drag bar that another program
  * opens within ten seconds there, and disarms it. Both read and write it under Forbid (no DOS: the patch runs in
  * any task). MIT, Copyright (c) 2026 AmigaChrome Team. */
 #ifndef COGPLACE_H

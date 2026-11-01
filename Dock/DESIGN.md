@@ -1,12 +1,12 @@
-# OpenDock and OpenPrefs Dock
+# GFOpenDock and GFOpenPrefs Dock
 
-OpenDock is a dock on the Workbench screen, and Dock is its prefs editor.
+GFOpenDock is a dock on the Workbench screen, and Dock is its prefs editor.
 The design comes from openamigaup DESIGN.md: a Mac-like dock that takes
 over the docks people already have. MIT, Copyright (c) 2026 AmigaChrome Team.
 
-![OpenDock 0.3 on a graphics card: the light look, glass at 60 per cent (0.4 starts at 35)](docs/screenshot.png)
+![GFOpenDock 0.3 on a graphics card: the light look, glass at 60 per cent (0.4 starts at 35)](docs/screenshot.png)
 
-![OpenDock 0.3, the dark look](docs/screenshot-dark.png)
+![GFOpenDock 0.3, the dark look](docs/screenshot-dark.png)
 
 ## 0.6 (10 October 2026): the settings do what they say
 
@@ -35,7 +35,7 @@ themselves:
 
 ## 0.4 (8 October 2026): the look approved on the canvas
 
-The dock of the OpenLook mock-ups ("OpenLook default theme candidates"),
+The dock of the GFOpenLook mock-ups ("GFOpenLook default theme candidates"),
 tuned there with the user:
 
 - **More room at the ends.** From the shelf's end to the first icon's edge
@@ -48,7 +48,7 @@ tuned there with the user:
   glass is frosted less (a box of `big / 24` pixels, 2 at the medium size).
   The settings line is unchanged; a file that gives `opacity` keeps it.
 - **The starter buttons** (a first start with no dock to take over): Shell,
-  OpenFiles, OpenView, OpenWrite, OpenPlay, OpenCompress, OpenFTP, OpenPuTTY (each
+  GFOpenFiles, GFOpenView, GFOpenWrite, GFOpenPlay, GFOpenCompress, GFOpenFTP, GFOpenPuTTY (each
   only when installed), Clock, Calculator, Prefs and Look, a separator, and
   the Trashcan (`SYS:Trashcan`, opened as a drawer).
 
@@ -70,7 +70,7 @@ rounded rectangle tinted to the look, through which the desktop shows.
   centred across the shelf. A 1-pixel edge, a little lighter than the
   shelf, goes round it (Edges turns it off).
 - **The tint follows the look.** It is dark for a dark look and light for a light
-  one, read from `ENV:OpenGadTools/Look` (its first line, `<theme>
+  one, read from `ENV:GFOpenGadTools/Look` (its first line, `<theme>
   light|dark|auto`; auto is dark from 19:00 to 07:00). Where the screen's
   background pen fits the look, the tint is made from it. With no Look
   settings, it is a neutral grey.
@@ -116,7 +116,7 @@ rounded rectangle tinted to the look, through which the desktop shows.
 
 ## 0.1 (6 October 2026)
 
-### OpenDock (`C:OpenDock`)
+### GFOpenDock (`C:GFOpenDock`)
 
 - One row of icons sits along an edge of the Workbench screen: bottom (the
   default), top, left or right, centred.
@@ -128,7 +128,7 @@ rounded rectangle tinted to the look, through which the desktop shows.
   0.6.8: one look at exec's task lists and one walk of the Shells per check,
   for all the buttons together (it was a FindTask, and a walk of the Shells,
   for each button); none at all while the marks are off or the dock is closed.
-  0.6.10: on OpenExec (taskclock.resource 2, which counts the tasks added and
+  0.6.10: on GFOpenExec (taskclock.resource 2, which counts the tasks added and
   removed), the two-second check is skipped while that count and the window
   list are as they were; on OS 3.2.3's exec every check runs, as before.
 - **Its timer** (0.6.11, `src/od_wake.h`): clicks, refreshes, icons dropped,
@@ -148,14 +148,14 @@ rounded rectangle tinted to the look, through which the desktop shows.
   has Dock settings..., Remove a button (the next click removes it) and
   Quit.
 - Ctrl-F reads the settings again, which is what Dock sends. Ctrl-C ends
-  it. Starting a second OpenDock only tells the first to read its settings
+  it. Starting a second GFOpenDock only tells the first to read its settings
   again, and ends quietly (0.6.6: its port is looked for and added under
   one Forbid, so two starts at once can't both run).
 - **Started when it has settings** (0.6.6, Dale, 17 Oct 2026): the ROM
-  carries OpenDock in ROM:C, and OpenBench starts it by name at
-  Workbench's start only when `ENV:OpenDock/Dock` is there; a newer
-  `C:OpenDock` wins by its `$VER`. With no settings file nothing shows.
-  OpenUp no longer puts `Run >NIL: C:OpenDock` in User-Startup; an old
+  carries GFOpenDock in ROM:C, and GFOpenBench starts it by name at
+  Workbench's start only when `ENV:GFOpenDock/Dock` is there; a newer
+  `C:GFOpenDock` wins by its `$VER`. With no settings file nothing shows.
+  GFOpenUp no longer puts `Run >NIL: C:GFOpenDock` in User-Startup; an old
   line does no harm (the second start ends).
 - **It sits just above the backdrop** (0.2): every other window, Workbench's
   drawers too, goes over it, and clicking it never brings it in front. It is
@@ -202,7 +202,7 @@ rounded rectangle tinted to the look, through which the desktop shows.
   - **ARexx** runs `SYS:Rexxc/RX` with the script.
   - **Separator** is a line between groups.
 
-### The settings, `ENV:OpenDock/Dock` (format 1)
+### The settings, `ENV:GFOpenDock/Dock` (format 1)
 
 Each line is `key value`, and a `;` starts a comment. Unknown lines are
 skipped. Save writes `ENVARC:` too.
@@ -227,7 +227,7 @@ skipped. Save writes `ENVARC:` too.
 `icon` names an icon without `.info`. Without one, the button shows the
 program's own icon, or the default icon for its kind. Quoted values escape
 `"` and `\` with a backslash. `src/od_dock.c` is plain C, shared by
-OpenDock, Dock and the host tests.
+GFOpenDock, Dock and the host tests.
 
 ### Taking over another dock
 
@@ -242,11 +242,11 @@ program that wrote the file.
 | AmiDock (AmigaOS 3.9) | `ENVARC:Sys/amidock.prefs`, a form not yet known | Refused with a plain reason |
 | AmiStart | `sm.prefs`, found from its icon's `PREFS` tooltype (`PROGDIR:` is the icon's drawer; `DATAPATH` is where relative icons start); also AmiKit's `sm.config` and Icaros's `ENVARC:Icaros/sm.prefs`. It is text: `NEWDIR NAME="TASKBAR"` ... `ITEM` ... `ENDDIR` | The taskbar's `ITEM`s with `FILE=`: `EXECMODE="0"` becomes Workbench, `"1"` becomes Shell with `ARG=` (hex) as its arguments. With no taskbar programs, the start menu's (`MAIN`). Submenus, drawers (`SYSDIR`) and modules (`EXTERNAL`) are left out |
 
-On the first start, when there is no `ENVARC:OpenDock/Dock`, Dock takes
+On the first start, when there is no `ENVARC:GFOpenDock/Dock`, Dock takes
 over the first of these it finds, once. Otherwise it starts with Shell
-(`NewShell`), OpenFiles, OpenView, OpenWrite, OpenPlay, OpenCompress, OpenFTP,
-OpenPuTTY, Clock, Calculator, Prefs and Look, a
-separator and the Trashcan (0.4; OpenView took MultiView's place on 6
+(`NewShell`), GFOpenFiles, GFOpenView, GFOpenWrite, GFOpenPlay, GFOpenCompress, GFOpenFTP,
+GFOpenPuTTY, Clock, Calculator, Prefs and Look, a
+separator and the Trashcan (0.4; GFOpenView took MultiView's place on 6
 October 2026). Workbench buttons whose program
 isn't on the machine are left out, both from the starter set and from a
 take-over. **Take over its buttons** does it on request:
@@ -254,10 +254,10 @@ the buttons are added after the dock's own, and when the file isn't where
 it usually is, a requester asks for it. From the Shell,
 `Dock TOOLMANAGER ENVARC:ToolManager.prefs SAVE` does it with no window
 (AMIDOCK and AMISTART work the same way).
-`Dock ADD SYS:Utilities/OpenFiles SYS:Utilities/OpenPrint/OpenView SAVE`
+`Dock ADD SYS:Utilities/GFOpenFiles SYS:Utilities/GFOpenPrint/GFOpenView SAVE`
 puts a button at the dock's end for each program that's installed and not
-on the dock yet, and leaves the rest alone. OpenUp runs it on every
-install, so a dock someone already has gains OpenFiles and OpenView too.
+on the dock yet, and leaves the rest alone. GFOpenUp runs it on every
+install, so a dock someone already has gains GFOpenFiles and GFOpenView too.
 
 `tests/run.sh` runs 56 checks on the host's `cc`, the opacity line among them. They cover the format
 both ways, a ToolManager 2 file built to the format, an AmiDock file and
@@ -266,12 +266,12 @@ refusals, entities and UTF-8, and a full dock. The ToolManager sample was
 made from the format, because no real file could be fetched here. A real
 ToolManager 2 file is the first thing to try on an instance.
 
-### OpenPrefs Dock (`SYS:Prefs/OpenDock`)
+### GFOpenPrefs Dock (`SYS:Prefs/GFOpenDock`)
 
-Since 10 October 2026 every editor of ours in SYS:Prefs is named Open... (OpenLook, OpenDock, OpenSound, OpenDateTime, OpenInput, OpenSerial, OpenGamepads, OpenTypes, OpenTata, OpenUp-Setup); the OS's own editors we replace go to SYS:Prefs/Classic. The user: "the preferences need consistent naming: either all are Open x or none are".
+Since 10 October 2026 every editor of ours in SYS:Prefs is named GFOpen... (GFOpenLook, GFOpenDock, GFOpenSound, GFOpenDateTime, GFOpenInput, GFOpenSerial, GFOpenGamepads, GFOpenTypes, GFOpenTata, GFOpenUp-Setup); the OS's own editors we replace go to SYS:Prefs/Classic. The user: "the preferences need consistent naming: either all are Open x or none are".
 
 A GadTools prefs editor like the others: Save, Use, Test (15 seconds),
-Cancel, and Ctrl-F to the `OpenDock` port. Save and Use (and `SAVE` or
+Cancel, and Ctrl-F to the `GFOpenDock` port. Save and Use (and `SAVE` or
 `USE` from the Shell) start the dock by name when it isn't running (0.5.3).
 
 - **Simple** view: the buttons in order (Up, Down, Remove, add a Line),
@@ -279,7 +279,7 @@ Cancel, and Ctrl-F to the `OpenDock` port. Save and Use (and `SAVE` or
   and how see-through it is (0.2), and taking over from ToolManager,
   AmiDock or AmiStart.
 - **Advanced** view (View > Advanced, Amiga-A, shared in
-  `ENV:OpenAmiga/PrefsView`): the running marks, Pop-up names, Hop, and
+  `ENV:GFOpenAmiga/PrefsView`): the running marks, Pop-up names, Hop, and
   the chosen button in
   full: what it starts with (Workbench, Shell, ARexx), name, command, icon,
   drawer and stack.
@@ -289,16 +289,16 @@ Cancel, and Ctrl-F to the `OpenDock` port. Save and Use (and `SAVE` or
 ### Building
 
 `Dock/build.sh [OUT_DIR]` uses the os32 stove (or `CC=`) and builds
-`OpenDock` and `Dock` for a 68040 (built with -m68040), with no FPU needed.
+`GFOpenDock` and `Dock` for a 68040 (built with -m68040), with no FPU needed.
 
-### For the OpenUp part (to add in openamigaup)
+### For the GFOpenUp part (to add in openamigaup)
 
-    dock = Part(top, "OpenDock", "0.1", "OpenDock: a dock that takes over ToolManager's, AmiDock's or AmiStart's, and its editor")
-    dock.add("C/OpenDock", (a.openamigaprefs / "Dock/build/os3/OpenDock").read_bytes(), "SYS:C/OpenDock")
+    dock = Part(top, "GFOpenDock", "0.1", "GFOpenDock: a dock that takes over ToolManager's, AmiDock's or AmiStart's, and its editor")
+    dock.add("C/GFOpenDock", (a.openamigaprefs / "Dock/build/os3/GFOpenDock").read_bytes(), "SYS:C/GFOpenDock")
     dock.add("Prefs/Dock", (a.openamigaprefs / "Dock/build/os3/Dock").read_bytes(), "SYS:Prefs/Dock")
     dock.add("Prefs/Dock.info", icons.icon(icons.WBTOOL, "page", stack=16384), "SYS:Prefs/Dock.info")
-    dock.line("startup Run >NIL: C:OpenDock")
-    # once, at install, before OpenDock first starts: the first dock found taken over
+    dock.line("startup Run >NIL: C:GFOpenDock")
+    # once, at install, before GFOpenDock first starts: the first dock found taken over
     #   SYS:Prefs/Dock SAVE
 
 `Dock SAVE` with no other arguments does the first-start take-over and
@@ -308,15 +308,15 @@ saves the result.
 
 - **Phase 2: a start-style menu.** A button at the dock's end opens a pop-up
   of programs, the Workbench menu's items, and Shut down/Reboot, through
-  OpenMenus' panels, after the menu bar at any edge (`Menus/DESIGN.md`,
+  GFOpenMenus' panels, after the menu bar at any edge (`Menus/DESIGN.md`,
   "Where the menu bar sits"). We, 6 October 2026: "or as a 'start' menu like
-  pop up from OpenDock. The latter might need to follow in a phase 2."
+  pop up from GFOpenDock. The latter might need to follow in a phase 2."
 
 - Taking over ToolManager 3 and AmigaOS 3.9's AmiDock once their files are
   known (a copy of each from a real machine).
 - DOpus button banks.
 - Drag to reorder on the dock itself.
-- The theme's own colours from OpenLook's theme file (0.3 takes the mode
+- The theme's own colours from GFOpenLook's theme file (0.3 takes the mode
   and the screen's background pen), and noticing a change of look without
   Ctrl-F.
 - Magnification, off with Lite.

@@ -1,20 +1,20 @@
-/* OpenSystem: the Team's System preferences. Its first page is Stack: the
+/* GFOpenSystem: the Team's System preferences. Its first page is Stack: the
  * adaptive stack's default cap and each program's own cap (amigachrome
  * docs/design/Design-Adaptive-Stack.md; decided 13 October 2026: a Stack page in
  * the System prefs owns the cap, one voice).
  *
- *   OpenSystem [APPLY] [INFO] [CAP kb] [PROGRAM name] [PCAP kb] [USE] [SAVE]
+ *   GFOpenSystem [APPLY] [INFO] [CAP kb] [PROGRAM name] [PCAP kb] [USE] [SAVE]
  *
- *   - APPLY: hand ENV:OpenAmiga/Stack to the runtime (for User-startup)
+ *   - APPLY: hand ENV:GFOpenAmiga/Stack to the runtime (for User-startup)
  *   - INFO: what the runtime does now: the mode, the cap, the programs on
  *     growing stacks and the stack alerts since boot
  *   - CAP, PROGRAM with PCAP (0 removes it), with USE or SAVE: change the
  *     settings from the Shell
  *   - no arguments: the window
  *
- * The settings are a short text file, ENV:OpenAmiga/Stack (Use) and ENVARC:
- * (Save): "CAP <kb>", then "PROGRAM <name> <kb>" lines. On AmigaChrome they go
- * to the runtime through the memory controller's stack registers (AmigaChrome Team
+ * The settings are a short text file, ENV:GFOpenAmiga/Stack (Use) and ENVARC:
+ * (Save): "CAP <kb>", then "PROGRAM <name> <kb>" lines. On AmiCradle they go
+ * to the runtime through the memory controller's stack registers (AmiCradle Team
  * product 12 or 14, at $900 on the board). A program's name is its command's
  * file part, as the Shell runs it ("StackGrow"), case aside.
  *
@@ -36,7 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -45,14 +45,14 @@
 #define lt_note_to(f) ((void)0)
 #endif
 
-static const char version[] __attribute__((used)) = "$VER: OpenSystem 0.1 (13.10.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenSystem 0.1 (13.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 
 static struct Library *opensystem_expansion;
 #define ExpansionBase opensystem_expansion
 
-#define STACK_ENV "ENV:OpenAmiga/Stack"
-#define STACK_ENVARC "ENVARC:OpenAmiga/Stack"
-#define AMIGACHROME_MANUFACTURER 0xDA15
+#define STACK_ENV "ENV:GFOpenAmiga/Stack"
+#define STACK_ENVARC "ENVARC:GFOpenAmiga/Stack"
+#define AMICRADLE_MANUFACTURER 0xDA15
 #define LOCAL_PRODUCT 12             /* AC090's memory controller */
 #define AAPLUS_PRODUCT 14            /* the AA+ board's controller: the same registers */
 #define STK_REGS 0x900
@@ -154,8 +154,8 @@ static volatile ULONG *stack_regs(void)
     struct ConfigDev *cd = NULL;
     volatile ULONG *r;
     if (!ExpansionBase) return NULL;
-    if (!(cd = FindConfigDev(NULL, AMIGACHROME_MANUFACTURER, LOCAL_PRODUCT)))
-        cd = FindConfigDev(NULL, AMIGACHROME_MANUFACTURER, AAPLUS_PRODUCT);
+    if (!(cd = FindConfigDev(NULL, AMICRADLE_MANUFACTURER, LOCAL_PRODUCT)))
+        cd = FindConfigDev(NULL, AMICRADLE_MANUFACTURER, AAPLUS_PRODUCT);
     if (!cd || !cd->cd_BoardAddr) return NULL;
     r = (volatile ULONG *)((UBYTE *)cd->cd_BoardAddr + STK_REGS);
     return r[0] == STK_SIGNATURE ? r : NULL;
@@ -191,7 +191,7 @@ static const char *mode_name(ULONG mode)
 static void runtime_line(char *out, int n)
 {
     volatile ULONG *r = stack_regs();
-    if (!r) { snprintf(out, n, "No AmigaChrome stack runtime: the settings are kept for when there is."); return; }
+    if (!r) { snprintf(out, n, "No AmiCradle stack runtime: the settings are kept for when there is."); return; }
     snprintf(out, n, "Runtime: %s; cap %lu KB; %lu on growing stacks now; %lu stack alerts since boot",
              mode_name(r[1]), (unsigned long)(r[2] >> 10), (unsigned long)r[16], (unsigned long)r[17]);
 }
@@ -292,7 +292,7 @@ static void remove_selected(void)
 static int put_in_place(int save)
 {
     take_cap();
-    if ((save && !save_settings("ENVARC:OpenAmiga", STACK_ENVARC)) || !save_settings("ENV:OpenAmiga", STACK_ENV)) {
+    if ((save && !save_settings("ENVARC:GFOpenAmiga", STACK_ENVARC)) || !save_settings("ENV:GFOpenAmiga", STACK_ENV)) {
         show_status("Could not write the settings file.");
         return 0;
     }
@@ -332,7 +332,7 @@ static int gui(void)
     (ng.ng_LeftEdge = (x), ng.ng_TopEdge = (y), ng.ng_Width = (w), ng.ng_Height = (h), ng.ng_GadgetText = (STRPTR)(text), \
      ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
 #ifdef LT_ONE
-    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_SYSTEM);     /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_SYSTEM);     /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 24, lh);
 #endif
     row = top;
@@ -363,9 +363,9 @@ static int gui(void)
     }
     if (!g) { rc = RETURN_FAIL; goto out; }
 #ifdef LT_ONE
-    win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | BUTTONIDCMP | INTEGERIDCMP | STRINGIDCMP | LISTVIEWIDCMP | TEXTIDCMP, "OpenSystem 0.1");
+    win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | BUTTONIDCMP | INTEGERIDCMP | STRINGIDCMP | LISTVIEWIDCMP | TEXTIDCMP, "GFOpenSystem 0.1");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"System: Stack", WA_ScreenTitle, (ULONG)"OpenSystem 0.1", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"System: Stack", WA_ScreenTitle, (ULONG)"GFOpenSystem 0.1", WA_PubScreen, (ULONG)scr,
                          WA_Left, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, WA_Top, scr->BarHeight + 20,
                          WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
@@ -436,24 +436,24 @@ int main(int argc, char **argv)
     int rc = RETURN_OK;
     (void)argv;
     (void)version;
-    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"OpenSystem"); return RETURN_FAIL; }
+    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"GFOpenSystem"); return RETURN_FAIL; }
     opensystem_expansion = OpenLibrary((STRPTR)"expansion.library", 37);
     load_settings(STACK_ENV);
     if (args[0]) {                               /* APPLY: ENV: to the runtime */
-        if (!apply_settings()) { PutStr((STRPTR)"OpenSystem: no AmigaChrome stack runtime here; nothing to apply\n"); rc = RETURN_WARN; }
+        if (!apply_settings()) { PutStr((STRPTR)"GFOpenSystem: no AmiCradle stack runtime here; nothing to apply\n"); rc = RETURN_WARN; }
     } else if (args[1]) rc = info();
     else if (args[2] || args[3] || args[5] || args[6]) {
         if (args[2]) cap_kb = clamp_kb(*(LONG *)args[2]);
         if (args[3] && !set_prog((const char *)args[3], args[4] ? *(LONG *)args[4] : 0)) {
-            PutStr((STRPTR)"OpenSystem: no room for that program (31 characters, no spaces, colons or slashes; 32 programs)\n");
+            PutStr((STRPTR)"GFOpenSystem: no room for that program (31 characters, no spaces, colons or slashes; 32 programs)\n");
             rc = RETURN_ERROR;
-        } else if ((args[6] && !save_settings("ENVARC:OpenAmiga", STACK_ENVARC)) || !save_settings("ENV:OpenAmiga", STACK_ENV)) {
-            PutStr((STRPTR)"OpenSystem: could not write the settings file\n");
+        } else if ((args[6] && !save_settings("ENVARC:GFOpenAmiga", STACK_ENVARC)) || !save_settings("ENV:GFOpenAmiga", STACK_ENV)) {
+            PutStr((STRPTR)"GFOpenSystem: could not write the settings file\n");
             rc = RETURN_ERROR;
         } else apply_settings();
     }
 #ifndef OP_APPLY
-    else rc = gui();                         /* OpenPrefs's C:OpenPrefs (OP_APPLY): APPLY only, no window */
+    else rc = gui();                         /* GFOpenPrefs's C:GFOpenPrefs (OP_APPLY): APPLY only, no window */
 #endif
     if (rd) FreeArgs(rd);
     if (opensystem_expansion) CloseLibrary(opensystem_expansion);

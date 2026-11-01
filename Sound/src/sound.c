@@ -1,15 +1,15 @@
-/* OpenPrefs Sound 0.1: one editor for all of the Amiga's sound, in place
+/* GFOpenPrefs Sound 0.1: one editor for all of the Amiga's sound, in place
  * of Prefs/Sound and Prefs/AHI (Dale, 6 October 2026: "a single combined
  * sound prefs"; design: DESIGN.md, mockup in it).
  *
  *   - the levels: the volume, Paula's level, AHI's level and mute. On
- *     AmigaChrome they are the ACAHI board's LEVELS, which the PC's mixer
+ *     AmiCradle they are the ACAHI board's LEVELS, which the PC's mixer
  *     applies, so they move as the sliders do, and the mixer page on the
  *     PC moves them too. On a real Amiga the volume is AHI's output
  *     volume, and Paula's level is the speakers' knob.
  *   - who mixes AHI's sound: the PC (the Host mix mode) or the Amiga (HiFi)
  *   - the beep: a sound, a flash, both or nothing (the OS's sound.prefs)
- *   - the speaker on the menu bar (OpenSpeaker)
+ *   - the speaker on the menu bar (GFOpenSpeaker)
  *   - Advanced: AHI's units, its global settings, and the beep's sound
  *
  * Save writes ENV: and ENVARC:, Use writes ENV:, Cancel puts back the
@@ -17,13 +17,13 @@
  *
  *   Sound [FROM file] [USE] [SAVE] [ADVANCED]
  *
- * "Sound USE" at boot (OpenUp's startup) gives the board the saved levels.
+ * "Sound USE" at boot (GFOpenUp's startup) gives the board the saved levels.
  *
- * Built into OpenBench (the Team, 11 October 2026: the Open preferences in OpenBench natively) with
- * -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: OpenBench starts it as a process of its
+ * Built into GFOpenBench (the Team, 11 October 2026: the Open preferences in GFOpenBench natively) with
+ * -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: GFOpenBench starts it as a process of its
  * own with no arguments, as Workbench starts a tool, so it is the window; Ctrl-C is Cancel, Ctrl-F
- * brings the window to the front; each start begins as a new program would, since OpenBench's data
- * stays from one start to the next. OpenSpeaker stays a program of its own.
+ * brings the window to the front; each start begins as a new program would, since GFOpenBench's data
+ * stays from one start to the next. GFOpenSpeaker stays a program of its own.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include <exec/types.h>
@@ -47,7 +47,7 @@
 #include "sp_amiga.h"
 #include "sp_test.h"
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -56,12 +56,12 @@
 #define lt_note_to(f) ((void)0)
 #endif
 
-#ifndef IN_OPENBENCH                                  /* inside OpenBench, OpenBench's $VER is the one */
-const char version[] __attribute__((used)) = "$VER: OpenSound 0.1.1 (10.10.2026) OpenPrefs, AmigaChrome Team";
+#ifndef IN_OPENBENCH                                  /* inside GFOpenBench, GFOpenBench's $VER is the one */
+const char version[] __attribute__((used)) = "$VER: GFOpenSound 0.1.1 (10.10.2026) GFOpenPrefs, AmiCradle Team";
 #endif
 
-#define VIEW_ENV "ENV:OpenAmiga/PrefsView"           /* shared by every OpenPrefs editor: simple or advanced */
-#define VIEW_ENVARC "ENVARC:OpenAmiga/PrefsView"
+#define VIEW_ENV "ENV:GFOpenAmiga/PrefsView"           /* shared by every GFOpenPrefs editor: simple or advanced */
+#define VIEW_ENVARC "ENVARC:GFOpenAmiga/PrefsView"
 #define MAX_MODES 32
 
 static sp_settings cur, orig;
@@ -246,7 +246,7 @@ static int gui_once(void)
     lh = fh + (advanced ? 4 : 6);
     top = scr->WBorTop + fh + 1 + 6;
     if (!status_text[0])
-        strcpy(status_text, board ? "The sliders move the sound as you drag them." : "No AmigaChrome board: the volume is AHI's.");
+        strcpy(status_text, board ? "The sliders move the sound as you drag them." : "No AmiCradle board: the volume is AHI's.");
 
     g = CreateContext(&glist);
     memset(&ng, 0, sizeof ng);
@@ -264,7 +264,7 @@ static int gui_once(void)
       GTSL_LevelFormat, (ULONG)"%ld%%", GTSL_MaxLevelLen, LEVEL_CHARS, GTSL_LevelPlace, PLACETEXT_RIGHT, GA_RelVerify, TRUE, GA_Immediate, TRUE)
 
 #ifdef LT_ONE
-    lt_make(NULL, NULL, 10, top, W - 20, lh, LT_SOUND);     /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, 10, top, W - 20, lh, LT_SOUND);     /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 20, lh);
 #endif
     /* the levels */
@@ -324,9 +324,9 @@ static int gui_once(void)
     if (!g) { rc = RETURN_FAIL; goto out; }
     menus[6].nm_Flags = CHECKIT | MENUTOGGLE | (advanced ? CHECKED : 0);
 #ifdef LT_ONE
-    win = lt_open(scr, 40, scr->BarHeight + 4, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | IDCMP_INTUITICKS | SLIDERIDCMP | BUTTONIDCMP | CYCLEIDCMP | MXIDCMP | STRINGIDCMP | CHECKBOXIDCMP | INTEGERIDCMP, "OpenPrefs Sound 0.1");
+    win = lt_open(scr, 40, scr->BarHeight + 4, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | IDCMP_INTUITICKS | SLIDERIDCMP | BUTTONIDCMP | CYCLEIDCMP | MXIDCMP | STRINGIDCMP | CHECKBOXIDCMP | INTEGERIDCMP, "GFOpenPrefs Sound 0.1");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Sound", WA_ScreenTitle, (ULONG)"OpenPrefs Sound 0.1", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Sound", WA_ScreenTitle, (ULONG)"GFOpenPrefs Sound 0.1", WA_PubScreen, (ULONG)scr,
                          WA_Left, 40, WA_Top, scr->BarHeight + 4, WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
                          WA_SmartRefresh, TRUE, WA_NewLookMenus, TRUE,
@@ -343,7 +343,7 @@ static int gui_once(void)
     while (!quit) {
         struct IntuiMessage *m;
 #ifdef IN_OPENBENCH
-        /* inside OpenBench: Ctrl-C (OpenBench is quitting) is Cancel; Ctrl-F (opened again) to the front */
+        /* inside GFOpenBench: Ctrl-C (GFOpenBench is quitting) is Cancel; Ctrl-F (opened again) to the front */
         ULONG got = Wait(1UL << win->UserPort->mp_SigBit | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_C) { put_back(); quit = 1; continue; }
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
     int rc;
     if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"Sound"); return RETURN_FAIL; }
 #if defined(IN_OPENBENCH) || defined(LT_ONE)
-    /* OpenBench started it (argc 0, as from Workbench): what a new start finds, not the last one's */
+    /* GFOpenBench started it (argc 0, as from Workbench): what a new start finds, not the last one's */
     touched = 0;
     status_text[0] = 0;
 #endif
@@ -483,7 +483,7 @@ int main(int argc, char **argv)
         return RETURN_OK;
     }
 #ifdef OP_APPLY
-    if (rd) FreeArgs(rd);                    /* OpenPrefs's C:OpenPrefs: USE and SAVE only, no window */
+    if (rd) FreeArgs(rd);                    /* GFOpenPrefs's C:GFOpenPrefs: USE and SAVE only, no window */
     return RETURN_FAIL;
 #endif
     orig = cur;
@@ -491,7 +491,7 @@ int main(int argc, char **argv)
     if (rd) FreeArgs(rd);
     if (!(nmodes = sp_ahi_modes(mode_ids, mode_names, MAX_MODES))) {   /* no AHI: our own modes still have names */
         static const ULONG ids[3] = { SP_MODE_HOSTMIX, SP_MODE_HIFI, SP_MODE_16BIT };
-        static const char *names[3] = { "AmigaChrome: Host mix 16 bit stereo++", "AmigaChrome: HiFi 32 bit stereo++", "AmigaChrome: 16 bit stereo++" };
+        static const char *names[3] = { "AmiCradle: Host mix 16 bit stereo++", "AmiCradle: HiFi 32 bit stereo++", "AmiCradle: 16 bit stereo++" };
         for (nmodes = 0; nmodes < 3; nmodes++) { mode_ids[nmodes] = ids[nmodes]; strcpy(mode_names[nmodes], names[nmodes]); }
     }
     for (int i = 0; i < nmodes; i++) mode_labels[i] = (STRPTR)mode_names[i];

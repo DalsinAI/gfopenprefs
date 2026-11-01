@@ -1,9 +1,9 @@
-/* om_prefs: OpenMenus' settings (DESIGN.md section 2, format 1), and taking
+/* om_prefs: GFOpenMenus' settings (DESIGN.md section 2, format 1), and taking
  * over MagicMenu's.
  *
  * Plain C with no Amiga calls, so the same code is tested on the host
  * (tests/test_om_prefs.c) and runs on the Amiga, in the Menus editor
- * and in the OpenMenus engine alike.
+ * and in the GFOpenMenus engine alike.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #ifndef OM_PREFS_H
@@ -46,7 +46,7 @@ typedef struct om_prefs {
     int keep_running;                       /* programs go on while a menu is open */
     char imported[64];                      /* the MagicMenu file taken over, so it happens once */
     int rightclick;                         /* the right button on Workbench's icons and desktop: their menu */
-    int rightclick_extras;                  /* the Open family's entries too (Open with, Extract, Send Out) */
+    int rightclick_extras;                  /* the GFOpen family's entries too (Open with, Extract, Send Out) */
     int rightclick_selection;               /* on a selected icon: the whole selection (else that icon only) */
     int rightclick_name;                    /* the icon's name at the top of its menu */
     int bar;                                /* OM_BAR_*: the screen's title bar, or our own bar at an edge */

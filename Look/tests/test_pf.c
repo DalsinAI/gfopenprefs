@@ -251,10 +251,10 @@ static void wbpattern(void)
     CHECK(pf_ptrn_get(&f, PF_WBP_DRAWER, &d) && pf_ptrn_get(&f, PF_WBP_SCREEN, &s) && s.datalen == 96, "the others as they were");
     pf_ptrn_remove(&f, PF_WBP_SCREEN);
     CHECK(!pf_ptrn_get(&f, PF_WBP_SCREEN, &s) && f.n == 3, "none for the screen");
-    /* OpenUp's file names the picture with its 0: read the same, and kept while the picture stays */
+    /* GFOpenUp's file names the picture with its 0: read the same, and kept while the picture stays */
     pf_free(&g);
     parse_sample(&g, "sample-wbpattern-openup.prefs", &o, &olen);
-    CHECK(pf_ptrn_get(&g, PF_WBP_ROOT, &r) && !strcmp(r.name, root) && r.datalen == 76, "OpenUp's root");
+    CHECK(pf_ptrn_get(&g, PF_WBP_ROOT, &r) && !strcmp(r.name, root) && r.datalen == 76, "GFOpenUp's root");
     CHECK(pf_ptrn_set_picture(&g, PF_WBP_ROOT, root, 0x3a00) && same_as(&g, o, olen), "kept");
     pf_free(&f); pf_free(&g); free(b); free(o);
 }

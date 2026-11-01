@@ -1,4 +1,4 @@
-/* opframe.c: OpenPrefs's frame, the one window every page goes into (Common/looktabs.h with LT_OP).
+/* opframe.c: GFOpenPrefs's frame, the one window every page goes into (Common/looktabs.h with LT_OP).
  *
  * The sections stand down the left, one row each, the open one filled, in four groups: the look (Theme,
  * Screen Mode, Pointer, Fonts, Colours, Backdrops, Workbench, Icons, File Requesters), the desktop (Windows, Title
@@ -10,9 +10,9 @@
  *
  * A click on another section keeps the page's changes as Use does, when it has any (lt_dirty: the page's own
  * gadgets or keys were used), and the next page's gadgets go into the same window, which keeps its place and
- * only grows (as OpenLook's tabs did). Save, Use and Cancel close the window, as each editor's did.
+ * only grows (as GFOpenLook's tabs did). Save, Use and Cancel close the window, as each editor's did.
  *
- * Also here: the arguments OpenPrefs hands a page (lt_args), PUBSCREEN, and the folders a save needs (Dale,
+ * Also here: the arguments GFOpenPrefs hands a page (lt_args), PUBSCREEN, and the folders a save needs (Dale,
  * 17 October 2026, 09:42): ENV: and its folders are made without asking (RAM:Env and the assign when ENV:
  * is missing); ENVARC:'s folders inside an existing Env-Archive too; when SYS:Prefs/Env-Archive (or
  * SYS:Prefs) is missing, a Save from the window asks once, "The preferences folders are missing on SYS:.
@@ -51,10 +51,10 @@ struct RastPort *lt_rp;
 int lt_dirty;
 const char *lt_args;
 const char *lt_pubname;
-const char *lt_prog = "OpenPrefs";         /* the name it runs as, for the Shell's lines */
+const char *lt_prog = "GFOpenPrefs";         /* the name it runs as, for the Shell's lines */
 
 /* the pages' names, as the user named them (salvor/Design-No-ROM-Volume-20261024.md, section 8): the list's
- * rows, and the plain names OpenPrefs takes for a section (OpenPrefs "Date & Time", a project icon's name) */
+ * rows, and the plain names GFOpenPrefs takes for a section (GFOpenPrefs "Date & Time", a project icon's name) */
 static const char *const lt_label[LT_N] = { "Theme", "Windows", "Title Bar", "Menus", "Pointer", "Fonts", "Colours",
                                             "Backdrops", "Workbench", "File Requesters", "Dock", "Sound",
                                             "Input", "Gamepads", "Date & Time", "Serial", "File Types", "System",
@@ -296,7 +296,7 @@ struct Window *lt_open(struct Screen *scr, int left, int top, int W, int H, stru
         if (left + ow > scr->Width) left = scr->Width - ow > 0 ? scr->Width - ow : 0;
         if (top + oh > scr->Height) top = scr->Height - oh > 0 ? scr->Height - oh : 0;
         if (!lt_frame_gadgets(scr)) { lt_free_frame(); return NULL; }
-        lt_win = OpenWindowTags(NULL, WA_Title, (ULONG)"OpenPrefs", WA_ScreenTitle, (ULONG)screen_title,
+        lt_win = OpenWindowTags(NULL, WA_Title, (ULONG)"GFOpenPrefs", WA_ScreenTitle, (ULONG)screen_title,
                                 WA_PubScreen, (ULONG)scr, WA_Left, left, WA_Top, top, WA_InnerWidth, w, WA_InnerHeight, h,
                                 WA_Gadgets, (ULONG)lt_fg, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE,
                                 WA_Activate, TRUE, WA_SmartRefresh, TRUE, WA_NewLookMenus, TRUE, WA_IDCMP, idcmp, TAG_DONE);
@@ -326,7 +326,7 @@ void lt_detach(struct Window *win, struct Gadget *glist)
     lt_rp = NULL;
 }
 
-/* Ctrl-C (OpenBench's Quit sends it to the programs it started; Break): OpenPrefs ends, as its close gadget
+/* Ctrl-C (GFOpenBench's Quit sends it to the programs it started; Break): GFOpenPrefs ends, as its close gadget
  * ends it. A page waits for its window with Wait or WaitPort (opshift.h makes both these); on Ctrl-C a
  * close-window message goes on the window's port once, which the page reads as its own, puts its settings
  * back and ends, and no page opens after it. The message has no reply port: ReplyMsg marks it free. */
@@ -490,7 +490,7 @@ static int lt_assign(const char *name, const char *to)
 /* ENVARC: there, or made on SYS: (asking first from a window). 0: refused or not made. */
 static int lt_envarc(void)
 {
-    struct EasyStruct es = { sizeof(struct EasyStruct), 0, (STRPTR)"OpenPrefs",
+    struct EasyStruct es = { sizeof(struct EasyStruct), 0, (STRPTR)"GFOpenPrefs",
                              (STRPTR)"The preferences folders are missing on SYS:. Create them?", (STRPTR)"Create|Cancel" };
     if (lt_there("ENVARC:")) return 1;
     if (lt_there("SYS:Prefs/Env-Archive")) return lt_assign("ENVARC", "SYS:Prefs/Env-Archive");

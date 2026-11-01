@@ -28,8 +28,8 @@ typedef struct pf_font {
 int pf_font_get(const pf_file *f, int type, pf_font *out);  /* 1 found; 0 and out cleared (type set) */
 int pf_font_put(pf_file *f, const pf_font *in);             /* 1, or 0 with no memory */
 
-/* The Team's standard font: OpenBench's design font, the one the system uses when the theme's isn't
- * installed (opengadtools ogt_open_font) and the one a fresh OpenUp disk names. "Standard" on the Fonts tab
+/* The Team's standard font: GFOpenBench's design font, the one the system uses when the theme's isn't
+ * installed (opengadtools ogt_open_font) and the one a fresh GFOpenUp disk names. "Standard" on the Fonts tab
  * puts it in for the screen or icon font, keeping that font's pens, mode and label style. */
 #define PF_STANDARD_FONT "CGTriumvirate.font"
 #define PF_STANDARD_SIZE 13

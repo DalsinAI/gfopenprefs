@@ -1,4 +1,4 @@
-/* Icons: where icons' labels go and how the desktop and the drawers lay icons out, as one section of OpenPrefs (the
+/* Icons: where icons' labels go and how the desktop and the drawers lay icons out, as one section of GFOpenPrefs (the
  * user, 24 October 2026, 15:37: "a page or tab in Preferences for this").
  *
  *   - Labels: close to the picture (the default: icon.library puts the label's text the gap's rows under the
@@ -11,17 +11,17 @@
  *     (light on a dark picture, dark on a light one; the default) or the theme's
  *   - Icon text font: a button to the Fonts page, whose Workbench icon text font the labels are in
  *   - No icons on the desktop (0.2, Salvor's OS list, item 59; the user, 24 October 2026, 21:08: "offer a no-icons mode
- *     too... for workbench itself"): OpenBench's desktop shows no icons at all, its disks', the ones left out or
- *     AppIcons, and the backdrop, the bar, the dock and the meters stay; off, they come back where they were. OpenBench's
+ *     too... for workbench itself"): GFOpenBench's desktop shows no icons at all, its disks', the ones left out or
+ *     AppIcons, and the backdrop, the bar, the dock and the meters stay; off, they come back where they were. GFOpenBench's
  *     Window > No icons is the same setting, and its Icons > Clean Up turns it off
  *
  * Two variables, so icon.library (in the ROM) reads one word: ENV:Sys/IconLabels ("close", "close 3", "below") and
- * ENV:Sys/IconLayout ("cell=auto snap=on order=name columns=left labelcolour=backdrop"), read by OpenBench and its
+ * ENV:Sys/IconLayout ("cell=auto snap=on order=name columns=left labelcolour=backdrop"), read by GFOpenBench and its
  * drawers, which follow a change at once (opengadtools' workbench/wb_grid.c reads and writes both). And (0.2) a third
- * beside them, ENV:Sys/DesktopIcons ("show" or "none"; Common/deskicons.h), which OpenBench alone reads. Save writes
+ * beside them, ENV:Sys/DesktopIcons ("show" or "none"; Common/deskicons.h), which GFOpenBench alone reads. Save writes
  * ENV: and ENVARC: (SetVar), Use ENV:, Test ENV: until Cancel puts back what was there, Cancel changes nothing else.
  *
- * Its own page rather than a tab of Workbench's: OpenPrefs's sections are one list of pages, each with its own Save,
+ * Its own page rather than a tab of Workbench's: GFOpenPrefs's sections are one list of pages, each with its own Save,
  * Use, Test and Cancel and no tabs inside them, and Workbench's page is already full (its paths, its devices, its
  * buffers); this page replaces the "Labels close" box that was there.
  *
@@ -41,7 +41,7 @@
 #include <string.h>
 #include <stdio.h>
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -50,9 +50,9 @@
 #endif
 
 #include "wb_grid.h"                        /* opengadtools' workbench/: the two variables' words */
-#include "deskicons.h"                      /* Common/: ENV:Sys/DesktopIcons's words, shared with OpenBench */
+#include "deskicons.h"                      /* Common/: ENV:Sys/DesktopIcons's words, shared with GFOpenBench */
 
-static const char version[] __attribute__((used)) = "$VER: IconsPage 0.2 (25.10.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: IconsPage 0.2 (25.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 
 #define LABELS "Sys/IconLabels"
 #define LAYOUT "Sys/IconLayout"
@@ -80,7 +80,7 @@ static int read_var(const char *name, char *buf, int size)
 }
 
 /* One variable into ENV: (and ENVARC: when save), through SetVar as DOS writes variables; a few tries (in the lab a
- * plain write once failed, one Use soon after another, while OpenBench and its drawers were reading the variables) */
+ * plain write once failed, one Use soon after another, while GFOpenBench and its drawers were reading the variables) */
 static int set_var(const char *name, const char *text, int save)
 {
     int i;
@@ -202,14 +202,14 @@ static int gui(void)
     (ng.ng_LeftEdge = (x), ng.ng_TopEdge = (y), ng.ng_Width = (w), ng.ng_Height = (h), ng.ng_GadgetText = (STRPTR)(text), \
      ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
 #ifdef LT_ONE
-    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_ICONS);    /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_ICONS);    /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 24, lh);
 #endif
     row = top;
     G(CYCLE_KIND, G_LABELS, X, row, cw, lh, "Labels", PLACETEXT_LEFT, GTCY_Labels, (ULONG)labels_names,
       GTCY_Active, ip.close ? 0 : 1);
     row += lh + 4;
-    /* the slider's own label isn't drawn in OpenPrefs's window (IControl's Verify time-out neither): a text of its own */
+    /* the slider's own label isn't drawn in GFOpenPrefs's window (IControl's Verify time-out neither): a text of its own */
     G(TEXT_KIND, G_GAPLABEL, 12, row, X - 12 - 8, lh, NULL, 0, GTTX_Text, (ULONG)"Label gap", GTTX_Justification, GTJ_RIGHT);
     G(SLIDER_KIND, G_GAP, X, row, 120, lh, NULL, 0, GTSL_Min, 0, GTSL_Max, WB_GAP_MAX,
       GTSL_Level, ip.gap, GA_RelVerify, TRUE, GA_Immediate, TRUE, GA_Disabled, !ip.close);
@@ -227,12 +227,12 @@ static int gui(void)
     G(CYCLE_KIND, G_COLUMNS, X, row, cw, lh, "Desktop columns", PLACETEXT_LEFT, GTCY_Labels, (ULONG)columns_names,
       GTCY_Active, ip.right ? 1 : 0);
     row += lh + 4;
-    /* the desktop's labels light on a dark backdrop and dark on a light one, as its picture's .tone says (OpenUp's
+    /* the desktop's labels light on a dark backdrop and dark on a light one, as its picture's .tone says (GFOpenUp's
      * backdrops), or in the theme's colour */
     G(CYCLE_KIND, G_TONE, X, row, cw, lh, "Desktop labels", PLACETEXT_LEFT, GTCY_Labels, (ULONG)tone_names,
       GTCY_Active, ip.tone ? 0 : 1);
     row += lh + 4;
-    /* 0.2: no icons on the desktop at all (OpenBench's Window > No icons; Icons > Clean Up there brings them back) */
+    /* 0.2: no icons on the desktop at all (GFOpenBench's Window > No icons; Icons > Clean Up there brings them back) */
     G(CHECKBOX_KIND, G_NOICONS, X, row, 26, lh, "No icons on the desktop", PLACETEXT_RIGHT,
       GTCB_Checked, noicons == DESKICONS_NONE, GTCB_Scaled, TRUE);
     row += lh + 10;
@@ -319,7 +319,7 @@ static int gui(void)
                     lt_go(win, LT_FONTS);
                     quit = 1;
 #else
-                    status("The icon text font is set on OpenPrefs' Fonts page.");
+                    status("The icon text font is set on GFOpenPrefs' Fonts page.");
 #endif
                     break;
                 case G_TEST:
@@ -364,7 +364,7 @@ static int word_of(const char *w, const char *const *list)
 
 /*   Icons [LABELS close|below] [GAP n] [CELL auto|px] [SNAP on|off] [ORDER name|kind|size|date]
  *         [COLUMNS left|right] [LABELCOLOUR backdrop|theme] [DESKTOP show|none] [USE] [SAVE]
- * (OpenPrefs ICONS ...): the settings given over the ones in ENV:; with USE or SAVE written without a window.
+ * (GFOpenPrefs ICONS ...): the settings given over the ones in ENV:; with USE or SAVE written without a window.
  * DESKTOP (0.2): the desktop's icons shown (show, icons, on) or none at all (none, noicons, off). */
 int main(int argc, char **argv)
 {
@@ -378,7 +378,7 @@ int main(int argc, char **argv)
     int rc, ha, hb, hd, k;
     (void)argv;
     (void)version;
-    win = NULL;                             /* built into OpenPrefs, the statics outlive a run */
+    win = NULL;                             /* built into GFOpenPrefs, the statics outlive a run */
     tested = 0;
     if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"Icons"); return RETURN_FAIL; }
     ha = read_var(LABELS, a, sizeof a);

@@ -1,4 +1,4 @@
-/* Host tests for tb_prefs.h (ENV:OpenPrefs/TitleBar) and tb_fade.h (the see-through bar's fade, and the pointer's
+/* Host tests for tb_prefs.h (ENV:GFOpenPrefs/TitleBar) and tb_fade.h (the see-through bar's fade, and the pointer's
  * part in it).
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include "tb_prefs.h"
@@ -26,7 +26,7 @@ static void prefs_tests(void)
     CHECK(p.seethrough == 1 && p.see_opacity == 40);
     CHECK(p.logo && p.memory && p.clock && p.date && p.network && p.cog && !p.border_black);
     /* a file written before 0.7.5 (no seethrough lines): on, at 40% */
-    parse(&p, "; OpenPrefs Title bar 0.2: what OpenTitle shows\nlogo off\nmemory on\nclock on\nclock.date off\n"
+    parse(&p, "; GFOpenPrefs Title bar 0.2: what GFOpenTitle shows\nlogo off\nmemory on\nclock on\nclock.date off\n"
               "network on\ncog on\nborder.black on\n");
     CHECK(!p.logo && p.memory && !p.date && p.border_black);
     CHECK(p.seethrough == 1 && p.see_opacity == 40);
@@ -179,7 +179,7 @@ static void fade_tests(void)
     tbf_init(&f, 10 * 255 / 100, 0);
     CHECK(run(&f, TBF_STEP_MS, 1, 255, 200) >= 0);
 
-    /* OpenTitle's loop over a hover: how many wakes the bar adds. The loop wakes every 100 ms while the pointer is
+    /* GFOpenTitle's loop over a hover: how many wakes the bar adds. The loop wakes every 100 ms while the pointer is
      * on the bar and every 500 ms otherwise (as before 0.7.5), sooner only when tbf_next asks. The pointer is on
      * the bar from 1000 ms to 2000 ms. */
     tbf_init(&f, rest, 0);
@@ -197,7 +197,7 @@ static void fade_tests(void)
     CHECK(f.level == rest && tbf_next(&f) == 0);
 }
 
-/* tbp_on_bar (OpenTitle 0.7.7): the pointer where the boot left it, on the bar, doesn't make the bar solid until it
+/* tbp_on_bar (GFOpenTitle 0.7.7): the pointer where the boot left it, on the bar, doesn't make the bar solid until it
  * has moved; then it counts as before */
 static void pointer_tests(void)
 {

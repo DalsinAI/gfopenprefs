@@ -1,18 +1,18 @@
-/* barlogo.h: what the start of the Workbench screen's title holds, shared by OpenTitle and OpenBench (the Team,
+/* barlogo.h: what the start of the Workbench screen's title holds, shared by GFOpenTitle and GFOpenBench (the Team,
  * 11 October 2026).
  *
- * The room for the logo. OpenTitle draws the logo in a window of its own at the bar's left edge: the bar's height
+ * The room for the logo. GFOpenTitle draws the logo in a window of its own at the bar's left edge: the bar's height
  * less 2, aspect correct (its picture is 64 x 44), 2 pixels in, in a window 4 wider than the logo. The title
  * leaves room for it by starting with spaces of the bar's own font: enough that the text starts BARLOGO_GAP pixels
- * past the logo's window, and never fewer than BARLOGO_MIN_SPACES (OpenTitle tells a title that has room for the
+ * past the logo's window, and never fewer than BARLOGO_MIN_SPACES (GFOpenTitle tells a title that has room for the
  * logo by those first spaces, as it did when the room was always 9 spaces). A title that starts at the bar's left
- * edge is another program's, and OpenTitle hides the logo for it.
+ * edge is another program's, and GFOpenTitle hides the logo for it.
  *
- * What the cores are. The CPU cores board (AmigaChrome Team $DA15, product 7, the ACSV block with CLASS 2) gives its cores
+ * What the cores are. The CPU cores board (AmiCradle Team $DA15, product 7, the ACSV block with CLASS 2) gives its cores
  * in UNITS ($24) and the instruction sets they run in ISAS ($28): bit 0 m68k (always: every core runs 68k code),
- * bit 1 x86-64, bit 2 ARM64 when the host also runs native jobs on them, and since AmigaChrome's runtime of 25
+ * bit 1 x86-64, bit 2 ARM64 when the host also runs native jobs on them, and since AmiCradle's runtime of 25
  * October 2026 what the cores themselves are: bit 8 the host's x86-64 CPUs, bit 9 its ARM64 ones
- * (docs/architecture/CORES_BOARD.md in AmigaChrome, section 0a). The title reads "CPU = 1 (m68k) + 10 (m68k/x64)":
+ * (docs/architecture/CORES_BOARD.md in AmiCradle, section 0a). The title reads "CPU = 1 (m68k) + 10 (m68k/x64)":
  * 68k code on ten x86-64 cores (the user, 25 October 2026: "perhaps m68k/x64 since its running on" one, "so lets do
  * that blend"), "m68k/arm64" on the Pi, and "m68k" when the board doesn't say (an older runtime without native
  * jobs).
@@ -26,7 +26,7 @@
 #include <graphics/rastport.h>
 #include <proto/graphics.h>
 
-#define BARLOGO_PIC_W 64                /* the logo's picture (OpenTitle's logo_big.h) */
+#define BARLOGO_PIC_W 64                /* the logo's picture (GFOpenTitle's logo_big.h) */
 #define BARLOGO_PIC_H 44
 #define BARLOGO_GAP 6                   /* between the logo's window and the title's first letter */
 #define BARLOGO_MIN_SPACES 9

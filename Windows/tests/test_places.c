@@ -1,8 +1,8 @@
-/* OpenWindows' places (src/places.c) on the host: the keys, the placing rule,
+/* GFOpenWindows' places (src/places.c) on the host: the keys, the placing rule,
  * the table, and the tags a window with a kept place opens with, read as
- * OpenIntuition reads them (a tag's last wins) and as an Intuition that reads
+ * GFOpenIntuition reads them (a tag's last wins) and as an Intuition that reads
  * a tag's first would. Each kind of opener the lab tried on 24 October 2026
- * is here: tags (most programs, OpenBench's drawers), a NewWindow, a NewWindow
+ * is here: tags (most programs, GFOpenBench's drawers), a NewWindow, a NewWindow
  * with tags, an ExtNewWindow, by inner size (the Shell's CON: window), with
  * no size gadget, and tag lists chained with TAG_MORE and TAG_SKIP.
  *   Windows/tests/run.sh
@@ -37,7 +37,7 @@ static const struct TagItem *walk(const struct TagItem **t)
     return NULL;
 }
 
-/* OpenIntuition (window_core.c, read_tags): the NewWindow, then its Extension, then the tags, each tag as it
+/* GFOpenIntuition (window_core.c, read_tags): the NewWindow, then its Extension, then the tags, each tag as it
  * comes, so a tag's last wins; WA_Width after WA_InnerWidth wins, and the other way round */
 static void open_last(const struct box *nw, const struct TagItem *ext, const struct TagItem *tags, struct box *out)
 {
@@ -119,7 +119,7 @@ static void check_opening(const struct opening *o, const struct place *pl, short
     place_plan(pl, &o->ask, sw, sh, &p);
     open_planned(o, &p, &a, &b);
     CHECK(a.l == want.l && a.t == want.t && a.w == want.w && a.h == want.h,
-          "%s, a tag's last (OpenIntuition): %d %d %d %d, wanted %d %d %d %d", o->what, a.l, a.t, a.w, a.h, want.l, want.t, want.w, want.h);
+          "%s, a tag's last (GFOpenIntuition): %d %d %d %d, wanted %d %d %d %d", o->what, a.l, a.t, a.w, a.h, want.l, want.t, want.w, want.h);
     CHECK(b.l == want.l && b.t == want.t && b.w == want.w && b.h == want.h,
           "%s, a tag's first: %d %d %d %d, wanted %d %d %d %d", o->what, b.l, b.t, b.w, b.h, want.l, want.t, want.w, want.h);
 }
@@ -137,18 +137,18 @@ int main(void)
     CHECK(!strcmp(key, "CON:AmigaShell"), "the Shell's window: %s", key);
     place_key("AmigaShell [3]", "CON", key, sizeof key);
     CHECK(!strcmp(key, "CON:AmigaShell"), "cut at a bracket: %s", key);
-    place_key("Work: - 17 items", "OpenBench", key, sizeof key);
-    CHECK(!strcmp(key, "OpenBench:Work: -"), "a drawer's count cut off: %s", key);
-    place_key("Untitled 2 - OpenWrite", "OpenWrite", key, sizeof key);
-    CHECK(!strcmp(key, "OpenWrite:Untitled"), "a digit cuts, the spaces before it go: %s", key);
+    place_key("Work: - 17 items", "GFOpenBench", key, sizeof key);
+    CHECK(!strcmp(key, "GFOpenBench:Work: -"), "a drawer's count cut off: %s", key);
+    place_key("Untitled 2 - GFOpenWrite", "GFOpenWrite", key, sizeof key);
+    CHECK(!strcmp(key, "GFOpenWrite:Untitled"), "a digit cuts, the spaces before it go: %s", key);
     place_key("\"quoted\"", "P", key, sizeof key);
     CHECK(!strcmp(key, "P:"), "a quote cuts: %s", key);
     place_key(NULL, "window", key, sizeof key);
     CHECK(!strcmp(key, "window:"), "no title: %s", key);
     place_key("An exceedingly long window title that goes on", "Prog", key, sizeof key);
     CHECK(!strcmp(key, "Prog:An exceedingly long window tit"), "30 characters of a title: %s", key);
-    place_key("OpenPlay \xb7 Boing.mod", "OpenPlay", key, sizeof key);
-    CHECK(!strcmp(key, "OpenPlay:OpenPlay \xb7 Boing.mod"), "Latin-1 kept: %s", key);
+    place_key("GFOpenPlay \xb7 Boing.mod", "GFOpenPlay", key, sizeof key);
+    CHECK(!strcmp(key, "GFOpenPlay:GFOpenPlay \xb7 Boing.mod"), "Latin-1 kept: %s", key);
     place_key("Title", "AVeryLongProgramNameThatFillsTheKeyAlmostEntirelyOnItsOwnXYZ", key, 16);
     CHECK(strlen(key) == 15, "the key is cut at its size: %s", key);
 
@@ -158,10 +158,10 @@ int main(void)
     CHECK(!place_candidate(0, 0, NULL), "no drag bar, no title: never");
     CHECK(!place_candidate(1, 1, "Backdrop"), "a backdrop or GimmeZeroZero window: never");
 
-    CHECK(place_workbench("Workbench", 0) && place_workbench("OpenBench", 0) && place_workbench("openbench", 0),
-          "Workbench's and OpenBench's windows are the Workbench's");
+    CHECK(place_workbench("Workbench", 0) && place_workbench("GFOpenBench", 0) && place_workbench("gfopenbench", 0),
+          "Workbench's and GFOpenBench's windows are the Workbench's");
     CHECK(place_workbench("Anything", 1), "WFLG_WBENCHWINDOW is the Workbench's");
-    CHECK(!place_workbench("CON", 0) && !place_workbench("OpenBenchmark", 0), "others are not");
+    CHECK(!place_workbench("CON", 0) && !place_workbench("GFOpenBenchmark", 0), "others are not");
 
     /* ---- the placing rule ---- */
     memset(&pl, 0, sizeof pl);
@@ -186,7 +186,7 @@ int main(void)
 
     /* ---- the openers ---- */
     {
-        static const struct TagItem prog_tags[] = {          /* most programs; OpenBench's drawers; the CON: handler */
+        static const struct TagItem prog_tags[] = {          /* most programs; GFOpenBench's drawers; the CON: handler */
             T(WA_Left, 0), T(WA_Top, 50), T(WA_Width, 640), T(WA_Height, 130), T(WA_Title, 0),
             T(WA_MinWidth, 64), T(WA_MinHeight, 24), T(WA_MaxWidth, ~0UL), T(WA_MaxHeight, ~0UL), T(TAG_DONE, 0) };
         static const struct TagItem inner_tags[] = {         /* the CON: handler from guest #472: no size asked */
@@ -211,7 +211,7 @@ int main(void)
             old[4] = (struct TagItem)T(TAG_MORE, (unsigned long)prog_tags);
             open_last(NULL, NULL, old, &a);
             open_first(NULL, NULL, old, &b);
-            CHECK(a.l == 0 && a.t == 50 && a.w == 640, "0.9.1 on OpenIntuition: the program's corner and size won (the jump)");
+            CHECK(a.l == 0 && a.t == 50 && a.w == 640, "0.9.1 on GFOpenIntuition: the program's corner and size won (the jump)");
             CHECK(b.l == 145 && b.t == 523, "0.9.1 where a tag's first wins: placed");
         }
 

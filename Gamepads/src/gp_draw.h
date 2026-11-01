@@ -1,6 +1,6 @@
 /* gp_draw: the Test view's controller, drawn with graphics.library (so
- * through OpenGfx where it runs) in the screen's own pens, plus one accent
- * colour for "pressed": the OpenLook theme's accent where the screen has
+ * through GFOpenGfx where it runs) in the screen's own pens, plus one accent
+ * colour for "pressed": the GFOpenLook theme's accent where the screen has
  * the colours, else the fill pen. Works on 8-bit and RTG screens alike.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */

@@ -1,15 +1,15 @@
-/* OpenMenus: the Open family's own menus (MIT). A commodity, with no
+/* GFOpenMenus: the GFOpen family's own menus (MIT). A commodity, with no
  * Intuition patches: it takes the right mouse button from the input stream
  * when the active window has a menu strip, draws the menus itself in
  * borderless windows that never take the activation, follows the mouse, and
  * gives the program its choice as Intuition would, an IDCMP_MENUPICK
  * message on the window's port.
  *
- *   OpenMenus            (started at boot; Ctrl-C or Exchange quits it)
+ *   GFOpenMenus            (started at boot; Ctrl-C or Exchange quits it)
  *
- * Settings: ENV:OpenMenus/Menus, format 1 (Menus/DESIGN.md), read with the
- * editor's own om_prefs.c; Ctrl-F to the task of the public port "OpenMenus"
- * reads them again. Colours from the OpenLook theme, the screen's pens, or
+ * Settings: ENV:GFOpenMenus/Menus, format 1 (Menus/DESIGN.md), read with the
+ * editor's own om_prefs.c; Ctrl-F to the task of the public port "GFOpenMenus"
+ * reads them again. Colours from the GFOpenLook theme, the screen's pens, or
  * the user's. Lite (Look) leaves out the shadow.
  *
  * 0.1 (6 October 2026): pull-down from the screen bar, pop-up at the pointer,
@@ -67,13 +67,13 @@
 #include "wbclose.h"
 #include "om_kbd.h"
 #include "ogt_theme.h"
-#include "../../Common/prefsapp.h"           /* where OpenPrefs is (SYS:Preferences) */
+#include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-static const char version[] __attribute__((used)) = "$VER: OpenMenus 0.4.6 (25.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";   /* 0.4.6: built -fno-late-combine-instructions (Menus/engine/build.sh: GCC 16.2.0-open3 stored wbclose.h's "OpenWBNotify" one byte late, so the semaphore was named ""); 0.4.5: no WORKBENCH port (OpenBench): the right button opens the window's own menus */
+static const char version[] __attribute__((used)) = "$VER: GFOpenMenus 0.4.6 (25.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";   /* 0.4.6: built -fno-late-combine-instructions (Menus/engine/build.sh: GCC 16.2.0-open3 stored wbclose.h's "OpenWBNotify" one byte late, so the semaphore was named ""); 0.4.5: no WORKBENCH port (OpenBench): the right button opens the window's own menus */
 
-#define PREFS_ENV "ENV:OpenMenus/Menus"
-#define TRAY_DIR "ENV:OpenMenus/Tray"     /* one file per tray program: "width order" (OpenSpeaker, the clock) */
-#define LOOK_ENV "ENV:OpenGadTools/Look"
+#define PREFS_ENV "ENV:GFOpenMenus/Menus"
+#define TRAY_DIR "ENV:GFOpenMenus/Tray"     /* one file per tray program: "width order" (GFOpenSpeaker, the clock) */
+#define LOOK_ENV "ENV:GFOpenGadTools/Look"
 #define THEME_DIR "SYS:Prefs/Presets/Themes"
 
 struct IntuitionBase *IntuitionBase;
@@ -196,7 +196,7 @@ static int menu_window(struct Window *w)
 }
 
 /* 0.4.5 (W67, Dale 18 October: "no right click menu in list mode"): the right-click menus on
- * Workbench's icons and background ask Workbench's ARexx port (WORKBENCH) everything. OpenBench,
+ * Workbench's icons and background ask Workbench's ARexx port (WORKBENCH) everything. GFOpenBench,
  * which marks its drawers as Workbench's windows, has no such port: the press was taken, nothing
  * answered, and no menu showed in any of its windows. Without the port the press is an ordinary
  * one (the window's own menus). FindPort under Forbid: the input handler may call it. */
@@ -231,7 +231,7 @@ static void custom(CxMsg *msg, CxObj *co)
     if (!on || !prefs.enabled) return;
     for (; ie; ie = ie->ie_NextEvent) {
         if (!session && ie->ie_Class == IECLASS_RAWKEY) {
-            /* no menus (or OpenMenus off): the key goes on to the program */
+            /* no menus (or GFOpenMenus off): the key goes on to the program */
             if (kbd_opens(ie) && kbd_window(IntuitionBase->ActiveWindow)) {
                 struct Screen *s = IntuitionBase->FirstScreen;
                 kq_head = kq_tail = 0;
@@ -262,7 +262,7 @@ static void custom(CxMsg *msg, CxObj *co)
                     /* on a Workbench window's icons or background (not its title bar, not
                      * the screen bar): the icon or desktop menu (the layers are read
                      * unlocked here: only to choose, and the choice is checked again).
-                     * 0.4.5: only with Workbench's ARexx port to ask; OpenBench has none, and
+                     * 0.4.5: only with Workbench's ARexx port to ask; GFOpenBench has none, and
                      * its windows' right button goes to their own menus below */
                     struct Screen *s = IntuitionBase->FirstScreen;
                     struct Layer *l = s ? WhichLayer(&s->LayerInfo, s->MouseX, s->MouseY) : NULL;
@@ -286,7 +286,7 @@ static void custom(CxMsg *msg, CxObj *co)
                 }
                 continue;
             }
-            /* a menu is open: the buttons are OpenMenus', the moves go on (the pointer moves) */
+            /* a menu is open: the buttons are GFOpenMenus', the moves go on (the pointer moves) */
             if (code == IECODE_RBUTTON) { rbutton = 1; rdown_seen = 1; ie->ie_Class = IECLASS_NULL; }
             else if (code == (IECODE_RBUTTON | IECODE_UP_PREFIX)) { rbutton = 0; ie->ie_Class = IECLASS_NULL; }
             else if (code == IECODE_LBUTTON) { lbutton = 1; ldown_seen = 1; ie->ie_Class = IECLASS_NULL; }
@@ -294,7 +294,7 @@ static void custom(CxMsg *msg, CxObj *co)
             else moved = 1;
             Signal(me, sig_event);
         } else if (session && ie->ie_Class == IECLASS_RAWKEY) {
-            /* a menu is open: every key is OpenMenus', none reaches the program behind it */
+            /* a menu is open: every key is GFOpenMenus', none reaches the program behind it */
             if (!(ie->ie_Code & IECODE_UP_PREFIX)) { kq_put(ie->ie_Code, ie->ie_Qualifier); Signal(me, sig_event); }
             ie->ie_Class = IECLASS_NULL;
         }
@@ -1532,7 +1532,7 @@ static void run_async(const char *cmd)
 {
     /* asynchronous: both handles are the new process's, which closes them when it
      * ends; closed here only if it could not start. Never a NULL output: a real
-     * NIL: handle, as OpenTitle and the editors' tabs give (12 Oct 2026) */
+     * NIL: handle, as GFOpenTitle and the editors' tabs give (12 Oct 2026) */
     BPTR in = Open((STRPTR)"NIL:", MODE_OLDFILE), out = Open((STRPTR)"NIL:", MODE_NEWFILE);
     if (!in || !out || SystemTags((STRPTR)cmd, SYS_Input, in, SYS_Output, out, SYS_Asynch, TRUE, NP_StackSize, 32768, TAG_DONE) == -1) {
         if (in) Close(in);
@@ -1564,7 +1564,7 @@ static void do_action(int a)
         /* each archive into the drawer it is in */
         const char *dir = strcmp(rc_win, "root") ? rc_win : "RAM:";
         selected_paths();
-        if (rc_npaths) { snprintf(cmd, sizeof cmd, "SYS:Utilities/OpenCompress x %s \"%s\"", rc_paths, dir); run_async(cmd); }
+        if (rc_npaths) { snprintf(cmd, sizeof cmd, "SYS:Utilities/GFOpenCompress x %s \"%s\"", rc_paths, dir); run_async(cmd); }
         break;
     }
     case A_CHOOSE: {
@@ -1642,7 +1642,7 @@ static int rc_build(int hit)
     int n = 0, ns = 0, row = 0, nsel = 0, root = !strcmp(rc_win, "root");
     struct RastPort trp;
     char head[120];
-    static const char *const viewer[] = { "C:OpenView", "SYS:Utilities/MultiView", NULL };
+    static const char *const viewer[] = { "C:GFOpenView", "SYS:Utilities/MultiView", NULL };
     InitRastPort(&trp); SetFont(&trp, font);
     rc_lh = font->tf_YSize + 4; rc_w = 200;
     rc_nacts = 0; npool = 0;
@@ -1674,10 +1674,10 @@ static int rc_build(int hit)
         if (ic->kind != K_DISK) ITEM(root ? "Put away" : "Leave out", A_WB, root ? "ICONS.PUTAWAY" : "ICONS.LEAVEOUT");
         if (prefs.rightclick_extras && ic->kind != K_DISK) {
             int any = 0;
-            if (is_archive(ic->name) && exists_file("SYS:Utilities/OpenCompress")) {
+            if (is_archive(ic->name) && exists_file("SYS:Utilities/GFOpenCompress")) {
                 SEP(); any = 1;
                 ITEM("Extract here", A_EXTRACT, NULL);
-                ITEM("Open in OpenCompress", A_RUNFILES, "SYS:Utilities/OpenCompress");
+                ITEM("Open in GFOpenCompress", A_RUNFILES, "SYS:Utilities/GFOpenCompress");
             }
             if (exists_file("C:ACDrop") && ic->kind != K_GARBAGE) { if (!any) SEP(); ITEM("Send Out", A_SEND, NULL); }
         }
@@ -1716,10 +1716,10 @@ static int rc_build(int hit)
         else { ITEM("Update", A_WB, "WINDOW.UPDATE"); ITEM("Snapshot window", A_WB, "WINDOW.SNAPSHOT.WINDOW"); }
         if (root) {
             SEP();
-            /* an OS editor that OpenUp's RECONCILE moved to SYS:Prefs/Classic is still offered from there */
+            /* an OS editor that GFOpenUp's RECONCILE moved to SYS:Prefs/Classic is still offered from there */
             if (exists_file("SYS:Prefs/WBPattern")) ITEM("Backdrop picture...", A_RUN, "SYS:Prefs/WBPattern");
             else if (exists_file("SYS:Prefs/Classic/WBPattern")) ITEM("Backdrop picture...", A_RUN, "SYS:Prefs/Classic/WBPattern");
-            {   /* OpenPrefs at its Theme page (SYS:Preferences, else an older disk's SYS:Prefs) */
+            {   /* GFOpenPrefs at its Theme page (SYS:Preferences, else an older disk's SYS:Prefs) */
                 static char look[64];
                 const char *app = op_app_path(0);
                 if (app) { snprintf(look, sizeof look, "\"%s\" THEME", app); ITEM("Look...", A_RUN, look); }
@@ -1835,7 +1835,7 @@ out:
 /* ---- the commodity ----------------------------------------------------------------------------- */
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"OpenMenus", (STRPTR)"OpenMenus 0.4.6", (STRPTR)"The Open family's own menus",
+    NB_VERSION, (STRPTR)"GFOpenMenus", (STRPTR)"GFOpenMenus 0.4.6", (STRPTR)"The GFOpen family's own menus",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 
@@ -1859,7 +1859,7 @@ int main(void)
     if (!(port = CreateMsgPort()) || !(reply_port = CreateMsgPort())) goto out;
     nb.nb_Port = port;
     if (!(broker = CxBroker(&nb, NULL))) goto out;
-    port->mp_Node.ln_Name = (char *)"OpenMenus";      /* the Menus editor finds this task by it */
+    port->mp_Node.ln_Name = (char *)"GFOpenMenus";      /* the Menus editor finds this task by it */
     AddPort(port);
     read_settings();
     if (!(cust = CxCustom(custom, 0))) goto out;

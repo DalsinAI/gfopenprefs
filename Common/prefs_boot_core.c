@@ -1,4 +1,4 @@
-/* OpenIntuition: prefs_boot_core.h's readers. Copyright (c) 2026 AmigaChrome Team. MIT. */
+/* GFOpenIntuition: prefs_boot_core.h's readers. Copyright (c) 2026 AmigaChrome Team. MIT. */
 #include "prefs_boot_core.h"
 
 static int pbc_clamp(long v, long lo, long hi) { return (int)(v < lo ? lo : v > hi ? hi : v); }
@@ -47,7 +47,7 @@ static int pbc_is(const char *a, const char *b)
     return *a == *b;
 }
 
-/* ---- ENV:OpenAmiga/Sound ---- */
+/* ---- ENV:GFOpenAmiga/Sound ---- */
 
 pbc_u32 pbc_sound_levels(const char *text, pbc_u32 len)
 {
@@ -74,7 +74,7 @@ pbc_u32 pbc_sound_levels(const char *text, pbc_u32 len)
     return (pbc_u32)volume | (pbc_u32)paula << 8 | (pbc_u32)ahi << 16 | (muted ? 1u << 24 : 0);
 }
 
-/* ---- ENV:OpenAmiga/Stack ---- */
+/* ---- ENV:GFOpenAmiga/Stack ---- */
 
 static pbc_u32 pbc_kb(long kb)
 {
@@ -147,7 +147,7 @@ int pbc_lowlevel_on(const char *text, pbc_u32 len)
     return text && len > 0 && text[0] == '1';
 }
 
-/* ---- ENV:OpenGadTools/Look ---- */
+/* ---- ENV:GFOpenGadTools/Look ---- */
 
 pbc_u32 pbc_look_scale(const char *text, pbc_u32 len)
 {

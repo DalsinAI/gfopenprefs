@@ -1,5 +1,5 @@
 /* dp_prefs: screenmode.prefs and overscan.prefs, the fields the Screen mode section edits (dp_prefs.h).
- * The offsets are those of OpenNDK's prefs/screenmode.h and prefs/overscan.h, big-endian and unpadded.
+ * The offsets are those of GFOpenNDK's prefs/screenmode.h and prefs/overscan.h, big-endian and unpadded.
  * Plain C: tested on the host by Display/tests/run.sh.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */

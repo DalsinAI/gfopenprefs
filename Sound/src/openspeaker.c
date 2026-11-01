@@ -1,4 +1,4 @@
-/* OpenSpeaker 0.1: the speaker on the menu bar (Sound/DESIGN.md, "The
+/* GFOpenSpeaker 0.1: the speaker on the menu bar (Sound/DESIGN.md, "The
  * speaker on the menu bar"; Dale, 6 October 2026: "a menu bar speaker and
  * volume control").
  *
@@ -7,28 +7,28 @@
  * AHI's level and mute, the same sliders as Sound prefs, and a button to
  * open Sound prefs. The mouse wheel over the speaker or its levels turns the
  * volume up and down, and the middle button mutes. A click on the speaker
- * leaves the active window active, as a click on OpenMenus' bar does.
+ * leaves the active window active, as a click on GFOpenMenus' bar does.
  *
- * With the ACAHI board (AmigaChrome) the levels are the board's LEVELS,
+ * With the ACAHI board (AmiCradle) the levels are the board's LEVELS,
  * which the PC's mixer applies and its mixer page moves too: the speaker
  * follows LEVEL_SEQ five times a second. On a real Amiga the volume is
  * AHI's output volume, and Paula's level is the speakers' knob.
  *
- * Where the menu bar is: OpenMenus' settings (ENV:OpenMenus/Menus, read
+ * Where the menu bar is: GFOpenMenus' settings (ENV:GFOpenMenus/Menus, read
  * with the Menus editor's om_prefs.c): the screen's title bar, or
- * OpenMenus' own bar at an edge, where the speaker sits at the bar's end.
- * It asks OpenMenus for that room by writing its width to
- * ENV:OpenMenus/Tray and sending OpenMenus Ctrl-F; the file goes when the
+ * GFOpenMenus' own bar at an edge, where the speaker sits at the bar's end.
+ * It asks GFOpenMenus for that room by writing its width to
+ * ENV:GFOpenMenus/Tray and sending GFOpenMenus Ctrl-F; the file goes when the
  * speaker does.
  *
- *   OpenSpeaker     (started by "Sound USE" at boot when Sound prefs say
+ *   GFOpenSpeaker     (started by "Sound USE" at boot when Sound prefs say
  *                    to show it; Ctrl-C quits, Ctrl-F reads the settings
  *                    again and quits when the speaker is switched off)
  *
  * 0.1.6 (the user, 24 October 2026, 21:39: "remove the percentage from volume and improve spacing on the
  * sys icon tray"): the speaker alone on the bar, its level only in the levels it opens (and the cross when
- * muted), with the same room each side as OpenTitle 0.7.3's tray icons (TRAY_PAD); on the screen's title bar
- * the row ends at the screen's depth gadget, as OpenTitle's does (bar_end()).
+ * muted), with the same room each side as GFOpenTitle 0.7.3's tray icons (TRAY_PAD); on the screen's title bar
+ * the row ends at the screen's depth gadget, as GFOpenTitle's does (bar_end()).
  *
  * 0.1.3 (the Team, 11 October 2026: the speaker's "55%" was seen in a white
  * box on the black bar): on the screen's title bar it is always painted in
@@ -36,9 +36,9 @@
  * colour fails it keeps the colours last read well, or the theme's screenbar
  * colour before any reading has worked (Common/barpaint.h, bp_paint_kept()).
  * While its levels are open it shows pressed in a lighter shade of the bar,
- * not the fill pen's white. When the bar's height changes (OpenLook makes it
+ * not the fill pen's white. When the bar's height changes (GFOpenLook makes it
  * taller as it starts) its window is made again for the new height, as
- * OpenTitle 0.6.11's are.
+ * GFOpenTitle 0.6.11's are.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include <exec/types.h>
@@ -72,23 +72,23 @@
 #include "wbclose.h"
 #include "popuptheme.h"
 #include "barpaint.h"
-#include "../../Common/prefsapp.h"           /* where OpenPrefs is (SYS:Preferences) */
+#include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: OpenSpeaker 0.1.6 (24.10.2026) OpenPrefs, AmigaChrome Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.1.6 (24.10.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct Library *CyberGfxBase;
 struct GfxBase *GfxBase;
 struct Library *GadToolsBase, *LayersBase, *CxBase;
 
-#define MENUS_ENV "ENV:OpenMenus/Menus"
-#define TRAY_PARENT "ENV:OpenMenus"
-#define TRAY_DIR  "ENV:OpenMenus/Tray"        /* the tray: a file per program on the menu bar's end, "width order" */
-#define TRAY_MINE "ENV:OpenMenus/Tray/Speaker"
-#define TRAY_PAD  6                           /* 0.1.6: the room each tray icon has on each side (as OpenTitle 0.7.3) */
+#define MENUS_ENV "ENV:GFOpenMenus/Menus"
+#define TRAY_PARENT "ENV:GFOpenMenus"
+#define TRAY_DIR  "ENV:GFOpenMenus/Tray"        /* the tray: a file per program on the menu bar's end, "width order" */
+#define TRAY_MINE "ENV:GFOpenMenus/Tray/Speaker"
+#define TRAY_PAD  6                           /* 0.1.6: the room each tray icon has on each side (as GFOpenTitle 0.7.3) */
 #define SPEAKER_W 14                          /* 0.1.6: the speaker's own width */
-#define MY_ORDER  0                           /* lower is nearer the bar's end: OpenTitle's cog (-5) is rightmost, then the speaker, the clock (10) left of it */
-#define SOUND_SECTION "SOUND"                /* 0.1.5: OpenPrefs at its Sound page (SYS:Preferences/OpenPrefs: prefsapp.h) */
+#define MY_ORDER  0                           /* lower is nearer the bar's end: GFOpenTitle's cog (-5) is rightmost, then the speaker, the clock (10) left of it */
+#define SOUND_SECTION "SOUND"                /* 0.1.5: GFOpenPrefs at its Sound page (SYS:Preferences/GFOpenPrefs: prefsapp.h) */
 #define NM_WHEEL_UP   0x7A                   /* the mouse wheel, as NewMouse and OS 3.2 send it */
 #define NM_WHEEL_DOWN 0x7B
 #define IECLASS_NEWMOUSE_ 0x16
@@ -156,7 +156,7 @@ static ULONG theme_bar(void)
 }
 
 /* The speaker's background, and the pen for it on that. On the screen's title bar: the bar's own colour, a shade
- * lighter while the levels are open, never the bar pen's white (0.1.3). On OpenMenus' own bar: its pen, as before,
+ * lighter while the levels are open, never the bar pen's white (0.1.3). On GFOpenMenus' own bar: its pen, as before,
  * and the theme's accent (or the fill pen without a theme) while the levels are open. */
 static LONG paint_back(void)
 {
@@ -199,7 +199,7 @@ static void draw_speaker(void)
     }
 }
 
-/* OpenMenus' settings: where the bar is (the screen's title bar when OpenMenus doesn't run or is off) */
+/* GFOpenMenus' settings: where the bar is (the screen's title bar when GFOpenMenus doesn't run or is off) */
 static int read_bar_edge(void)
 {
     om_prefs p;
@@ -208,7 +208,7 @@ static int read_bar_edge(void)
     LONG n;
     struct MsgPort *port;
     Forbid();
-    port = FindPort((STRPTR)"OpenMenus");
+    port = FindPort((STRPTR)"GFOpenMenus");
     Permit();
     if (!port) return OM_BAR_TITLE;
     om_defaults(&p);
@@ -225,7 +225,7 @@ static void tell_openmenus(void)
 {
     struct MsgPort *p;
     Forbid();
-    if ((p = FindPort((STRPTR)"OpenMenus")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
+    if ((p = FindPort((STRPTR)"GFOpenMenus")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
     Permit();
 }
 
@@ -273,7 +273,7 @@ static int tray_before(int *count)
 }
 
 /* 0.1.6: where the tray's row ends on the screen's title bar: the screen's depth gadget, its own width and
- * 2 pixels, as OpenTitle 0.7.3 has it, or the width the bar draws it at */
+ * 2 pixels, as GFOpenTitle 0.7.3 has it, or the width the bar draws it at */
 static WORD bar_end(void)
 {
     struct Gadget *g;
@@ -288,7 +288,7 @@ static WORD bar_end(void)
     return ((scr->Flags & SCREENHIRES) ? 23 : 17) + 2;
 }
 
-/* where the speaker goes: the bar's far end (OpenMenus keeps 2 bar heights for the screen's depth gadget) */
+/* where the speaker goes: the bar's far end (GFOpenMenus keeps 2 bar heights for the screen's depth gadget) */
 static void place(void)
 {
     WORD bh = scr->BarHeight + 1;
@@ -361,7 +361,7 @@ static void pop_draw_frame(void)
     struct RastPort *rp = pop->RPort;
     WORD w = pop->Width, h = pop->Height, fh = dri->dri_Font->tf_YSize;
     if (pt_ok) {
-        pt_panel(rp, w, h);                  /* the theme's menu colour and a slim frame, as OpenMenus' menus */
+        pt_panel(rp, w, h);                  /* the theme's menu colour and a slim frame, as GFOpenMenus' menus */
         SetAPen(rp, pt_text_pen());
     } else {
         SetAPen(rp, dri->dri_Pens[BACKGROUNDPEN]);
@@ -531,8 +531,8 @@ static void custom(CxMsg *msg, CxObj *co)
 }
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"OpenSpeaker", (STRPTR)"OpenSpeaker 0.1", (STRPTR)"The speaker on the menu bar",
-    NBU_UNIQUE | NBU_NOTIFY, 0, 10, NULL, 0     /* before OpenWindows, whose wheel would activate the window under the pointer */
+    NB_VERSION, (STRPTR)"GFOpenSpeaker", (STRPTR)"GFOpenSpeaker 0.1", (STRPTR)"The speaker on the menu bar",
+    NBU_UNIQUE | NBU_NOTIFY, 0, 10, NULL, 0     /* before GFOpenWindows, whose wheel would activate the window under the pointer */
 };
 
 /* ---- the task ---------------------------------------------------------------------------------- */
@@ -628,7 +628,7 @@ int main(void)
         }
         if (CheckIO((struct IORequest *)tr)) {
             WaitIO((struct IORequest *)tr);
-            /* 0.1.3: the bar changed height (OpenLook makes it taller as it starts): the speaker made again for it */
+            /* 0.1.3: the bar changed height (GFOpenLook makes it taller as it starts): the speaker made again for it */
             if (spk && !wb_down && scr->BarHeight != made_bh) {
                 if (pop) pop_close(0);
                 close_speaker();
@@ -636,7 +636,7 @@ int main(void)
             }
             if (levels_in()) { draw_speaker(); if (pop) pop_show(); }
             if (save_in && !--save_in) sp_save_levels(&cur, 1);
-            if (++ticks % 10 == 0 && !pop && !wb_down) {                 /* every 2 s: OpenMenus' bar moved? */
+            if (++ticks % 10 == 0 && !pop && !wb_down) {                 /* every 2 s: GFOpenMenus' bar moved? */
                 int e = read_bar_edge();
                 if (e != bar_edge) { close_speaker(); open_speaker(); }
                 else if (spk) {                     /* the clock came or went, or changed its width */

@@ -1,5 +1,5 @@
 /* dp_prefs: the fields of screenmode.prefs (SCRM) and overscan.prefs (OSCN) that the Screen mode section
- * edits, read from and written into a chunk's bytes (OpenNDK prefs/screenmode.h, prefs/overscan.h).
+ * edits, read from and written into a chunk's bytes (GFOpenNDK prefs/screenmode.h, prefs/overscan.h).
  *
  * As pf_prefs does for the Appearance tabs: a put writes the fields it knows and leaves every other byte of
  * the chunk as the file had it (the reserved longs, anything a newer release added after the fields), so

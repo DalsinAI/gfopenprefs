@@ -1,12 +1,12 @@
 Short:        Default programs per file type
 Uploader:     (We fill this in at upload time)
-Author:       AmigaChrome Team
+Author:       AmiCradle Team
 Type:         util/wb
 Version:      0.1
 Architecture: m68k-amigaos >= 3.2.0
 Distribution: Aminet
 
-OpenTypes is a preferences editor that says which program opens each kind of
+GFOpenTypes is a preferences editor that says which program opens each kind of
 file, and applies it to the icons, so default programs are as easy to set as
 on a modern desktop.
 
@@ -26,7 +26,7 @@ Status: designed; in development.
 
 Free software under the MIT licence, Copyright (c) 2026 AmigaChrome Team. Use
 it, change it, fork it and ship it; keep the copyright notice and the licence
-with every copy. If you build on it, please say it is based on OpenPrefs by
-the AmigaChrome Team.
+with every copy. If you build on it, please say it is based on GFOpenPrefs by
+the AmiCradle Team.
 
 Source: https://github.com/DalsinAI/openamigaprefs

@@ -21,7 +21,7 @@
 
 #include "sp_test.h"
 
-#ifndef IN_OPENBENCH                 /* inside OpenBench, a global of ours by this name could be another's: sp_ahi_modes has its own */
+#ifndef IN_OPENBENCH                 /* inside GFOpenBench, a global of ours by this name could be another's: sp_ahi_modes has its own */
 struct Library *AHIBase;
 #endif
 extern struct GfxBase *GfxBase;

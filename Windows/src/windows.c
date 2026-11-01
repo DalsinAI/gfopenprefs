@@ -1,21 +1,21 @@
-/* OpenPrefs Windows: the editor for OpenWindows (snapping, Amiga+Tab, the
+/* GFOpenPrefs Windows: the editor for GFOpenWindows (snapping, Amiga+Tab, the
  * wheel under the pointer, remembered window places, drawer sizes, and a
  * double-click in a title bar bringing the window to the front).
  *
  *   Windows [FROM file] [USE] [SAVE] [ADVANCED]
  *
  * It opens in the Simple view (the on and off switches); View > Advanced (Amiga-A)
- * or ADVANCED shows every setting. The view is shared by all OpenPrefs
- * editors: "simple" or "advanced" in ENV:OpenAmiga/PrefsView (and ENVARC:).
+ * or ADVANCED shows every setting. The view is shared by all GFOpenPrefs
+ * editors: "simple" or "advanced" in ENV:GFOpenAmiga/PrefsView (and ENVARC:).
  *
- * Save writes ENV:OpenPrefs/Windows and ENVARC:; Use writes ENV: only;
- * Cancel leaves both. Either way OpenWindows is told (Ctrl-F to the task of
+ * Save writes ENV:GFOpenPrefs/Windows and ENVARC:; Use writes ENV: only;
+ * Cancel leaves both. Either way GFOpenWindows is told (Ctrl-F to the task of
  * its public port) or, when something is switched on and it isn't running,
  * started from SYS:Tools/Commodities.
  *
- * Built into OpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open preferences in OpenBench natively),
- * it follows OpenBench's desktop/ob_builtin.h: it declares no library base, so dos, intuition, graphics and
- * gadtools are OpenBench's, never opened or closed here; its globals are static; it starts as ob_builtin.c
+ * Built into GFOpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open preferences in GFOpenBench natively),
+ * it follows GFOpenBench's desktop/ob_builtin.h: it declares no library base, so dos, intuition, graphics and
+ * gadtools are GFOpenBench's, never opened or closed here; its globals are static; it starts as ob_builtin.c
  * starts it, with no arguments and no tooltypes, and writes nothing to Output(); Ctrl-C quits as Cancel does
  * and Ctrl-F brings the window to the front. The stand-alone Windows builds as before.
  *
@@ -37,15 +37,15 @@
 #include <stdlib.h>
 #include "../../Common/looktabs.h"
 
-static const char version[] __attribute__((used)) = "$VER: Windows 0.6.8 (18.10.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: Windows 0.6.8 (18.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 
-#define PREFS_ENV "ENV:OpenPrefs/Windows"
-#define PREFS_ENVARC "ENVARC:OpenPrefs/Windows"
-#define PLACES_ENV "ENV:OpenPrefs/WindowPlaces"
-#define PLACES_ENVARC "ENVARC:OpenPrefs/WindowPlaces"
-#define TOOL "SYS:Tools/Commodities/OpenWindows"
-#define VIEW_ENV "ENV:OpenAmiga/PrefsView"           /* shared by every OpenPrefs editor: simple or advanced */
-#define VIEW_ENVARC "ENVARC:OpenAmiga/PrefsView"
+#define PREFS_ENV "ENV:GFOpenPrefs/Windows"
+#define PREFS_ENVARC "ENVARC:GFOpenPrefs/Windows"
+#define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"
+#define PLACES_ENVARC "ENVARC:GFOpenPrefs/WindowPlaces"
+#define TOOL "SYS:Tools/Commodities/GFOpenWindows"
+#define VIEW_ENV "ENV:GFOpenAmiga/PrefsView"           /* shared by every GFOpenPrefs editor: simple or advanced */
+#define VIEW_ENVARC "ENVARC:GFOpenAmiga/PrefsView"
 
 struct wprefs {
     int snap, snap_dist, halves, switcher, wheel, places, places_wb, drawer_w, drawer_h, dblfront, edges, edge_ptr, drive_title, solid;
@@ -148,7 +148,7 @@ static void make_text(const struct wprefs *p, char *out, int size)
 {
     char never[160], *n, *e;
     int len = snprintf(out, size,
-        "; OpenPrefs Windows 0.6: what OpenWindows does\n"
+        "; GFOpenPrefs Windows 0.6: what GFOpenWindows does\n"
         "snap %s %d\nsnap.halves %s\nswitcher %s\nswitcher.key %s\nwheel %s\nplaces %s\nplaces.drawers %s\ndrawer %d %d\n"
         "doubleclick.front %s\nedges %s\nedges.pointer %s\ndrive.title %s\ndrag.solid %s\n"
         "composite %s\nshadows %s\nshadow.size %d\nshadow.strength %d\ndrag.opacity %d\ninactive.opacity %d\n"
@@ -172,7 +172,7 @@ static int running(void)
 {
     int r;
     Forbid();
-    r = FindPort((STRPTR)"OpenWindows") != NULL;
+    r = FindPort((STRPTR)"GFOpenWindows") != NULL;
     Permit();
     return r;
 }
@@ -181,7 +181,7 @@ static void tell(void)
 {
     struct MsgPort *p;
     Forbid();
-    if ((p = FindPort((STRPTR)"OpenWindows")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
+    if ((p = FindPort((STRPTR)"GFOpenWindows")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
     Permit();
     if (!p && (cur.snap || cur.switcher || cur.wheel || cur.places || cur.drawer_w || cur.dblfront || cur.edges || cur.drive_title)) {
         BPTR in = Open((STRPTR)"NIL:", MODE_OLDFILE), out = Open((STRPTR)"NIL:", MODE_NEWFILE);
@@ -274,10 +274,10 @@ static void forget_places(void)
     DeleteFile((STRPTR)PLACES_ENV);
     DeleteFile((STRPTR)PLACES_ENVARC);
     if (running()) {
-        /* OpenWindows keeps its own copy: restart it so it starts empty */
+        /* GFOpenWindows keeps its own copy: restart it so it starts empty */
         struct MsgPort *p;
         Forbid();
-        if ((p = FindPort((STRPTR)"OpenWindows")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_C);
+        if ((p = FindPort((STRPTR)"GFOpenWindows")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_C);
         Permit();
         Delay(25);
         tell();
@@ -286,13 +286,13 @@ static void forget_places(void)
 }
 
 /* Why layers.library doesn't composite this screen, as the switch's words in compoff_text ("Transparency
- * and shadows (off on this screen: 8-bit)"); empty while it does, or when layers can't say. OpenLayers
+ * and shadows (off on this screen: 8-bit)"); empty while it does, or when layers can't say. GFOpenLayers
  * 47.102 and up: ComposeLayerInfo(li, NULL, LAYERS_COMPOSE_WHY) (-246; openamigagfx
  * include/graphics/openlayers.h, LAYERS_WHY_ 1-8 in this order). Its own open of layers.library: built
- * into OpenBench, this file declares no library base. */
+ * into GFOpenBench, this file declares no library base. */
 static void comp_off(struct Screen *scr)
 {
-    static const char why[] = "not asked\0switched off\0not RTG\0" "8-bit\0pixel layout\0no GPU driver\0no OpenGPU\0no memory";
+    static const char why[] = "not asked\0switched off\0not RTG\0" "8-bit\0pixel layout\0no GPU driver\0no GFOpenGPU\0no memory";
     const char *p = why;
     struct Library *lb = OpenLibrary((STRPTR)"layers.library", 47);
     ULONG w = 0;
@@ -365,7 +365,7 @@ static int gui_once(void)
         if (need < x2 + 26) need = x2 + 26;
         if (W < need + 10) W = need + 10;
     }
-    strcpy(status_text, running() ? "OpenWindows is running." : "OpenWindows isn't running: Use or Save starts it.");
+    strcpy(status_text, running() ? "GFOpenWindows is running." : "GFOpenWindows isn't running: Use or Save starts it.");
     /* not composited, and why (comp_off, above): the switch's words, or the status line in the two-column view */
     if (compoff_text[0] && (compact || pair)) strcpy(status_text, compoff_text);
 
@@ -467,7 +467,7 @@ static int gui_once(void)
     wt = scr->BarHeight + 20;
     lt_place(&wl, &wt);
     menus[6].nm_Flags = CHECKIT | MENUTOGGLE | (advanced ? CHECKED : 0);
-    win = lt_open(scr, wl, wt, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | BUTTONIDCMP | STRINGIDCMP | CHECKBOXIDCMP | INTEGERIDCMP, "OpenPrefs Windows 0.4");
+    win = lt_open(scr, wl, wt, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | BUTTONIDCMP | STRINGIDCMP | CHECKBOXIDCMP | INTEGERIDCMP, "GFOpenPrefs Windows 0.4");
     if (!win) { rc = -1; goto out; }
     if ((menu = CreateMenus(menus, TAG_DONE)) && LayoutMenus(menu, vi, GTMN_NewLookMenus, TRUE, TAG_DONE)) SetMenuStrip(win, menu);
     GT_RefreshWindow(win, NULL);
@@ -478,7 +478,7 @@ static int gui_once(void)
     while (!quit) {
         struct IntuiMessage *m;
 #ifdef IN_OPENBENCH
-        /* OpenBench's Ctrl-C (it is quitting): as Cancel; its Ctrl-F (Windows opened again): the window to the front */
+        /* GFOpenBench's Ctrl-C (it is quitting): as Cancel; its Ctrl-F (Windows opened again): the window to the front */
         ULONG got = Wait((1UL << win->UserPort->mp_SigBit) | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_C) quit = 1;
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -535,7 +535,7 @@ static int gui_once(void)
                 case G_SAVE: put_in_place(1); quit = 1; break;
                 case G_CANCEL: quit = 1; break;
                 default:
-                    if (lt_hit(gg, code) >= 0) {   /* another tab: keep, as Use, and hand over (OpenPrefs: when changed) */
+                    if (lt_hit(gg, code) >= 0) {   /* another tab: keep, as Use, and hand over (GFOpenPrefs: when changed) */
                         if (LT_DIRTY) put_in_place(0);
                         lt_go(win, lt_hit(gg, code)); quit = 1;
                     }

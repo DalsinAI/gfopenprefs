@@ -1,15 +1,15 @@
 /* deskicons.h: the desktop's No icons (Salvor's OS list, item 59; the user, 24 October 2026, 21:08: "offer a no-icons
- * mode too... for workbench itself"), shared by OpenPrefs' Icons page, which sets it, and OpenBench, which follows it.
+ * mode too... for workbench itself"), shared by GFOpenPrefs' Icons page, which sets it, and GFOpenBench, which follows it.
  *
  * One variable beside icon.library's ENV:Sys/IconLabels and the icons' layout, ENV:Sys/IconLayout, kept the same way:
  * ENV:Sys/DesktopIcons, one word.
- *   - "none": the desktop (OpenBench's root window) shows no icons at all: no disks, no icons left out, no AppIcons.
+ *   - "none": the desktop (GFOpenBench's root window) shows no icons at all: no disks, no icons left out, no AppIcons.
  *     The backdrop, the bar, the dock and the meters stay. Disks still mount, and drawers still open from the dock,
  *     the bar or a Shell.
  *   - "show", no variable, or a word not known: the icons, as before.
  * The Icons page's Use writes ENV:, its Save ENV: and ENVARC: (SetVar, GVF_SAVE_VAR), as it writes the other two.
- * OpenBench's Window > No icons writes both too, and its Icons > Clean Up with No icons on writes "show" and lays the
- * icons out. OpenBench follows a change at once (a DOS notify on ENV:Sys/DesktopIcons, as on the other two): the
+ * GFOpenBench's Window > No icons writes both too, and its Icons > Clean Up with No icons on writes "show" and lays the
+ * icons out. GFOpenBench follows a change at once (a DOS notify on ENV:Sys/DesktopIcons, as on the other two): the
  * icons go, and come back where they were.
  *
  * A variable of its own rather than a word in IconLayout: IconLayout's words are read and written by opengadtools'
@@ -26,7 +26,7 @@
 
 /* The first word of w (n its length, or -1 to its NUL), case aside, after any spaces: DESKICONS_SHOW for "show",
  * "icons", "on" or "yes"; DESKICONS_NONE for "none", "noicons", "off", "no" or "hide"; -1 for no word or one not
- * known (OpenPrefs ICONS DESKTOP leaves the setting alone then). */
+ * known (GFOpenPrefs ICONS DESKTOP leaves the setting alone then). */
 static inline int deskicons_word(const char *w, long n)
 {
     static const char *const show[] = { "show", "icons", "on", "yes", 0 };

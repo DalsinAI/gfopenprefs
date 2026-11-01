@@ -1,5 +1,5 @@
 #!/bin/sh
-# OpenDateTime's host tests: the time zone rules and the table of places, built
+# GFOpenDateTime's host tests: the time zone rules and the table of places, built
 # with the host's C compiler and checked against the host's own tz data.
 #   DateTime/test/run.sh
 # MIT, Copyright (c) 2026 AmigaChrome Team.

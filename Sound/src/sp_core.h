@@ -1,6 +1,6 @@
 /* sp_core: the Sound editor's settings, and the OS files it keeps them in.
  *
- *   ENV:OpenAmiga/Sound    our own lines: the levels, who mixes AHI, the
+ *   ENV:GFOpenAmiga/Sound    our own lines: the levels, who mixes AHI, the
  *                          menu bar speaker (format 1, "key value")
  *   ENV:Sys/sound.prefs    the beep, as the OS's Sound prefs writes it
  *   ENV:Sys/ahi.prefs      AHI's units and global settings, as AHI's own
@@ -8,7 +8,7 @@
  *
  * Plain C with no Amiga calls, so the same code is tested on the host
  * (tests/test_sp_core.c) and runs on the Amiga, in the Sound editor and in
- * OpenSpeaker alike. The OS files are kept byte for byte where we change
+ * GFOpenSpeaker alike. The OS files are kept byte for byte where we change
  * nothing: chunks we don't know go back as they came.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
@@ -40,10 +40,10 @@ typedef struct sp_unit {
 } sp_unit;
 
 typedef struct sp_settings {
-    /* ENV:OpenAmiga/Sound */
+    /* ENV:GFOpenAmiga/Sound */
     int volume, paula, ahi;              /* percent, 0-100 */
     int muted;
-    int mix;                             /* SP_MIX_*: the AmigaChrome mode for AHI's units */
+    int mix;                             /* SP_MIX_*: the AmiCradle mode for AHI's units */
     int speaker;                         /* the speaker on the menu bar */
     int wheel;                           /* percent a wheel step */
 
@@ -65,7 +65,7 @@ typedef struct sp_settings {
 
 void sp_defaults(sp_settings *s);
 
-/* ENV:OpenAmiga/Sound. Unknown lines are skipped. 1, or 0 when text is NULL. */
+/* ENV:GFOpenAmiga/Sound. Unknown lines are skipped. 1, or 0 when text is NULL. */
 int sp_parse(sp_settings *s, const char *text);
 /* Its text into out; the length, or -1 when it doesn't fit. */
 int sp_write(const sp_settings *s, char *out, int size);
@@ -81,7 +81,7 @@ int sp_read_ahi_prefs(sp_settings *s, const uint8_t *data, long len);
  * change are kept as they were (old may be NULL). The length, or -1. */
 long sp_write_ahi_prefs(const sp_settings *s, const uint8_t *old, long oldlen, uint8_t *out, long size);
 
-/* Who mixes, for the board's units: every unit on an AmigaChrome mode moves
+/* Who mixes, for the board's units: every unit on an AmiCradle mode moves
  * to Host mix (SP_MIX_PC) or HiFi (SP_MIX_AMIGA); with none on one yet
  * (a first start), all of them do. */
 void sp_apply_mix(sp_settings *s);

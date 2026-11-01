@@ -1,6 +1,6 @@
 /* Host tests for the Printing section's fields (pr_prefs.c), on pf_iff's list.
  *   Printing/tests/run.sh
- * The two samples are the files openamigaup's OpenPrinter part writes where there are none (tools/build_pack.py
+ * The two samples are the files openamigaup's GFOpenPrinter part writes where there are none (tools/build_pack.py
  * printer_prefs() and printergfx_prefs(), openamigaup main 350d03a, with #161 merged).
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include "pf_iff.h"
@@ -71,7 +71,7 @@ static int same_as(const pf_file *f, const char *name)
     return same;
 }
 
-/* With no file: OpenPrinter's files (OpenPrint installed), else printer.device's no-file state */
+/* With no file: GFOpenPrinter's files (GFOpenPrint installed), else printer.device's no-file state */
 static void test_new(void)
 {
     pf_file t, g, none;
@@ -80,22 +80,22 @@ static void test_new(void)
     pf_init(&t);
     pf_init(&g);
     pf_init(&none);
-    CHECK(pr_new_txt(&t, 1) && pr_new_gfx(&g, 1), "new, with OpenPrint");
-    CHECK(same_as(&t, "openprinter-printer.prefs"), "printer.prefs: OpenPrinter's own bytes");
-    CHECK(same_as(&g, "openprinter-printergfx.prefs"), "printergfx.prefs: OpenPrinter's own bytes");
+    CHECK(pr_new_txt(&t, 1) && pr_new_gfx(&g, 1), "new, with GFOpenPrint");
+    CHECK(same_as(&t, "openprinter-printer.prefs"), "printer.prefs: GFOpenPrinter's own bytes");
+    CHECK(same_as(&g, "openprinter-printergfx.prefs"), "printergfx.prefs: GFOpenPrinter's own bytes");
     CHECK(pr_get(&t, &g, &p) == 3, "both chunks found");
     CHECK(p.paper == PR_A4 && p.lines == 66 && p.left == 5 && p.right == 75 && p.aspect == PR_HORIZONTAL && p.density == 2,
-          "OpenPrinter's settings: A4, 66 lines, 5 to 75, horizontal, density 2 (%d %d %d %d %d %d)",
+          "GFOpenPrinter's settings: A4, 66 lines, 5 to 75, horizontal, density 2 (%d %d %d %d %d %d)",
           p.paper, p.lines, p.left, p.right, p.aspect, p.density);
     pr_route(&t, route, sizeof route);
-    CHECK(!strcmp(route, "OpenPrint driver, oapspool.device unit 0"), "the route: %s", route);
+    CHECK(!strcmp(route, "GFOpenPrint driver, oapspool.device unit 0"), "the route: %s", route);
 
-    /* no file, no OpenPrint: printer.device's no-file state, the same with no file at all */
+    /* no file, no GFOpenPrint: printer.device's no-file state, the same with no file at all */
     CHECK(pr_get(NULL, NULL, &q) == 0, "nothing found");
     CHECK(q.paper == PR_US_LETTER && q.lines == 66 && q.left == 5 && q.right == 75 && q.aspect == PR_HORIZONTAL &&
           q.density == 1, "printer.device's no-file settings");
     CHECK(pr_get(&none, &none, &q) == 0 && q.paper == PR_US_LETTER && q.density == 1, "an empty file: the same");
-    CHECK(pr_new_txt(&t, 0) && pr_new_gfx(&g, 0), "new, without OpenPrint");
+    CHECK(pr_new_txt(&t, 0) && pr_new_gfx(&g, 0), "new, without GFOpenPrint");
     CHECK(t.n == 2 && t.ch[1].id == PR_PTXT && t.ch[1].len == PR_PTXT_LEN, "PRHD and PTXT only: no PUNT, no PDEV");
     CHECK(g.n == 2 && g.ch[1].id == PR_PGFX && g.ch[1].len == PR_PGFX_LEN, "PRHD and PGFX");
     CHECK(!memcmp(t.ch[1].data + 16, "generic\0", 8) && t.ch[1].data[46] == 0, "the generic driver, the parallel port");
@@ -111,7 +111,7 @@ static void test_new(void)
     pf_free(&g);
 }
 
-/* OpenPrinter's files, the page's settings put in, written, read back */
+/* GFOpenPrinter's files, the page's settings put in, written, read back */
 static void test_round_trip(void)
 {
     pf_file t, g, t2, g2, t0, g0;
@@ -246,11 +246,11 @@ static void test_ranges_and_names(void)
           pr_paper_named("A9") < 0 && pr_paper_named("") < 0 && pr_paper_named(NULL) < 0, "the Shell's words");
     CHECK(pr_paper_openprint(PR_A4) && pr_paper_openprint(PR_A3) && pr_paper_openprint(PR_A5) &&
           pr_paper_openprint(PR_US_LETTER) && pr_paper_openprint(PR_US_LEGAL) && !pr_paper_openprint(PR_A0) &&
-          !pr_paper_openprint(PR_N_TRACTOR), "the sizes OpenPrint's driver makes");
+          !pr_paper_openprint(PR_N_TRACTOR), "the sizes GFOpenPrint's driver makes");
     CHECK(pr_aspect_named("horizontal") == PR_HORIZONTAL && pr_aspect_named("VERTICAL") == PR_VERTICAL &&
           pr_aspect_named("sideways") < 0 && pr_aspect_named(NULL) < 0, "the aspect's words");
     CHECK(pr_density_dpi(1) == 72 && pr_density_dpi(2) == 100 && pr_density_dpi(5) == 300 && pr_density_dpi(7) == 1200 &&
-          pr_density_dpi(0) == 72, "OpenPrint's dots to the inch");
+          pr_density_dpi(0) == 72, "GFOpenPrint's dots to the inch");
 }
 
 static void test_route(void)

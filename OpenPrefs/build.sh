@@ -1,26 +1,26 @@
 #!/bin/sh
-# OpenPrefs: every editor as a section of one program (OpenPrefs/src/openprefs.c), with the os32 stove
+# GFOpenPrefs: every editor as a section of one program (OpenPrefs/src/openprefs.c), with the os32 stove
 # (m68k-amigaos-gcc, NDK 3.2) and the theme reader of an opengadtools checkout beside this one (OGT=dir).
 #   OpenPrefs/build.sh [OUT_DIR]                    (default build/os3)
 # writes
-#   OUT_DIR/OpenPrefs        the app: SYS:Preferences/OpenPrefs (SYS:Prefs/OpenPrefs on an older disk), and
-#                            OpenPrefs APPLY at boot on OS 3.2.3's own ROM (an open ROM applies at boot itself)
-# The small body (C:OpenPrefs) and the old names' stubs are no longer built: OpenUp archives them
+#   OUT_DIR/GFOpenPrefs        the app: SYS:Preferences/GFOpenPrefs (SYS:Prefs/GFOpenPrefs on an older disk), and
+#                            GFOpenPrefs APPLY at boot on OS 3.2.3's own ROM (an open ROM applies at boot itself)
+# The small body (C:GFOpenPrefs) and the old names' stubs are no longer built: GFOpenUp archives them
 # (salvor/Design-No-ROM-Volume-20261024.md, section 8).
 # Each page is its editor's own source, compiled with LT_OP and OpenPrefs/src/opshift.h, its main renamed
-# (as Look/build-one.sh builds OpenLook). CPU= and OPT= change -m68020 and -O2 (the ROM's: -m68040 -Os).
+# (as Look/build-one.sh builds GFOpenLook). CPU= and OPT= change -m68020 and -O2 (the ROM's: -m68040 -Os).
 # MIT, Copyright (c) 2026 AmigaChrome Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 P=$HERE/..
-STOVE=${STOVE:-$HOME/AmigaChrome/stoves/os32}
+STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32}
 CC="$STOVE/prefix/bin/m68k-amigaos-gcc"
 OGT=${OGT:-$P/../opengadtools}
 OUT=${1:-$HERE/build/os3}
 O=$OUT/obj
 mkdir -p "$O/app"
 BASE="-noixemul ${CPU:--m68020} -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common"
-# OpenAmigaGCC 16.2.0-open3's late-combine pass can store a copy one place late (GCC PR 123853; Common/wbclose.h's
+# GFOpenAmigaGCC 16.2.0-open3's late-combine pass can store a copy one place late (GCC PR 123853; Common/wbclose.h's
 # strcpy of "OpenWBNotify" came out so): off until open4 (openamigagcc #29), on a compiler that knows the option.
 if "$CC" -fno-late-combine-instructions -S -o /dev/null -x c /dev/null 2>/dev/null; then BASE="$BASE -fno-late-combine-instructions"; fi
 FRAME="$BASE -DLT_OP -DLT_ONE -I$P/Common -I$HERE/src -I$OGT/lib"
@@ -68,7 +68,7 @@ page "$P/Display/src/dp_prefs.c" $DISP
 ICTL="-I$P/Look/src -I$P/IControl/src"
 page "$P/IControl/src/icontrol.c" -Dmain=icontrol_main -Dversion=icontrol_version $ICTL
 page "$P/IControl/src/ic_prefs.c" $ICTL
-# the Icons page (2.3) and the two variables' words, opengadtools' workbench/wb_grid.c (OpenBench reads them with it)
+# the Icons page (2.3) and the two variables' words, opengadtools' workbench/wb_grid.c (GFOpenBench reads them with it)
 page "$P/Icons/src/icons.c" -Dmain=icons_main -Dversion=icons_version -I"$OGT/workbench"
 "$CC" $FRAME -I"$OGT/workbench" -c -o "$O/app/wb_grid.o" "$OGT/workbench/wb_grid.c"
 # the Printing page (2.4): printer.prefs' and printergfx.prefs' paper settings on Look's PREF reader
@@ -76,7 +76,7 @@ PRT="-I$P/Look/src -I$P/Printing/src"
 page "$P/Printing/src/printing.c" -Dmain=printing_main -Dversion=printing_version $PRT
 page "$P/Printing/src/pr_prefs.c" $PRT
 # the frame and the program, not moved: openprefs.c first, so its $VER is the file's first
-"$CC" $FRAME -o "$OUT/OpenPrefs" "$HERE/src/openprefs.c" "$HERE/src/op_apply.c" "$HERE/src/opframe.c" "$O"/app/*.o \
+"$CC" $FRAME -o "$OUT/GFOpenPrefs" "$HERE/src/openprefs.c" "$HERE/src/op_apply.c" "$HERE/src/opframe.c" "$O"/app/*.o \
   "$OGT/lib/ogt_theme.c"
 
-echo "$OUT/OpenPrefs ($(wc -c < "$OUT/OpenPrefs") bytes)"
+echo "$OUT/GFOpenPrefs ($(wc -c < "$OUT/GFOpenPrefs") bytes)"

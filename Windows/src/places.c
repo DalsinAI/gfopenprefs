@@ -1,4 +1,4 @@
-/* OpenWindows' places: keys, the placing rule, and the tags that open a window
+/* GFOpenWindows' places: keys, the placing rule, and the tags that open a window
  * at its place (places.h). Pure C: the host tests run it as it is.
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include <string.h>
@@ -37,7 +37,7 @@ int place_candidate(int backdrop_or_gzz, int dragbar, const char *title)
 
 int place_workbench(const char *prog, int wbench_flag)
 {
-    return wbench_flag || ci_eq(prog, "Workbench") || ci_eq(prog, "OpenBench");
+    return wbench_flag || ci_eq(prog, "Workbench") || ci_eq(prog, "GFOpenBench");
 }
 
 static int size_fits(const struct place *pl, int sizeable, short minw, short minh, short maxw, short maxh)

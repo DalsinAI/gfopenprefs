@@ -1,4 +1,4 @@
-/* Host tests for src/om_prefs.c: OpenMenus' own format, and taking over a
+/* Host tests for src/om_prefs.c: GFOpenMenus' own format, and taking over a
  * MagicMenu settings file written the way MagicMenu writes it.
  * Build and run: Menus/tests/run.sh
  * MIT, Copyright (c) 2026 AmigaChrome Team. */

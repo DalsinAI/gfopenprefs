@@ -8,7 +8,7 @@
 #include "sp_core.h"
 
 static const char *const files[] = {
-    "; OpenPrefs Sound, format 1\nvolume 80\npaula 50\nahi 70\nmute off\nmix pc\nspeaker on\nwheel 5\n",
+    "; GFOpenPrefs Sound, format 1\nvolume 80\npaula 50\nahi 70\nmute off\nmix pc\nspeaker on\nwheel 5\n",
     "", "mute on\n", "mute yes", "mute 1\n", "mute on\nmute off\n", "mute on\nmute maybe\n",
     "volume 150\npaula -5\nahi 100\n", "volume 42abc\npaula x\n", "  volume\t 33\r\npaula 44\r\n",
     "; volume 1\n  ; paula 2\nvolume\nbass 9\nahi 12\n", "volume 10\nvolume 20\n", "Volume 10\n", "ahi 5",

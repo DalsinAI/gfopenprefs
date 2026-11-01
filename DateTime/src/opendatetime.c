@@ -1,14 +1,14 @@
-/* OpenDateTime: the date, the time and the region in one OpenPrefs editor. It
- * takes over the OS's Time and Locale editors (OpenUp's RECONCILE puts those in
- * SYS:Prefs/Classic); a double-click on OpenTitle's clock opens it.
+/* GFOpenDateTime: the date, the time and the region in one GFOpenPrefs editor. It
+ * takes over the OS's Time and Locale editors (GFOpenUp's RECONCILE puts those in
+ * SYS:Prefs/Classic); a double-click on GFOpenTitle's clock opens it.
  *
- *   OpenDateTime [FROM file] [USE] [SAVE] [ZONE place] [KEEP] [INFO]
+ *   GFOpenDateTime [FROM file] [USE] [SAVE] [ZONE place] [KEEP] [INFO]
  *
  *   - the date (day, month, year) and the time (hours, minutes, seconds), with
  *     Now to read the clock again; set with Use or Save when changed, through
  *     C:Date, and kept in the battery clock with C:SetClock SAVE
  *   - the time zone as a place (Europe/London), not an offset: Locale prefs'
- *     GMT offset follows the place's summer time. On AmigaChrome the place and
+ *     GMT offset follows the place's summer time. On AmiCradle the place and
  *     its offset are the host's; on a real Amiga, the place's rules (zones.h,
  *     from the tz database) say when summer time starts and ends
  *   - the country (LOCALE:Countries) and the preferred language
@@ -23,8 +23,8 @@
  * part, which keeps the GMT offset (and on a real Amiga the clock) right across
  * the changes; INFO says what the place, the offset and the next change are.
  *
- * Built into OpenBench (the Team, 11 October 2026: the Open preferences in OpenBench natively) with
- * -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: OpenBench starts it as a process of its
+ * Built into GFOpenBench (the Team, 11 October 2026: the Open preferences in GFOpenBench natively) with
+ * -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: GFOpenBench starts it as a process of its
  * own with no arguments, as Workbench starts a tool, so it is the window; Ctrl-C is Cancel, Ctrl-F
  * brings the window to the front; utility.library is opened under this editor's own name.
  *
@@ -61,10 +61,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: OpenDateTime 0.2.3 (1.11.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenDateTime 0.2.3 (1.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 
 #ifdef IN_OPENBENCH
-/* inside OpenBench, a global UtilityBase could be another built-in's: every UtilityBase below, and in
+/* inside GFOpenBench, a global UtilityBase could be another built-in's: every UtilityBase below, and in
  * utility.library's calls, is this editor's own */
 static struct Library *opendatetime_utility;
 #define UtilityBase opendatetime_utility
@@ -95,7 +95,7 @@ static LONG same_name(const char *a, const char *b)
 #include "tzrule.c"
 #include "zones.h"
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -115,7 +115,7 @@ struct ZonePrefs {
     char zp_Rule[56];                           /* its POSIX rule when saved, for a place this table lacks */
     ULONG zp_Flags;
 };
-#define ZPF_HOST 1                              /* the place and offset are the host's (AmigaChrome) */
+#define ZPF_HOST 1                              /* the place and offset are the host's (AmiCradle) */
 
 static int place_index(const char *name)
 {
@@ -160,7 +160,7 @@ static void offset_text(char *out, int size, long east)
     snprintf(out, size, "UTC%c%ld:%02ld", east < 0 ? '-' : '+', a / 3600, a / 60 % 60);
 }
 
-/* ---- the host's clock (AmigaChrome) -------------------------------------------------- */
+/* ---- the host's clock (AmiCradle) -------------------------------------------------- */
 
 /* accontrol.device (amigachrome-guest): ACCMD_BOARD asks the host; the status (query 7) starts with
  * "clock": {"zone": "Europe/London", "offset": 60, "dst": true, "abbr": "BST", "utc": ...}. */
@@ -176,9 +176,9 @@ struct host_clock {
     char abbr[12];
 };
 
-/* A machine with AmigaChrome's ACBridge board (AmigaChrome Team, or 2011 before AmigaChrome Team): its battery clock runs on
+/* A machine with AmiCradle's ACBridge board (AmiCradle Team, or 2011 before AmiCradle Team): its battery clock runs on
  * the host's local time, so it is right at start, and moves with the host's when the offset changes. */
-static int on_amigachrome(void)
+static int on_amicradle(void)
 {
     int yes = 0;
     if ((ExpansionBase = OpenLibrary((STRPTR)"expansion.library", 37))) {
@@ -399,7 +399,7 @@ static int load_country(const char *name)
 /* ---- names of countries and languages -------------------------------------- */
 
 /* MAX_NAMES of each, and ZONE_COUNT of city_text and city_nodes below (25 KB together), made at the start of
- * main(): OpenPrefs holds every editor at once (W49) */
+ * main(): GFOpenPrefs holds every editor at once (W49) */
 static char (*names_c)[32], (*names_l)[30];
 static struct Node *nodes_c, *nodes_l;
 static struct List list_c, list_l;
@@ -495,7 +495,7 @@ static int set_clock(const struct ClockData *cd)
     snprintf(cmd, sizeof cmd, "C:Date %02d-%s-%02d %02d:%02d:%02d", cd->mday, month_dos[cd->month - 1], cd->year % 100,
              cd->hour, cd->min, cd->sec);
     /* A synchronous call is given both handles, never a NULL output (the Team's decision of 12 October,
-     * as OpenDock and OpenMenus do): a NIL: input and a NIL: output, opened and closed here. */
+     * as GFOpenDock and GFOpenMenus do): a NIL: input and a NIL: output, opened and closed here. */
     nil = Open((STRPTR)"NIL:", MODE_OLDFILE);
     nilout = Open((STRPTR)"NIL:", MODE_NEWFILE);
     if (!nil || !nilout) {
@@ -558,9 +558,9 @@ static int clock_times(LONG move, int keep_battery, ULONG *system, ULONG *batter
 /* ---- the background part (KEEP) ----------------------------------------------------- */
 
 /* One voice: Locale prefs own the zone. This part changes nothing but Locale prefs' GMT offset (and on
- * AmigaChrome the place, which is the host's), and the clock when the offset moves under it:
+ * AmiCradle the place, which is the host's), and the clock when the offset moves under it:
  *
- * - On AmigaChrome the battery clock runs on the host's local time, so the clock is right at start and
+ * - On AmiCradle the battery clock runs on the host's local time, so the clock is right at start and
  *   the host says the offset. When it changes (summer time, or the host's place), the battery clock has
  *   moved with the host and the system clock hasn't: it is set on by the whole quarter hours between them.
  * - On a real Amiga the clock keeps local time on the offset Locale prefs saved; the place's rules say
@@ -592,7 +592,7 @@ static int keep_file(const char *path, LONG west, const char *place, const char 
 }
 
 struct keeper {
-    int chrome;                                 /* on AmigaChrome */
+    int chrome;                                 /* on AmiCradle */
     int first;                                  /* the first look since starting */
     char said[160];                             /* what the last look did */
 };
@@ -617,7 +617,7 @@ static LONG keep_once(struct keeper *k)
     rule[sizeof rule - 1] = 0;
     flags = zp.zp_Flags;
     if (!region_saved && !host) { strcpy(k->said, "no region is saved: nothing to keep"); return 3600; }
-    if (host) {                                        /* AmigaChrome: the host says */
+    if (host) {                                        /* AmiCradle: the host says */
         copy_text(place, hc.zone, sizeof place);
         strncpy(rule, place_rule(hc.zone), sizeof rule - 1);
         flags = ZPF_HOST;
@@ -676,7 +676,7 @@ static int keeper(void)
     memset(&k, 0, sizeof k);
     k.first = 1;
     Forbid();
-    if (FindPort((STRPTR)KEEPER_PORT)) { Permit(); PutStr((STRPTR)"OpenDateTime KEEP is running already\n"); return RETURN_WARN; }
+    if (FindPort((STRPTR)KEEPER_PORT)) { Permit(); PutStr((STRPTR)"GFOpenDateTime KEEP is running already\n"); return RETURN_WARN; }
     if ((kp = CreateMsgPort())) {
         kp->mp_Node.ln_Name = (char *)KEEPER_PORT;
         kp->mp_Node.ln_Pri = -128;
@@ -684,7 +684,7 @@ static int keeper(void)
     }
     Permit();
     if (!kp) return RETURN_FAIL;
-    k.chrome = on_amigachrome();
+    k.chrome = on_amicradle();
     if ((tport = CreateMsgPort()) && (tr = (struct timerequest *)CreateIORequest(tport, sizeof *tr)) &&
         !OpenDevice((STRPTR)TIMERNAME, UNIT_VBLANK, (struct IORequest *)tr, 0)) {
         char last[160];
@@ -745,7 +745,7 @@ static int info(void)
     struct host_clock hc;
     struct tz_zone z;
     char line[160], a[16];
-    int chrome = on_amigachrome(), host = chrome && ask_host(&hc), dst = 0;
+    int chrome = on_amicradle(), host = chrome && ask_host(&hc), dst = 0;
     tz_t local = clock_local(), when;
     long east, after;
     load_locale(LOCALE_ENV);
@@ -770,7 +770,7 @@ static int info(void)
         offset_text(a, sizeof a, hc.east);
         snprintf(line, sizeof line, "%s, %s (%s)%s", hc.zone[0] ? hc.zone : "no place named", a, hc.abbr, hc.dst ? ", summer time" : "");
         say("Host:         ", line);
-    } else say("Host:         ", chrome ? "AmigaChrome, but accontrol.device didn't answer" : "none (a real Amiga)");
+    } else say("Host:         ", chrome ? "AmiCradle, but accontrol.device didn't answer" : "none (a real Amiga)");
     when_text(line, sizeof line, local);
     say("Clock:        ", line);
     if (place_zone(zp.zp_Place, zp.zp_Rule, &z)) {
@@ -798,7 +798,7 @@ static int info(void)
 
 /* ---- the lists' rows ------------------------------------------------------------ */
 
-/* GadTools draws a list row's name in JAM2, and on a themed screen OpenLook gives that text a cell of its own
+/* GadTools draws a list row's name in JAM2, and on a themed screen GFOpenLook gives that text a cell of its own
  * colour, so the picked row showed a box beside its bar (0.1); 0.1.1 took the pick's highlight away with the
  * box. Each row is drawn here instead: the whole row in FILLPEN when picked (BACKGROUNDPEN when not), then the
  * name in JAM1 over it, so the bar is one colour from end to end. */
@@ -890,7 +890,7 @@ static struct Gadget *gad[G_COUNT];
 static struct Window *win;
 static char status_text[160], zone_line[120];
 static int sel_place = -1, sel_region, sel_country = -1, sel_language = -1, month_sel;
-static int host_ok;                             /* AmigaChrome's host said its place: the place is the host's */
+static int host_ok;                             /* AmiCradle's host said its place: the place is the host's */
 static struct host_clock gui_hc;
 
 static void status(const char *s)
@@ -909,7 +909,7 @@ static void show_zone(void)
     int dst;
     if (host_ok) {
         offset_text(a, sizeof a, gui_hc.east);
-        snprintf(zone_line, sizeof zone_line, "%s, the host's: %s%s%s%s", gui_hc.zone[0] ? gui_hc.zone : "AmigaChrome", a,
+        snprintf(zone_line, sizeof zone_line, "%s, the host's: %s%s%s%s", gui_hc.zone[0] ? gui_hc.zone : "AmiCradle", a,
                  gui_hc.abbr[0] ? " " : "", gui_hc.abbr, gui_hc.dst ? ", summer time" : "");
     } else if (sel_place >= 0 && place_zone(zone_table[sel_place].name, NULL, &z)) {
         east = tz_zone_offset_for_local(&z, local, &dst);
@@ -957,7 +957,7 @@ static void show_clock(void)
     show_zone();
 }
 
-/* The place into Locale prefs (lp, zp), with its offset at local: the host's on AmigaChrome. With no place
+/* The place into Locale prefs (lp, zp), with its offset at local: the host's on AmiCradle. With no place
  * picked, the offset stays as it was saved. */
 static void put_place(const char *name, tz_t local)
 {
@@ -1032,7 +1032,7 @@ static int gui(void)
     int fh, lh, top, row, quit = 0, rc = RETURN_OK, W, X, lw, lvh, i, digit, third, pick;
     if (!vi) { if (scr) UnlockPubScreen(NULL, scr); return RETURN_FAIL; }
     memset(gad, 0, sizeof gad);
-    host_ok = on_amigachrome() && ask_host(&gui_hc);
+    host_ok = on_amicradle() && ask_host(&gui_hc);
     make_regions();
     sel_place = place_index(host_ok ? gui_hc.zone : zp.zp_Place);
     sel_region = region_of(sel_place >= 0 ? sel_place : place_index(DEFAULT_PLACE));
@@ -1077,7 +1077,7 @@ static int gui(void)
     (ng.ng_LeftEdge = (x), ng.ng_TopEdge = (y), ng.ng_Width = (w), ng.ng_Height = (h), ng.ng_GadgetText = (STRPTR)(text), \
      ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
 #ifdef LT_ONE
-    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_DATETIME);     /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_DATETIME);     /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 24, lh);
 #endif
     row = top;
@@ -1098,7 +1098,7 @@ static int gui(void)
         row += lh + 8;
     }
     /* the place: its region above, the places in it below; the pick highlighted in the list itself
-     * (GTLV_ShowSelected NULL), each row drawn by row_draw. On AmigaChrome the host's, not to change here. */
+     * (GTLV_ShowSelected NULL), each row drawn by row_draw. On AmiCradle the host's, not to change here. */
     row_hook.h_Entry = (ULONG (*)())row_draw;
     row_hook.h_SubEntry = NULL;
     row_hook.h_Data = NULL;
@@ -1126,9 +1126,9 @@ static int gui(void)
     }
     if (!g) { rc = RETURN_FAIL; goto out; }
 #ifdef LT_ONE
-    win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | IDCMP_VANILLAKEY | BUTTONIDCMP | INTEGERIDCMP | CYCLEIDCMP | LISTVIEWIDCMP | TEXTIDCMP, "OpenDateTime 0.2");
+    win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | IDCMP_VANILLAKEY | BUTTONIDCMP | INTEGERIDCMP | CYCLEIDCMP | LISTVIEWIDCMP | TEXTIDCMP, "GFOpenDateTime 0.2");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Date and time", WA_ScreenTitle, (ULONG)"OpenDateTime 0.2", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Date and time", WA_ScreenTitle, (ULONG)"GFOpenDateTime 0.2", WA_PubScreen, (ULONG)scr,
                          WA_Left, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, WA_Top, scr->BarHeight + 20,
                          WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
@@ -1145,7 +1145,7 @@ static int gui(void)
     while (!quit) {
         struct IntuiMessage *m;
 #ifdef IN_OPENBENCH
-        /* inside OpenBench: Ctrl-C (OpenBench is quitting) is Cancel; Ctrl-F (opened again) to the front */
+        /* inside GFOpenBench: Ctrl-C (GFOpenBench is quitting) is Cancel; Ctrl-F (opened again) to the front */
         ULONG got = Wait(1UL << win->UserPort->mp_SigBit | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_C) { quit = 1; continue; }
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -1208,18 +1208,18 @@ out:
     return rc;
 }
 
-/* OpenDateTime ZONE place: the place, with its offset now (on AmigaChrome, the host's). */
+/* GFOpenDateTime ZONE place: the place, with its offset now (on AmiCradle, the host's). */
 static int shell_zone(const char *name)
 {
     char line[120];
     if (place_index(name) < 0) {
-        snprintf(line, sizeof line, "OpenDateTime: no place called %s (they are named as Europe/London)\n", name);
+        snprintf(line, sizeof line, "GFOpenDateTime: no place called %s (they are named as Europe/London)\n", name);
         PutStr((STRPTR)line);
         return 0;
     }
-    host_ok = on_amigachrome() && ask_host(&gui_hc);
+    host_ok = on_amicradle() && ask_host(&gui_hc);
     if (host_ok && strcmp(gui_hc.zone, name)) {
-        snprintf(line, sizeof line, "OpenDateTime: on AmigaChrome the place is the host's, %s\n", gui_hc.zone[0] ? gui_hc.zone : "which has no name");
+        snprintf(line, sizeof line, "GFOpenDateTime: on AmiCradle the place is the host's, %s\n", gui_hc.zone[0] ? gui_hc.zone : "which has no name");
         PutStr((STRPTR)line);
     }
     put_place(name, clock_local());
@@ -1233,7 +1233,7 @@ int main(int argc, char **argv)
     int rc;
     (void)argv;
     (void)version;
-    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"OpenDateTime"); return RETURN_FAIL; }
+    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"GFOpenDateTime"); return RETURN_FAIL; }
     if (!(UtilityBase = OpenLibrary((STRPTR)"utility.library", 39))) { if (rd) FreeArgs(rd); return RETURN_FAIL; }
     if (!names_c) names_c = calloc(MAX_NAMES, sizeof *names_c);
     if (!names_l) names_l = calloc(MAX_NAMES, sizeof *names_l);
@@ -1244,7 +1244,7 @@ int main(int argc, char **argv)
     if (!names_c || !names_l || !nodes_c || !nodes_l || !city_text || !city_nodes) {
         if (rd) FreeArgs(rd);
         CloseLibrary(UtilityBase);
-        PrintFault(ERROR_NO_FREE_STORE, (STRPTR)"OpenDateTime");
+        PrintFault(ERROR_NO_FREE_STORE, (STRPTR)"GFOpenDateTime");
         return RETURN_FAIL;
     }
     load_locale(args[0] ? (const char *)args[0] : LOCALE_ENV);
@@ -1261,7 +1261,7 @@ int main(int argc, char **argv)
     if (rd) FreeArgs(rd);
     if (file_data) FreeVec(file_data);
 #if defined(IN_OPENBENCH) || defined(LT_ONE)
-    file_data = NULL;                            /* OpenBench's data stays: the next start must not free it again */
+    file_data = NULL;                            /* GFOpenBench's data stays: the next start must not free it again */
     file_len = 0;
 #endif
     CloseLibrary(UtilityBase);
