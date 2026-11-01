@@ -852,14 +852,43 @@ static int verify(struct Window *w)
     if (!(m = new_msg(w, IDCMP_MENUVERIFY, MENUHOT))) return 1;
     out_msgs++;
     PutMsg(w->UserPort, (struct Message *)m);
-    for (n = 0; n < 100; n++) {               /* up to 2 seconds */
-        struct Message *r;
-        while ((r = GetMsg(reply_port))) {
-            if (r == (struct Message *)m) ok = ((struct IntuiMessage *)r)->Code != MENUCANCEL;
-            FreeVec(r); out_msgs--;
-            if (r == (struct Message *)m) return ok;
+    {
+        /* The answer is waited for on the reply port's signal, with a timer for
+           the 2 seconds, so a program that answers at once opens the menu at
+           once and not a tick (0.02 s) later; Delay ticks only when no timer opens. */
+        struct MsgPort *tp = CreateMsgPort();
+        struct timerequest *t = tp ? (struct timerequest *)CreateIORequest(tp, sizeof *t) : NULL;
+        int timed = t && !OpenDevice((STRPTR)TIMERNAME, UNIT_VBLANK, (struct IORequest *)t, 0);
+        int answered = 0;
+        if (timed) {
+            t->tr_node.io_Command = TR_ADDREQUEST;
+            t->tr_time.tv_secs = 2;
+            t->tr_time.tv_micro = 0;
+            SendIO((struct IORequest *)t);
         }
-        Delay(1);
+        for (n = 0; n < 100 && !answered; n++) {  /* up to 2 seconds */
+            struct Message *r;
+            while ((r = GetMsg(reply_port))) {
+                if (r == (struct Message *)m) { ok = ((struct IntuiMessage *)r)->Code != MENUCANCEL; answered = 1; }
+                FreeVec(r); out_msgs--;
+                if (answered) break;
+            }
+            if (answered) break;
+            if (timed) {
+                if (CheckIO((struct IORequest *)t)) break;
+                Wait((1UL << reply_port->mp_SigBit) | (1UL << tp->mp_SigBit));
+                n = 0;                               /* the timer counts the time */
+            } else
+                Delay(1);
+        }
+        if (timed) {
+            AbortIO((struct IORequest *)t);
+            WaitIO((struct IORequest *)t);
+            CloseDevice((struct IORequest *)t);
+        }
+        if (t) DeleteIORequest((struct IORequest *)t);
+        if (tp) DeleteMsgPort(tp);
+        if (answered) return ok;
     }
     return 1;                                 /* no answer: Intuition goes on too */
 }
