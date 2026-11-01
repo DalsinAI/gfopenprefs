@@ -5,7 +5,7 @@
  *
  *   ob_open(path)   1 opened, 0 GFOpenBench couldn't, -1 no GFOpenBench
  *
- * The message's layout is GFOpenBench's: keep it the same there. MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * The message's layout is GFOpenBench's: keep it the same there. MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef OBMSG_H
 #define OBMSG_H
 

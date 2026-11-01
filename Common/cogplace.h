@@ -5,7 +5,7 @@
  * GFOpenWindows keeps a public semaphore by this name with the request in it. The cog arms it just before it starts
  * an editor; GFOpenWindows' OpenWindowTagList patch places the next window with a drag bar that another program
  * opens within ten seconds there, and disarms it. Both read and write it under Forbid (no DOS: the patch runs in
- * any task). MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * any task). MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef COGPLACE_H
 #define COGPLACE_H
 

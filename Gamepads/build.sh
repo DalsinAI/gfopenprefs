@@ -3,7 +3,7 @@
 # gfopeninput.library's headers (include/, copied from openamigainput).
 #   Gamepads/build.sh [OUT_DIR]     (default build/os3)
 #   STOVE=~/AmiCradle/stoves/os32-gcc16 Gamepads/build.sh build/os3-gcc16
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 # CPU= and OPT= change -m68040 and -O2 (the ROM's build: OPT=-Os).
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)

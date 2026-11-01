@@ -2,7 +2,7 @@
 
 The Team's System preferences. Its first page is **Stack**: the adaptive
 stack's default cap, and the programs with a cap of their own. MIT, Copyright
-(c) 2026 AmigaChrome Team.
+(c) 2026 AmiCradle Team.
 
 Decided 13 October 2026: a new Stack page in the Team's System prefs owns the
 cap and the per-program overrides (one voice). The `STACKCAP` tooltype is

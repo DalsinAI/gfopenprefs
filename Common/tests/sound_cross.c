@@ -1,7 +1,7 @@
 /* The boot's Sound reader (Common/prefs_boot_core.c, pbc_sound_levels) against the Sound editor's own
  * (Sound/src/sp_core.c: sp_parse, then sp_levels_word) on the same files: the board must get the same LEVELS
  * word from intuition at boot as from the editor's Use. Prints PASS or the files that differ.
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <stdio.h>
 #include <string.h>
 #include "prefs_boot_core.h"

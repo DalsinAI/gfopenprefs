@@ -1,7 +1,7 @@
 /* Common/idlepace.h: GFOpenMenus' and GFOpenSpeaker's tick, slowed after 2 s with no input and back to full speed on
  * the first input. A model of the tasks' loops (a timer, the input handler's wake signal, AbortIO of a slow request)
  * run on simulated time. Prints "ok"/"FAIL" lines, then PASS or FAIL.
- * Copyright (c) 2026 AmigaChrome Team. MIT. */
+ * Copyright (c) 2026 AmiCradle Team. MIT. */
 #include <stdio.h>
 #include <string.h>
 #include "idlepace.h"

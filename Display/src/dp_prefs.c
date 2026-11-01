@@ -2,7 +2,7 @@
  * The offsets are those of GFOpenNDK's prefs/screenmode.h and prefs/overscan.h, big-endian and unpadded.
  * Plain C: tested on the host by Display/tests/run.sh.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "dp_prefs.h"
 
 #include <stdlib.h>

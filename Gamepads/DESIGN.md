@@ -2,7 +2,7 @@
 
 The game controllers editor, built on GFOpenInput (`gfopeninput.library`,
 DalsinAI/openamigainput; its design's section 8 is this page). Pad mapping
-moves here from GFOpenUSB Prefs. MIT, Copyright (c) 2026 AmigaChrome Team.
+moves here from GFOpenUSB Prefs. MIT, Copyright (c) 2026 AmiCradle Team.
 
 ![The Gamepads editor testing a modern pad: the pad drawn as a controller, the d-pad's left arm and the triggers' amounts lit in the accent colour](docs/window.png)
 

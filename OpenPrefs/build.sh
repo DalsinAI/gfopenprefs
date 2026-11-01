@@ -9,7 +9,7 @@
 # (salvor/Design-No-ROM-Volume-20261024.md, section 8).
 # Each page is its editor's own source, compiled with LT_OP and OpenPrefs/src/opshift.h, its main renamed
 # (as Look/build-one.sh builds GFOpenLook). CPU= and OPT= change -m68020 and -O2 (the ROM's: -m68040 -Os).
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 P=$HERE/..

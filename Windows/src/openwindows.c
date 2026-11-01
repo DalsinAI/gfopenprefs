@@ -59,7 +59,7 @@
  * Ctrl-F to the task of the public port "GFOpenWindows" to read it again). Places: ENV:GFOpenPrefs/WindowPlaces,
  * kept in ENVARC: too. Exchange can disable, enable or quit it.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>
@@ -92,7 +92,7 @@
 #include "gestures.h"
 #include "places.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.9.2 (24.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.9.2 (24.10.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"

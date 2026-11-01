@@ -29,7 +29,7 @@
  * name, and the pad it holds is let go as it quits; each start begins as a new program would, since
  * GFOpenBench's data stays from one start to the next.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <exec/ports.h>

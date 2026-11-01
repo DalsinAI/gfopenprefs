@@ -1,6 +1,6 @@
 /* Common/deskicons.h: ENV:Sys/DesktopIcons's words, as the Icons page writes them and GFOpenBench reads them, and the
  * ones a person or an older file might leave there. Prints "ok"/"FAIL" lines, then PASS or FAIL.
- * Copyright (c) 2026 AmigaChrome Team. MIT. */
+ * Copyright (c) 2026 AmiCradle Team. MIT. */
 #include <stdio.h>
 #include <string.h>
 #include "deskicons.h"

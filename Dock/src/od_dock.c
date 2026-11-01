@@ -1,5 +1,5 @@
 /* od_dock: GFOpenDock's settings, and taking over other docks' (od_dock.h).
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "od_dock.h"
 
 #include <string.h>

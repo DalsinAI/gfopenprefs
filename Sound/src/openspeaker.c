@@ -44,7 +44,7 @@
  * taller as it starts) its window is made again for the new height, as
  * GFOpenTitle 0.6.11's are.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>

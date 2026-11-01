@@ -1,4 +1,4 @@
-/* Host tests for od_dock.c. MIT, Copyright (c) 2026 AmigaChrome Team. */
+/* Host tests for od_dock.c. MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "od_dock.h"
 #include "od_wake.h"
 #include <stdio.h>

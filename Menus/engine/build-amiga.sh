@@ -2,7 +2,7 @@
 # For the Cradle's stove_build (STOVE= and OUT= set, target Menus/engine): build.sh into OUT,
 # with opengadtools from the Cradle's own checkout (cradle-builds/DalsinAI__opengadtools)
 # when it is there, else as build.sh finds it (OGT= to say where).
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 up=$(cd "$HERE/../../.." && pwd)

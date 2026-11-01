@@ -86,7 +86,7 @@
  *   see-through bar stayed solid until someone moved the mouse (Instance-32, 26 October). The menus, the cog's list
  *   and the menu button still make it solid as before.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <exec/ports.h>

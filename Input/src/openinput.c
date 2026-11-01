@@ -26,7 +26,7 @@
  * brings the window to the front; utility.library is opened under this editor's own name; Gamepads...
  * asks GFOpenBench to open SYS:Prefs/GFOpenGamepads (Common/obmsg.h), its built-in too.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>
@@ -59,7 +59,7 @@
 #include "obmsg.h"
 #endif
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenInput 0.1.3 (13.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenInput 0.1.3 (13.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 #ifdef IN_OPENBENCH
 /* inside GFOpenBench, a global UtilityBase could be another built-in's: every UtilityBase below, and in

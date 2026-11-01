@@ -13,7 +13,7 @@
  * Everything is RectFill, Move/Draw, DrawEllipse and Text, so it goes
  * through GFOpenGfx where it runs, and needs no TmpRas or area buffers.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>

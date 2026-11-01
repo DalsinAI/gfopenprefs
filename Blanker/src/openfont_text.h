@@ -5,7 +5,7 @@
  * with graphics' CloseFont. The one call, by its LVO in its register
  * (openamigafont sdk/SFD/openfont_lib.sfd, revision 2): no SDK headers
  * needed. The same as GFOpenGadTools' lib/ogt_openfont.h.
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef OPENFONT_TEXT_H
 #define OPENFONT_TEXT_H
 

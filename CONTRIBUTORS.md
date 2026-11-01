@@ -14,7 +14,7 @@ We are The AmiCradle Team, who build AmiCradle alongside SacredTrees:
 
 ## Copyright holder
 
-GFOpenPrefs's code, documents and pictures are Copyright (c) 2026 AmigaChrome
+GFOpenPrefs's code, documents and pictures are Copyright (c) 2026 AmiCradle
 Team, released under the MIT licence (`LICENSE`).
 
 ## From our other repositories

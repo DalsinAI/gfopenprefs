@@ -34,7 +34,7 @@
  * each run sets again the ones it counts on. The stand-alone GFOpenTypes builds
  * as before.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <exec/lists.h>
@@ -70,7 +70,7 @@
 #endif
 
 #ifndef IN_OPENBENCH
-static const char version[] __attribute__((used)) = "$VER: GFOpenTypes 0.2.3 (11.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenTypes 0.2.3 (11.10.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 /* The window runs on 32 KB, however GFOpenTypes is started: on a Shell's 4 KB
  * (Run, a script, the dock's default) the window's calls overran the stack and
  * closing the window rebooted the machine (11 Oct 2026). libnix's start code

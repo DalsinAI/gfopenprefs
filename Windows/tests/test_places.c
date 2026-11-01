@@ -6,7 +6,7 @@
  * with tags, an ExtNewWindow, by inner size (the Shell's CON: window), with
  * no size gadget, and tag lists chained with TAG_MORE and TAG_SKIP.
  *   Windows/tests/run.sh
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <stdio.h>
 #include <string.h>
 #include "../src/places.h"

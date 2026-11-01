@@ -25,7 +25,7 @@
  * Use, Test and Cancel and no tabs inside them, and Workbench's page is already full (its paths, its devices, its
  * buffers); this page replaces the "Labels close" box that was there.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <dos/dos.h>
 #include <dos/var.h>
@@ -52,7 +52,7 @@
 #include "wb_grid.h"                        /* opengadtools' workbench/: the two variables' words */
 #include "deskicons.h"                      /* Common/: ENV:Sys/DesktopIcons's words, shared with GFOpenBench */
 
-static const char version[] __attribute__((used)) = "$VER: IconsPage 0.2 (25.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: IconsPage 0.2 (25.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define LABELS "Sys/IconLabels"
 #define LAYOUT "Sys/IconLayout"

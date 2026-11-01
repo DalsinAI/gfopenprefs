@@ -18,7 +18,7 @@
  * product 12 or 14, at $900 on the board). A program's name is its command's
  * file part, as the Shell runs it ("StackGrow"), case aside.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>
@@ -45,7 +45,7 @@
 #define lt_note_to(f) ((void)0)
 #endif
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenSystem 0.1 (13.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenSystem 0.1 (13.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 static struct Library *opensystem_expansion;
 #define ExpansionBase opensystem_expansion

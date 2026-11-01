@@ -22,7 +22,7 @@
  * spacing, the quality and the shading. A file that isn't one this can keep whole is never written. printer.device
  * reads the files when a program opens it. Unit 0's files only. Nothing here prints: there is no test page.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <dos/dos.h>
 #include <intuition/intuition.h>
@@ -47,7 +47,7 @@
 #include "pf_iff.h"
 #include "pr_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: PrintingPage 0.1 (24.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: PrintingPage 0.1 (24.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define TXT_ENV "ENV:Sys/printer.prefs"
 #define TXT_ENVARC "ENVARC:Sys/printer.prefs"

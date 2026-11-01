@@ -1,7 +1,7 @@
 /* Host tests for src/om_prefs.c: GFOpenMenus' own format, and taking over a
  * MagicMenu settings file written the way MagicMenu writes it.
  * Build and run: Menus/tests/run.sh
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "om_prefs.h"
 
 #include <stdio.h>

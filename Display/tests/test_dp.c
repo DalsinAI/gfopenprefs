@@ -1,6 +1,6 @@
 /* Host tests for the Screen mode section's fields (dp_prefs.c), on pf_iff's list.
  *   Display/tests/run.sh
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "pf_iff.h"
 #include "dp_prefs.h"
 

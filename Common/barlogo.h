@@ -17,7 +17,7 @@
  * that blend"), "m68k/arm64" on the Pi, and "m68k" when the board doesn't say (an older runtime without native
  * jobs).
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef BARLOGO_H
 #define BARLOGO_H
 

@@ -29,7 +29,7 @@
  * renamed; a click on another section returns from that editor with lt_next set, and the next page's gadgets
  * go into the same window (opframe.c).
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <dos/dos.h>
 #include <dos/dosextens.h>
@@ -45,7 +45,7 @@
 #include "looktabs.h"
 #include "openprefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (25.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (25.10.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct Library *UtilityBase;
 

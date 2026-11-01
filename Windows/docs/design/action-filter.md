@@ -108,4 +108,4 @@ The decision helpers are pure and run on the host: `gestures_target()` (what a p
 
 Lab t5-mouse (a copy of Instance-32), with a press-and-drag on a title bar driven as the instance window sends it: `team5-work/w66/tools/seq.py`, 50 runs each. The figures are in the W66 report (`team5-work/reports/W66-mouse-release-20261018.md`).
 
-MIT, Copyright (c) 2026 AmigaChrome Team.
+MIT, Copyright (c) 2026 AmiCradle Team.

@@ -2,7 +2,7 @@
  * The offsets are those of the NDK 3.2 structures, which every file keeps big-endian and unpadded.
  * Plain C: tested on the host by Look/tests/run.sh.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "pf_prefs.h"
 
 #include <stdlib.h>

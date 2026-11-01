@@ -4,7 +4,7 @@
 # editor's own (sp_core.c) on the same files; and Common/deskicons.h's words (ENV:Sys/DesktopIcons, the Icons
 # page's No icons, which GFOpenBench follows); and Common/idlepace.h, GFOpenMenus' and GFOpenSpeaker's tick slowed when idle.
 #   sh Common/tests/run.sh
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 C=$HERE/..

@@ -1,6 +1,6 @@
 /* GFOpenWindows' places: keys, the placing rule, and the tags that open a window
  * at its place (places.h). Pure C: the host tests run it as it is.
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <string.h>
 #include <stdlib.h>
 #include "places.h"

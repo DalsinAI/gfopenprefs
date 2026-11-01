@@ -1,6 +1,6 @@
 #!/bin/sh
 # Host tests for the Screen mode section's fields (Display/src/dp_prefs.c) on Look's PREF reader and writer.
-# MIT, Copyright (c) 2026 AmigaChrome Team.
+# MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${TMPDIR:-/tmp}/dp_test

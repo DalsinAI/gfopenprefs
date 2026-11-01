@@ -14,7 +14,7 @@
  *   seethrough.opacity N   how solid its background is at rest, 10 to 100 percent; 40 by default (no
  *                          switch in the editor: for trying other levels)
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef TB_PREFS_H
 #define TB_PREFS_H
 

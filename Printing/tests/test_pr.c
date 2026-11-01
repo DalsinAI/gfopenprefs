@@ -2,7 +2,7 @@
  *   Printing/tests/run.sh
  * The two samples are the files openamigaup's GFOpenPrinter part writes where there are none (tools/build_pack.py
  * printer_prefs() and printergfx_prefs(), openamigaup main 350d03a, with #161 merged).
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "pf_iff.h"
 #include "pr_prefs.h"
 

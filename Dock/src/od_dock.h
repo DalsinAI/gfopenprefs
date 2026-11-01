@@ -7,7 +7,7 @@
  * GFOpenDock alike. Each reader is written from its file's layout, with no
  * code from the program that wrote it.
  *
- * MIT, Copyright (c) 2026 AmigaChrome Team. */
+ * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef OD_DOCK_H
 #define OD_DOCK_H
 
