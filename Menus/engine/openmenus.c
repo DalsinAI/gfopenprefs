@@ -1367,12 +1367,48 @@ out:
  * entries run a program on the selected files. Nothing of Workbench's is
  * patched (Menus/DESIGN.md, "Right-click on icons and the desktop"). */
 
+/* wbx's reply port, made once and kept (1 Nov 2026): a command Workbench didn't answer within a second used to keep
+ * its own new port and signal bit for its late reply, never freed, so a dozen right-clicks while Workbench sat on a
+ * requester used up the task's signals and the right-click menus stopped. Now every command shares this port; a
+ * late reply is freed when it lands (wbx_reap), and while WBX_MAX_LATE are still out no more are sent. */
+static struct MsgPort *wbx_port;
+static int wbx_late;                                   /* sent, not answered in time, not yet back */
+#define WBX_MAX_LATE 4
+
+/* A reply that came back after wbx gave up on it: freed */
+static void wbx_free_late(struct RexxMsg *rm)
+{
+    if (!rm->rm_Result1 && rm->rm_Result2) DeleteArgstring((UBYTE *)rm->rm_Result2);
+    DeleteArgstring((UBYTE *)rm->rm_Args[0]);
+    DeleteRexxMsg(rm);
+    wbx_late--;
+}
+
+/* The late replies that have landed, freed */
+static void wbx_reap(void)
+{
+    struct Message *m;
+    if (wbx_port)
+        while ((m = GetMsg(wbx_port))) wbx_free_late((struct RexxMsg *)m);
+}
+
+/* At the end: the late replies waited for, briefly; the port goes only when none is still out */
+static void wbx_close(void)
+{
+    int n;
+    if (!wbx_port) return;
+    for (n = 0; n < 50 && wbx_late > 0; n++) { wbx_reap(); if (wbx_late > 0) Delay(2); }
+    if (!wbx_late) DeleteMsgPort(wbx_port);             /* else it stays: a late reply must land somewhere */
+    wbx_port = NULL;
+}
+
 /* One command to Workbench; its result in out. RC_OK is 0. */
 static LONG wbx(char *out, int size, const char *fmt, ...)
 {
     char cmd[400];
-    struct MsgPort *wb, *rp;
+    struct MsgPort *wb;
     struct RexxMsg *rm;
+    struct Message *m;
     LONG rc = 20;
     va_list ap;
     if (out && size) out[0] = 0;
@@ -1380,8 +1416,10 @@ static LONG wbx(char *out, int size, const char *fmt, ...)
     vsnprintf(cmd, sizeof cmd, fmt, ap);
     va_end(ap);
     if (!RexxSysBase && !(RexxSysBase = (struct RxsLib *)OpenLibrary((STRPTR)"rexxsyslib.library", 36))) return 20;
-    if (!(rp = CreateMsgPort())) return 20;
-    if ((rm = CreateRexxMsg(rp, NULL, NULL))) {
+    if (!wbx_port && !(wbx_port = CreateMsgPort())) return 20;
+    wbx_reap();
+    if (wbx_late >= WBX_MAX_LATE) return 20;          /* Workbench still hasn't answered those: it won't this one */
+    if ((rm = CreateRexxMsg(wbx_port, NULL, NULL))) {
         rm->rm_Action = RXCOMM | RXFF_RESULT;
         if ((rm->rm_Args[0] = (STRPTR)CreateArgstring((STRPTR)cmd, strlen(cmd)))) {
             Forbid();
@@ -1390,9 +1428,13 @@ static LONG wbx(char *out, int size, const char *fmt, ...)
             if (wb) {
                 /* Workbench busy with a requester answers nothing until it is
                    closed: give up after a second, so the mouse is never held */
-                int t;
-                for (t = 0; t < 50 && !GetMsg(rp); t++) Delay(1);
-                if (t == 50) return 20;          /* the message and its port stay: a late reply lands there */
+                int t, back = 0;
+                for (t = 0; t < 50 && !back; ) {
+                    if (!(m = GetMsg(wbx_port))) { Delay(1); t++; }
+                    else if (m == (struct Message *)rm) back = 1;
+                    else wbx_free_late((struct RexxMsg *)m);   /* an earlier command's, late */
+                }
+                if (!back) { wbx_late++; return 20; }  /* the message stays out: wbx_reap frees it when it lands */
                 rc = rm->rm_Result1;
                 if (!rc && rm->rm_Result2) {
                     if (out) { strncpy(out, (const char *)rm->rm_Result2, size - 1); out[size - 1] = 0; }
@@ -1403,7 +1445,6 @@ static LONG wbx(char *out, int size, const char *fmt, ...)
         }
         DeleteRexxMsg(rm);
     }
-    DeleteMsgPort(rp);
     return rc;
 }
 
@@ -1885,7 +1926,10 @@ out:
     if (s2 >= 0) FreeSignal(s2);
     if (s1 >= 0) FreeSignal(s1);
     if (theme_loaded) ogt_theme_free(&theme);
-    if (RexxSysBase) CloseLibrary((struct Library *)RexxSysBase);
+    if (RexxSysBase) {
+        wbx_close();
+        CloseLibrary((struct Library *)RexxSysBase);
+    }
     if (AslBase) CloseLibrary(AslBase);
     if (KeymapBase) CloseLibrary(KeymapBase);
     if (CxBase) CloseLibrary(CxBase);
