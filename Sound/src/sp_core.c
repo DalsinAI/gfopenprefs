@@ -33,7 +33,7 @@ void sp_defaults(sp_settings *s)
     s->maxcpu = 90;
 }
 
-/* ---- ENV:OpenAmiga/Sound ------------------------------------------------------------- */
+/* ---- ENV:GFOpenAmiga/Sound ------------------------------------------------------------- */
 
 static const char *word(const char **pp, char *out, int size)
 {
@@ -79,7 +79,7 @@ int sp_parse(sp_settings *s, const char *text)
 int sp_write(const sp_settings *s, char *out, int size)
 {
     int n = snprintf(out, (size_t)size,
-                     "; OpenPrefs Sound, format 1\n"
+                     "; GFOpenPrefs Sound, format 1\n"
                      "volume %d\npaula %d\nahi %d\nmute %s\nmix %s\nspeaker %s\nwheel %d\n",
                      s->volume, s->paula, s->ahi, s->muted ? "on" : "off", s->mix == SP_MIX_AMIGA ? "amiga" : "pc",
                      s->speaker ? "on" : "off", s->wheel);

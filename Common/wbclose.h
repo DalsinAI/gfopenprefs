@@ -5,7 +5,7 @@
  * mode), IPrefs calls CloseWorkBench() and asks "Intuition is attempting to
  * reset the Workbench screen. Please close the following windows: <No
  * title>". Every program of the Team that has a small window on the screen
- * (the bar's icons, the dock, the speaker, OpenMeters) was on that list.
+ * (the bar's icons, the dock, the speaker, GFOpenMeters) was on that list.
  *
  * Measured on OS 3.2.3 (lab t5-wbreset, 16 October 2026, WBResetProbe):
  *   - IPrefs is told of a new ENV:Sys/Font.prefs by DOS notification, and so
@@ -37,7 +37,7 @@
  *     may be waiting for it: its requester went by itself on 3.2.3 once the
  *     window it named closed, and windows open again by then would be named
  *     next.
- * OpenLook's notice still works where OpenLook runs: it patches
+ * GFOpenLook's notice still works where GFOpenLook runs: it patches
  * CloseWorkBench() and OpenWorkBench() and tells the programs registered in
  * the public semaphore "OpenWBNotify" (a list of client records) to close
  * and waits (3 seconds at most) for each; after OpenWorkBench it tells them
@@ -56,7 +56,7 @@
  *
  * wbc_take() is called each time the program wakes; it says WBC_CLOSE only
  * while the windows are open and WBC_OPEN only after a WBC_CLOSE. It also
- * registers the program when OpenLook has started since. A program
+ * registers the program when GFOpenLook has started since. A program
  * includes this once.
  *
  * The record layout must stay the same as opengadtools' look/wbnotify.h.
@@ -134,7 +134,7 @@ static int wbc_hook_on;
 static volatile LONG wbc_hook_said;            /* from the hook: WBC_CLOSE or WBC_OPEN, 0 when taken */
 static struct Task *wbc_task;
 static int wbc_shut;                           /* WBC_CLOSE given, no WBC_OPEN since */
-static int wbc_reset_seen;                     /* since the close: the hook, OpenLook or the screen said a reset runs */
+static int wbc_reset_seen;                     /* since the close: the hook, GFOpenLook or the screen said a reset runs */
 static int wbc_gone;                           /* since the close: no Workbench screen was seen */
 static int wbc_ticks;                          /* timer ticks since the close (or since WBC_OPEN, for the retries) */
 
@@ -318,7 +318,7 @@ static WBC_UNUSED int wbc_open_now(void)
     return WBC_OPEN;
 }
 
-/* what OpenLook, IPrefs' files, Workbench or the timer said since the last call: WBC_CLOSE, WBC_OPEN or 0 */
+/* what GFOpenLook, IPrefs' files, Workbench or the timer said since the last call: WBC_CLOSE, WBC_OPEN or 0 */
 static WBC_UNUSED int wbc_take(void)
 {
     struct Message *m;
@@ -326,7 +326,7 @@ static WBC_UNUSED int wbc_take(void)
     if (wbc_sig < 0) return 0;
     SetSignal(0, 1UL << wbc_sig);
     if (!wbc_client) {
-        if (++wbc_calls % 20 == 0) wbc_register();     /* OpenLook may have started since */
+        if (++wbc_calls % 20 == 0) wbc_register();     /* GFOpenLook may have started since */
     } else {
         ol = wbc_client->want;
         wbc_client->want = 0;
@@ -362,7 +362,7 @@ static WBC_UNUSED int wbc_take(void)
     return 0;
 }
 
-/* the windows and locks are gone: OpenLook can let Workbench go */
+/* the windows and locks are gone: GFOpenLook can let Workbench go */
 static WBC_UNUSED void wbc_closed(void)
 {
     if (wbc_client) wbc_client->ack = 1;

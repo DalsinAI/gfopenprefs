@@ -1,5 +1,5 @@
 #!/bin/sh
-# Host tests for OpenMenus' settings (om_prefs.c), with the host's cc.
+# Host tests for GFOpenMenus' settings (om_prefs.c), with the host's cc.
 # MIT, Copyright (c) 2026 AmigaChrome Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)

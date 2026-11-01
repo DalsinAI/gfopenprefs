@@ -1,4 +1,4 @@
-/* OpenWindows' places: how a window is keyed, where a window with a kept place
+/* GFOpenWindows' places: how a window is keyed, where a window with a kept place
  * goes, and the tags that open it there (Windows 0.9.2, 24 October 2026).
  *
  * Pure (no Amiga calls): Windows/tests/test_places.c runs it on the host,
@@ -46,7 +46,7 @@ void place_key(const char *title, const char *prog, char *key, int size);
  * of whatever else was) */
 int place_candidate(int backdrop_or_gzz, int dragbar, const char *title);
 
-/* 1 for Workbench's own windows: Workbench's, and (0.9.2) OpenBench's, which
+/* 1 for Workbench's own windows: Workbench's, and (0.9.2) GFOpenBench's, which
  * marks its drawers WFLG_WBENCHWINDOW only up to two seconds after they open */
 int place_workbench(const char *prog, int wbench_flag);
 
@@ -76,7 +76,7 @@ int place_tags_count(const struct TagItem *list);
  * without the tags the plan gives (WA_Left, WA_Top; and WA_Width, WA_Height,
  * WA_InnerWidth, WA_InnerHeight when the size is ours); then TAG_DONE. So the
  * plan's are the only placing tags, whether Intuition reads a tag's first or
- * its last (OpenIntuition reads the last: 0.9.1 put the plan's in front of the
+ * its last (GFOpenIntuition reads the last: 0.9.1 put the plan's in front of the
  * program's own, and on the open ROM the program's won). Without front, the
  * copy alone (an ExtNewWindow's
  * Extension). Answers the items written, -1 when max is too small. */

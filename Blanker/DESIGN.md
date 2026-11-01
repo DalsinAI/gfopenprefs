@@ -1,16 +1,16 @@
-# OpenBlanker
+# GFOpenBlanker
 
-The Open family's screen blanker. When nobody has touched the keyboard or the
+The GFOpen family's screen blanker. When nobody has touched the keyboard or the
 mouse for a while, it opens a screen of its own and plays a show; a key or
 the mouse ends it. AmigaOS 3.2's own Blanker takes no plug-in shows, so the
-Open family has one of its own.
+GFOpen family has one of its own.
 
-![OpenBlanker playing Gods and Angels on AmigaOS 3.2.3](docs/screenshot.png)
+![GFOpenBlanker playing Gods and Angels on AmigaOS 3.2.3](docs/screenshot.png)
 
 ## The show: Gods and Angels
 
-AmigaChrome's homage to the people who made the Amiga and kept it alive, and
-to the projects the Open family is built on (the roll call in the Team's
+AmiCradle's homage to the people who made the Amiga and kept it alive, and
+to the projects the GFOpen family is built on (the roll call in the Team's
 marketing material). Each card fades in, holds and fades out, by the palette,
 as Amiga demos always have: the card is drawn with its pens at the background
 colour, then `SetRGB32` brings them up, frame by frame on the vertical blank.
@@ -19,15 +19,15 @@ colour, then `SetRGB32` brings them up, frame by frame on the vertical blank.
 
 - **A commodity**: `CxCustom` sees every key and mouse event and resets the
   idle count; a timer counts the seconds. Exchange can disable, enable or quit
-  it. Started a second time, the running one is left alone (1.1); `OpenBlanker NOW` asks it by a signal to play the show at once. (1.0 played the show at once on any second start, and a User-Startup that lists OpenBlanker twice, as Instance-32's did after an OpenUp upgrade, blanked the screen at boot.)
+  it. Started a second time, the running one is left alone (1.1); `GFOpenBlanker NOW` asks it by a signal to play the show at once. (1.0 played the show at once on any second start, and a User-Startup that lists GFOpenBlanker twice, as Instance-32's did after a GFOpenUp upgrade, blanked the screen at boot.)
 - **Programs that hold it off (1.2):** a game, a film or a demo signals
-  CTRL_E to the task of the public port `OpenBlanker` (under `Forbid`, after
+  CTRL_E to the task of the public port `GFOpenBlanker` (under `Forbid`, after
   `FindPort`) every few seconds while it runs, and each signal counts as a key
   or the mouse. SDL2.module and SDL3.module do it while SDL holds the screen
   saver off, which SDL does by default while a program runs
   (`SDL_DisableScreenSaver`; `SDL_HINT_VIDEO_ALLOW_SCREENSAVER` lets a program
   allow the show). A CTRL_E during the show doesn't end it: only a key or the
-  mouse does. OpenBlanker 1.1 and older ignore the signal.
+  mouse does. GFOpenBlanker 1.1 and older ignore the signal.
 - **Its own screen**, the Workbench's size, in a 256-colour mode
   (`BestModeID`, depth 8): AGA, or a CLUT mode on an RTG card, so the palette
   can fade the picture. A borderless window covers it: the pointer is hidden,
@@ -46,19 +46,19 @@ colour, then `SetRGB32` brings them up, frame by frame on the vertical blank.
 
 | Where | What | Default |
 | --- | --- | --- |
-| `ENV:OpenPrefs/Blanker` | seconds without a key or the mouse before the show | 300 |
-| `OpenBlanker TIMEOUT=n` | the same, from the Shell | |
-| `OpenBlanker NOW` | play the show at once, then go on watching | |
+| `ENV:GFOpenPrefs/Blanker` | seconds without a key or the mouse before the show | 300 |
+| `GFOpenBlanker TIMEOUT=n` | the same, from the Shell | |
+| `GFOpenBlanker NOW` | play the show at once, then go on watching | |
 
-Ctrl-F to the task reads `ENV:OpenPrefs/Blanker` again.
+Ctrl-F to the task reads `ENV:GFOpenPrefs/Blanker` again.
 
 ## Install
 
-OpenUp installs it as standard: `SYS:Tools/Commodities/OpenBlanker`, started
-from `SYS:WBStartup`, with `ENVARC:OpenPrefs/Blanker` set to 300.
+GFOpenUp installs it as standard: `SYS:Tools/Commodities/GFOpenBlanker`, started
+from `SYS:WBStartup`, with `ENVARC:GFOpenPrefs/Blanker` set to 300.
 
 ## Tested
 
-AmigaOS 3.2.3 on AmigaChrome (AC090, ACRTG, an 800x600 Workbench), 7 October
+AmigaOS 3.2.3 on AmiCradle (AC090, ACRTG, an 800x600 Workbench), 7 October
 2026: the show opens on an 8-bit RTG screen, every card fades in and out, the
 pointer is hidden, and a key or the mouse ends it.

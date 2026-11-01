@@ -27,9 +27,9 @@ int main(void)
     int i;
     char big[2048];
 
-    /* ---- ENV:OpenAmiga/Sound ---- */
+    /* ---- ENV:GFOpenAmiga/Sound ---- */
     check("Sound: the editor's own file",
-          snd("; OpenPrefs Sound, format 1\nvolume 80\npaula 50\nahi 70\nmute off\nmix pc\nspeaker on\nwheel 5\n")
+          snd("; GFOpenPrefs Sound, format 1\nvolume 80\npaula 50\nahi 70\nmute off\nmix pc\nspeaker on\nwheel 5\n")
           == lv(80, 50, 70, 0));
     check("Sound: no file: 100, 100, 100, unmuted", pbc_sound_levels(0, 0) == lv(100, 100, 100, 0));
     check("Sound: an empty file", snd("") == lv(100, 100, 100, 0));
@@ -47,9 +47,9 @@ int main(void)
     check("Sound: no newline at the end", snd("ahi 5") == lv(100, 100, 5, 0));
     check("Sound: only the length given is read", pbc_sound_levels("volume 77\nvolume 11\n", 10) == lv(77, 100, 100, 0));
 
-    /* ---- ENV:OpenAmiga/Stack ---- */
-    stk(&s, "CAP 2048\nPROGRAM OpenMonitor 256\nPROGRAM Doom 4096\n");
-    check("Stack: the editor's own file", s.cap_kb == 2048 && s.nprogs == 2 && !strcmp(s.prog[0].name, "OpenMonitor")
+    /* ---- ENV:GFOpenAmiga/Stack ---- */
+    stk(&s, "CAP 2048\nPROGRAM GFOpenMonitor 256\nPROGRAM Doom 4096\n");
+    check("Stack: the editor's own file", s.cap_kb == 2048 && s.nprogs == 2 && !strcmp(s.prog[0].name, "GFOpenMonitor")
           && s.prog[0].kb == 256 && !strcmp(s.prog[1].name, "Doom") && s.prog[1].kb == 4096);
     pbc_stack_parse(&s, 0, 0);
     check("Stack: no file: CAP 1024, no programs", s.cap_kb == 1024 && s.nprogs == 0);

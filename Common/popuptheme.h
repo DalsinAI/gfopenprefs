@@ -1,10 +1,10 @@
-/* popuptheme.h: the Open look for the Team's pop-up panels (OpenSpeaker's
- * levels, OpenTitle's network panel and its list of settings): the theme's
+/* popuptheme.h: the Open look for the Team's pop-up panels (GFOpenSpeaker's
+ * levels, GFOpenTitle's network panel and its list of settings): the theme's
  * menu colour for the panel, its menu text colour, a slim frame in the
- * theme's frame colour, as OpenMenus' menus are drawn, instead of the OS's
+ * theme's frame colour, as GFOpenMenus' menus are drawn, instead of the OS's
  * grey with a bevel.
  *
- * pt_load() reads ENV:OpenGadTools/Look ("<theme> light|dark|auto") and the
+ * pt_load() reads ENV:GFOpenGadTools/Look ("<theme> light|dark|auto") and the
  * theme file, once the program has a Workbench screen; pt_panel() fills a
  * window's inside and frames it; pt_text_pen() gives the pen for text.
  * With no theme (or the Classic one) pt_ok is 0 and the caller draws as it
@@ -71,7 +71,7 @@ static PT_UNUSED LONG pt_pen(struct Screen *scr, ogt_rgb c)
 /* 1 when a theme (not Classic) gives the colours */
 static PT_UNUSED int pt_load(struct Screen *scr)
 {
-    char *look = pt_read("ENV:OpenGadTools/Look"), name[64] = "Classic", mode[8] = "light", path[120], err[64], *text;
+    char *look = pt_read("ENV:GFOpenGadTools/Look"), name[64] = "Classic", mode[8] = "light", path[120], err[64], *text;
     int dark = 0;
     pt_free();
     pt_scr = scr;
@@ -122,7 +122,7 @@ static PT_UNUSED void pt_panel(struct RastPort *rp, WORD w, WORD h)
     }
 }
 
-/* another of the theme's colours in its mode (OpenSpeaker: "screenbar"); 0 when there is no theme or no such key */
+/* another of the theme's colours in its mode (GFOpenSpeaker: "screenbar"); 0 when there is no theme or no such key */
 static PT_UNUSED int pt_colour(const char *key, ogt_rgb *out) { return pt_ok && ogt_theme_colour(&pt_theme, pt_mode, key, out); }
 
 /* the pens: panel text, frame, text on the accent, the accent; or -1 */

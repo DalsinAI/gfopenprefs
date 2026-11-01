@@ -1,11 +1,11 @@
-/* OpenLook's Appearance tabs (OpenLook 1.1, 12 October 2026; P1 of the combined preferences design,
+/* GFOpenLook's Appearance tabs (GFOpenLook 1.1, 12 October 2026; P1 of the combined preferences design,
  * docs/combined-prefs/DESIGN.md): Pointer, Fonts, Colours, Backdrops, Workbench and File requesters.
  *
  * Each tab edits the OS's own file, ENV:Sys/pointer.prefs, font.prefs, palette.prefs, wbpattern.prefs,
  * workbench.prefs or asl.prefs, read and written with iffparse.library (pf_amiga.c) as a list of chunks
  * (pf_iff.c) whose fields pf_prefs.c knows, so every chunk and byte no tab knows is carried across. The six
  * share one frame: the tabs (Common/looktabs.h), the page, a status line, Save, Use, Test and Cancel, and the
- * Project and View menus, as the other pages of OpenLook have them.
+ * Project and View menus, as the other pages of GFOpenLook have them.
  *
  *  - Save writes ENV: and ENVARC:, Use writes ENV:, Test writes ENV: and puts it back after 15 seconds unless
  *    Use or Save follows; Cancel or the close gadget puts back what a Test changed. A click on another tab
@@ -14,14 +14,14 @@
  *  - Intuition and Workbench pick the files up through IPrefs, as when the OS's editors save them; nothing
  *    here hooks Workbench. The OS's editors stay in SYS:Prefs/Classic.
  *  - Simple shows each tab's few main settings; View > Advanced (Amiga-A) every one, shared with every
- *    OpenPrefs editor through ENV:OpenAmiga/PrefsView.
+ *    GFOpenPrefs editor through ENV:GFOpenAmiga/PrefsView.
  *
- * OpenLook 1.2 (12 October 2026): the Pointer tab's Advanced view draws a pointer, in fat bits, with its three
+ * GFOpenLook 1.2 (12 October 2026): the Pointer tab's Advanced view draws a pointer, in fat bits, with its three
  * colours (shared by every pointer of the file, as the OS's Pointer editor has them) and its hot spot; the
  * Workbench tab shows the icon frame ("Icon borders", the OS editor's Border Size) and the hidden devices; and
  * every page fits a 640 x 256 screen in Topaz 8 (on a screen under 400 lines Advanced packs its rows closer).
  *
- * Built into OpenLook only (LT_ONE, Look/build-one.sh): the page runs in OpenLook's one window.
+ * Built into GFOpenLook only (LT_ONE, Look/build-one.sh): the page runs in GFOpenLook's one window.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include <exec/types.h>
@@ -53,14 +53,14 @@ static struct Library *AslBase;            /* opened while a tab is open */
 #include "../../Common/looktabs.h"
 
 #ifndef LT_ONE
-#error "appearance.c is built into OpenLook only (Look/build-one.sh)"
+#error "appearance.c is built into GFOpenLook only (Look/build-one.sh)"
 #endif
 
 int appearance_main(int tab);              /* LT_POINTER to LT_ASL: that tab; a RETURN_ code */
 
 #define TEST_SECONDS 15
-#define VIEW_ENV "ENV:OpenAmiga/PrefsView"           /* shared by every OpenPrefs editor: simple or advanced */
-#define VIEW_ENVARC "ENVARC:OpenAmiga/PrefsView"
+#define VIEW_ENV "ENV:GFOpenAmiga/PrefsView"           /* shared by every GFOpenPrefs editor: simple or advanced */
+#define VIEW_ENVARC "ENVARC:GFOpenAmiga/PrefsView"
 #define POINTER_SETS "SYS:Prefs/Presets/Pointers"
 #define BACKDROPS "SYS:Prefs/Presets/Backdrops"
 
@@ -69,17 +69,17 @@ enum { AP_POINTER, AP_FONTS, AP_COLOURS, AP_BACKDROPS, AP_WORKBENCH, AP_ASL, AP_
 static const struct ap_page {
     const char *env, *envarc, *title, *hint;
 } pages[AP_N] = {
-    { "ENV:Sys/pointer.prefs", "ENVARC:Sys/pointer.prefs", "OpenLook: Pointer",
+    { "ENV:Sys/pointer.prefs", "ENVARC:Sys/pointer.prefs", "GFOpenLook: Pointer",
       "Choose a pointer set. Test shows it for 15 seconds." },
-    { "ENV:Sys/font.prefs", "ENVARC:Sys/font.prefs", "OpenLook: Fonts",
+    { "ENV:Sys/font.prefs", "ENVARC:Sys/font.prefs", "GFOpenLook: Fonts",
       "New fonts are used when the Workbench screen opens again." },
-    { "ENV:Sys/palette.prefs", "ENVARC:Sys/palette.prefs", "OpenLook: Colours",
+    { "ENV:Sys/palette.prefs", "ENVARC:Sys/palette.prefs", "GFOpenLook: Colours",
       "Choose a colour, then its red, green and blue." },
-    { "ENV:Sys/wbpattern.prefs", "ENVARC:Sys/wbpattern.prefs", "OpenLook: Backdrops",
+    { "ENV:Sys/wbpattern.prefs", "ENVARC:Sys/wbpattern.prefs", "GFOpenLook: Backdrops",
       "A picture for the Workbench, its drawers or its screen." },
-    { "ENV:Sys/workbench.prefs", "ENVARC:Sys/workbench.prefs", "OpenLook: Workbench",
+    { "ENV:Sys/workbench.prefs", "ENVARC:Sys/workbench.prefs", "GFOpenLook: Workbench",
       "How Workbench shows icons, drawers and its title bar." },
-    { "ENV:Sys/asl.prefs", "ENVARC:Sys/asl.prefs", "OpenLook: File requesters",
+    { "ENV:Sys/asl.prefs", "ENVARC:Sys/asl.prefs", "GFOpenLook: File requesters",
       "How file requesters sort, and where they open." },
 };
 
@@ -335,7 +335,7 @@ static int type_of[48];                    /* the pointer type each row of the t
 static int sel_set = -1, sel_type;         /* the set chosen in the list; the type shown in Advanced */
 static pf_file setfile;                    /* that set, read */
 static int ppx, ppy, ppw, pph;             /* the preview's box (Simple) */
-/* Drawing (Advanced, OpenLook 1.2): the pointer shown in fat bits, gs pixels a pixel, at gx, gy inside its box;
+/* Drawing (Advanced, GFOpenLook 1.2): the pointer shown in fat bits, gs pixels a pixel, at gx, gy inside its box;
  * the four colours to draw with (0 clear) at swx, swy, sws each; the colour drawn with; a click places the hot
  * spot instead; the colour being painted while the button is held, or -1. */
 static int gx, gy, gs, gbw, gbh, swx, swy, sws;
@@ -1015,12 +1015,12 @@ static int dev_hidden[48], ndevs;
 
 /* Labels close to the image (the user's solid OS list, 24 October 2026): icon.library's own setting, not
  * Workbench's, so every program that draws icons through icon.library follows it: ENV:Sys/IconLabels, "close" or
- * "below" (OpenIcon's README, "labels close to the image"). It goes with this tab's Use, Save, Test and Cancel as
+ * "below" (GFOpenIcon's README, "labels close to the image"). It goes with this tab's Use, Save, Test and Cancel as
  * workbench.prefs does: Use writes ENV:, Save ENV: and ENVARC:, Test ENV: until it goes back. */
 #define LABELS_ENV "ENV:Sys/IconLabels"
 #define LABELS_ENVARC "ENVARC:Sys/IconLabels"
-/* In OpenPrefs (LT_OP) the labels' place, their gap and the icons' layout are the Icons page's (Icons/src/icons.c,
- * 24 October 2026): this page shows no box for them and never writes the variable, which would lose its gap. OpenLook
+/* In GFOpenPrefs (LT_OP) the labels' place, their gap and the icons' layout are the Icons page's (Icons/src/icons.c,
+ * 24 October 2026): this page shows no box for them and never writes the variable, which would lose its gap. GFOpenLook
  * built alone keeps the box. With no variable the labels are close (icon.library's default since then). */
 #ifdef LT_OP
 #define WB_LABELS 0
@@ -1235,7 +1235,7 @@ static void workbench_handle(int id, UWORD code, struct Gadget *gg)
     case G_WTITLE:
         strncpy(wbtitle, (const char *)((struct StringInfo *)gg->SpecialInfo)->Buffer, sizeof wbtitle - 1);
         if (!pf_wbtf_put(&cur, wbtitle)) status("No memory for that.");
-        else status(wbtitle[0] ? "The screen's title (OpenBench sets its own when it starts)." : "No title of its own: the OS's.");
+        else status(wbtitle[0] ? "The screen's title (GFOpenBench sets its own when it starts)." : "No title of its own: the OS's.");
         return;
     default: return;
     }
@@ -1497,7 +1497,7 @@ static int gui_once(void)
     ng.ng_TextAttr = scr->Font;
     ng.ng_VisualInfo = vi;
     last = lt_make(last, &ng, L, top, W - 20, lh, LT_POINTER + ap);
-    row = top + lt_space(scr->Font, W - 20, lh) + 12;    /* below the tabs, one row or two (OpenPrefs: its sections) */
+    row = top + lt_space(scr->Font, W - 20, lh) + 12;    /* below the tabs, one row or two (GFOpenPrefs: its sections) */
     row = page_make(row) + 6;
     /* the status line and the buttons at the window's foot, when another page made it taller */
     inner = scr->WBorTop + fh + 1;
@@ -1553,7 +1553,7 @@ static int gui_once(void)
             ULONG cls = m->Class;
             UWORD code = m->Code;
             struct Gadget *gg = (struct Gadget *)m->IAddress;
-            WORD mx = m->MouseX - LT_DX, my = m->MouseY;   /* the page's own place (OpenPrefs: right of the list) */
+            WORD mx = m->MouseX - LT_DX, my = m->MouseY;   /* the page's own place (GFOpenPrefs: right of the list) */
             int id;
             GT_ReplyIMsg(m);
             /* drawing the pointer (Advanced): the button down on the grid or a colour, moves while it is held */
@@ -1595,7 +1595,7 @@ static int gui_once(void)
                 else if (id == G_TEST) test();
                 else if (id == G_CANCEL) { if (test_until) put_back(); quit = 1; }
                 else if (LT_IS(id)) {
-                    if (lt_hit(gg, code) >= 0) {     /* another tab: keep, as Use, and hand over (OpenPrefs: when changed) */
+                    if (lt_hit(gg, code) >= 0) {     /* another tab: keep, as Use, and hand over (GFOpenPrefs: when changed) */
                         if (!damaged && LT_DIRTY) keep(0);
                         kept = 1;
                         lt_go(win, lt_hit(gg, code));

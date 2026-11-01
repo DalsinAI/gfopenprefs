@@ -1,4 +1,4 @@
-/* Host tests for src/om_kbd.c: OpenMenus' keyboard control on a strip
+/* Host tests for src/om_kbd.c: GFOpenMenus' keyboard control on a strip
  * shaped like Workbench's (titles, separators, a disabled item, a submenu,
  * check marks and command keys).
  * Build and run: Menus/tests/run.sh

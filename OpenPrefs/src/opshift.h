@@ -1,17 +1,17 @@
-/* opshift.h: what each page of OpenPrefs is compiled with (gcc -include, before its own source), so that the
+/* opshift.h: what each page of GFOpenPrefs is compiled with (gcc -include, before its own source), so that the
  * editor it was runs as a page of the one window without changing its layout code:
  *
  *   - its gadgets and its drawing in the window stand lt_dx to the right, beside the list of sections:
  *     CreateGadget(A) while no page is in the window (the page's own gadgets, made before lt_open), and Move,
  *     Draw, RectFill, EraseRect, WritePixel, DrawEllipse, DrawBevelBox, PrintIText and DrawImage into the
  *     window's RastPort while a page is in it (a window of the page's own is left as it is);
- *   - ReadArgs reads lt_args when OpenPrefs gives a page its arguments (OpenPrefs SOUND USE, APPLY);
- *   - LockPubScreen(NULL) is the screen OpenPrefs was asked for (PUBSCREEN), else the default;
+ *   - ReadArgs reads lt_args when GFOpenPrefs gives a page its arguments (GFOpenPrefs SOUND USE, APPLY);
+ *   - LockPubScreen(NULL) is the screen GFOpenPrefs was asked for (PUBSCREEN), else the default;
  *   - Open, CreateDir and PutDiskObject on ENV: and ENVARC: make the folders a save needs first (Dale,
  *     17 October 2026, 09:42; opframe.c lt_ready);
  *   - GT_GetIMsg tells the frame when the page's own gadgets or keys were used (lt_dirty);
- *   - Wait and WaitPort wake on Ctrl-C too (OpenBench's Quit, Break): the frame puts a close-window message on
- *     the window's port (opframe.c lt_wait), so the page ends as its close gadget ends it and OpenPrefs quits.
+ *   - Wait and WaitPort wake on Ctrl-C too (GFOpenBench's Quit, Break): the frame puts a close-window message on
+ *     the window's port (opframe.c lt_wait), so the page ends as its close gadget ends it and GFOpenPrefs quits.
  *
  * The protos are included here first, so each page's own #include of them is empty, and the calls are
  * redefined on the NDK's inline __X_base forms.
@@ -154,7 +154,7 @@ static inline __attribute__((unused)) struct IntuiMessage *lt_getimsg(struct Msg
 #undef GT_GetIMsg
 #define GT_GetIMsg(p) lt_getimsg(p)
 
-/* ---- Ctrl-C ends OpenPrefs: the page's waits take it ---- */
+/* ---- Ctrl-C ends GFOpenPrefs: the page's waits take it ---- */
 ULONG lt_wait(ULONG sigs);
 struct Message *lt_waitport(struct MsgPort *port);
 #undef Wait

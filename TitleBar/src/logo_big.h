@@ -1,4 +1,4 @@
-/* AmigaChrome's logo, 64 x 44, 0xAARRGGBB (alpha in the top byte), for a bar 46 pixels high or less: drawn
+/* AmiCradle's logo, 64 x 44, 0xAARRGGBB (alpha in the top byte), for a bar 46 pixels high or less: drawn
  * at the bar's height less 2, each pixel the average of the ones it covers (tools/mklogo.py --big). */
 #define LOGO_BIG_W 64
 #define LOGO_BIG_H 44

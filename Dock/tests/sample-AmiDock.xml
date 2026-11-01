@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE pobjects PUBLIC "-//Amiga Inc.//DTD POBJECTS 1.0//EN" "http://www.amiga.com/DTDs/PrefsObjects-1.0.dtd">
-<!-- written for OpenDock's tests in the layout AmiDock (AmigaOS 4) saves -->
+<!-- written for GFOpenDock's tests in the layout AmiDock (AmigaOS 4) saves -->
 <pobjects version="1.0">
 <dict>
 	<key>AutosaveConfig</key>

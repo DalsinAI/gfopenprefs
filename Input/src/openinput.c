@@ -1,30 +1,30 @@
-/* OpenInput: the mouse, the keyboard and the keymap in one OpenPrefs editor,
- * with the gamepads under it. It takes over the OS's Input editor (OpenUp's
+/* GFOpenInput: the mouse, the keyboard and the keymap in one GFOpenPrefs editor,
+ * with the gamepads under it. It takes over the OS's Input editor (GFOpenUp's
  * RECONCILE puts that in SYS:Prefs/Classic).
  *
- *   OpenInput [FROM file] [USE] [SAVE]
+ *   GFOpenInput [FROM file] [USE] [SAVE]
  *
  *   - the mouse: its speed, acceleration, the buttons swapped, the double-click
  *     time. Acceleration is the Team's input.device's (amigachrome
  *     docs/design/Design-Open-Input-Library.md, section 4): it is kept in the
  *     Team's OIAC chunk, beside ICTL, and works on relative mice only (a real
- *     port, the PiStorm, Poseidon, the appliance), never on AmigaChrome's
+ *     port, the PiStorm, Poseidon, the appliance), never on AmiCradle's
  *     absolute pointer. The OS's own switch (ICTL's ip_MouseAccel) is saved
  *     off, so Intuition does not accelerate a second time
  *   - the keyboard: the key repeat delay and rate, in milliseconds
  *   - the keymap, from DEVS:Keymaps
- *   - Gamepads... opens the Gamepads editor (SYS:Prefs/OpenGamepads), so pads live
+ *   - Gamepads... opens the Gamepads editor (SYS:Prefs/GFOpenGamepads), so pads live
  *     under Input (the user, 10 October 2026)
  *
  * Save writes ENV:Sys/input.prefs and ENVARC:; Use writes ENV: only (IPrefs
  * reads it at once); Cancel changes nothing. Everything else in the file is
  * kept as it was.
  *
- * Built into OpenBench (the Team, 11 October 2026: the Open preferences in OpenBench natively) with
- * -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: OpenBench starts it as a process of its
+ * Built into GFOpenBench (the Team, 11 October 2026: the Open preferences in GFOpenBench natively) with
+ * -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: GFOpenBench starts it as a process of its
  * own with no arguments, as Workbench starts a tool, so it is the window; Ctrl-C is Cancel, Ctrl-F
  * brings the window to the front; utility.library is opened under this editor's own name; Gamepads...
- * asks OpenBench to open SYS:Prefs/OpenGamepads (Common/obmsg.h), its built-in too.
+ * asks GFOpenBench to open SYS:Prefs/GFOpenGamepads (Common/obmsg.h), its built-in too.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include <exec/types.h>
@@ -46,7 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -59,10 +59,10 @@
 #include "obmsg.h"
 #endif
 
-static const char version[] __attribute__((used)) = "$VER: OpenInput 0.1.3 (13.10.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenInput 0.1.3 (13.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 
 #ifdef IN_OPENBENCH
-/* inside OpenBench, a global UtilityBase could be another built-in's: every UtilityBase below, and in
+/* inside GFOpenBench, a global UtilityBase could be another built-in's: every UtilityBase below, and in
  * utility.library's calls, is this editor's own */
 static struct Library *openinput_utility;
 #define UtilityBase openinput_utility
@@ -72,7 +72,7 @@ struct Library *UtilityBase;
 
 #define INPUT_ENV "ENV:Sys/input.prefs"
 #define INPUT_ENVARC "ENVARC:Sys/input.prefs"
-#define GAMEPADS "SYS:Prefs/OpenGamepads"      /* 0.1.1: no icon of its own; this editor's Gamepads... opens it */
+#define GAMEPADS "SYS:Prefs/GFOpenGamepads"      /* 0.1.1: no icon of its own; this editor's Gamepads... opens it */
 #define MAX_NAMES 64
 
 /* ---- input.prefs ------------------------------------------------------------- */
@@ -334,15 +334,15 @@ static int put_in_place(int save)
 static __attribute__((unused)) void gamepads(void)
 {
 #ifdef IN_OPENBENCH
-    /* inside OpenBench: OpenBench opens it, as its built-in (or to the front when it runs already) */
-    if (ob_open(GAMEPADS) != 1) status("Couldn't start SYS:Prefs/OpenGamepads.");
+    /* inside GFOpenBench: GFOpenBench opens it, as its built-in (or to the front when it runs already) */
+    if (ob_open(GAMEPADS) != 1) status("Couldn't start SYS:Prefs/GFOpenGamepads.");
 #else
     BPTR in = Open((STRPTR)"NIL:", MODE_OLDFILE), out = Open((STRPTR)"NIL:", MODE_NEWFILE);
     if (!in || !out || SystemTags((STRPTR)"\"" GAMEPADS "\"", SYS_Input, in, SYS_Output, out, SYS_Asynch, TRUE,
                                   SYS_UserShell, TRUE, NP_StackSize, 16384, TAG_DONE) == -1) {
         if (in) Close(in);
         if (out) Close(out);
-        status("Couldn't start SYS:Prefs/OpenGamepads.");
+        status("Couldn't start SYS:Prefs/GFOpenGamepads.");
     }
 #endif
 }
@@ -357,7 +357,7 @@ static struct NewMenu menus[] = {
     { NM_END, 0, 0, 0, 0, 0 }
 };
 
-/* Gamepads...: in OpenPrefs its section, the page's changes kept as Use when it has any; alone, the editor */
+/* Gamepads...: in GFOpenPrefs its section, the page's changes kept as Use when it has any; alone, the editor */
 #ifdef LT_ONE
 #define GAMEPADS_GO() do { if (LT_DIRTY) put_in_place(0); lt_go(win, LT_GAMEPADS); quit = 1; } while (0)
 #else
@@ -403,7 +403,7 @@ static int gui(void)
     (ng.ng_LeftEdge = (x), ng.ng_TopEdge = (y), ng.ng_Width = (w), ng.ng_Height = (h), ng.ng_GadgetText = (STRPTR)(text), \
      ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
 #ifdef LT_ONE
-    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_INPUT);     /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_INPUT);     /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 24, lh);
 #endif
     row = top + fh + 4;
@@ -435,9 +435,9 @@ static int gui(void)
     }
     if (!g) { rc = RETURN_FAIL; goto out; }
 #ifdef LT_ONE
-    win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | IDCMP_VANILLAKEY | BUTTONIDCMP | INTEGERIDCMP | CYCLEIDCMP | CHECKBOXIDCMP | LISTVIEWIDCMP | TEXTIDCMP, "OpenInput 0.1");
+    win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | IDCMP_VANILLAKEY | BUTTONIDCMP | INTEGERIDCMP | CYCLEIDCMP | CHECKBOXIDCMP | LISTVIEWIDCMP | TEXTIDCMP, "GFOpenInput 0.1");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Input", WA_ScreenTitle, (ULONG)"OpenInput 0.1", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Input", WA_ScreenTitle, (ULONG)"GFOpenInput 0.1", WA_PubScreen, (ULONG)scr,
                          WA_Left, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, WA_Top, scr->BarHeight + 20,
                          WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
@@ -454,7 +454,7 @@ static int gui(void)
     while (!quit) {
         struct IntuiMessage *m;
 #ifdef IN_OPENBENCH
-        /* inside OpenBench: Ctrl-C (OpenBench is quitting) is Cancel; Ctrl-F (opened again) to the front */
+        /* inside GFOpenBench: Ctrl-C (GFOpenBench is quitting) is Cancel; Ctrl-F (opened again) to the front */
         ULONG got = Wait(1UL << win->UserPort->mp_SigBit | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_C) { quit = 1; continue; }
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -523,7 +523,7 @@ int main(int argc, char **argv)
     int rc;
     (void)argv;
     (void)version;
-    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"OpenInput"); return RETURN_FAIL; }
+    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"GFOpenInput"); return RETURN_FAIL; }
     if (!(UtilityBase = OpenLibrary((STRPTR)"utility.library", 39))) { if (rd) FreeArgs(rd); return RETURN_FAIL; }
     load_input(args[0] ? (const char *)args[0] : INPUT_ENV);
     if (args[1] || args[2]) {
@@ -532,7 +532,7 @@ int main(int argc, char **argv)
     if (rd) FreeArgs(rd);
     if (file_data) FreeVec(file_data);
 #if defined(IN_OPENBENCH) || defined(LT_ONE)
-    file_data = NULL;                            /* OpenBench's data stays: the next start must not free it again */
+    file_data = NULL;                            /* GFOpenBench's data stays: the next start must not free it again */
     file_len = 0;
 #endif
     CloseLibrary(UtilityBase);

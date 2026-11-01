@@ -1,6 +1,6 @@
-# OpenPrefs Menus
+# GFOpenPrefs Menus
 
-The editor for OpenMenus, the Open family's own menus (MIT). OpenMenus draws;
+The editor for GFOpenMenus, the GFOpen family's own menus (MIT). GFOpenMenus draws;
 Menus sets what it draws. MIT, Copyright (c) 2026 AmigaChrome Team.
 
 ## 0.1 (6 October 2026)
@@ -8,13 +8,13 @@ Menus sets what it draws. MIT, Copyright (c) 2026 AmigaChrome Team.
 A GadTools prefs editor like the OS's own: **Save** writes `ENV:` and
 `ENVARC:`, **Use** writes `ENV:` (it lasts until the next reboot), **Test**
 writes `ENV:` and puts it back after 15 seconds unless Use or Save follows,
-and **Cancel** puts back what a Test changed. Each one tells OpenMenus
-(Ctrl-F to the task of the `OpenMenus` port), and OpenMenus reads the file
+and **Cancel** puts back what a Test changed. Each one tells GFOpenMenus
+(Ctrl-F to the task of the `GFOpenMenus` port), and GFOpenMenus reads the file
 again.
 
-| Setting | Line in `ENV:OpenMenus/Menus` |
+| Setting | Line in `ENV:GFOpenMenus/Menus` |
 | --- | --- |
-| OpenMenus on, or the OS's own menus pixel for pixel | `enabled on\|off` |
+| GFOpenMenus on, or the OS's own menus pixel for pixel | `enabled on\|off` |
 | Menus open from the screen bar, at the pointer, or by where the pointer is ("Bar or pointer") | `open pulldown\|popup\|pointer` |
 | Hold and release, sticky (open on move), sticky (open on click), for each kind | `pulldown hold\|sticky\|click`, `popup ...` |
 | A delay before a menu opens, 0 to 10 tenths of a second, for each kind | `delay.pulldown 0-10`, `delay.popup 0-10` |
@@ -23,19 +23,19 @@ again.
 | Single or double border; lite or bold separator lines | `border single\|double`, `separators lite\|bold` |
 | Shadow, with its size (1-10) and strength (1-100 %) | `shadow`, `shadow.size`, `shadow.strength` |
 | Background: solid, see-through, image, see-through image | `background ...`, `background.image "path"` |
-| Colours from the theme (OpenLook), the screen's own pens, or the user's | `colours theme\|screen\|own`, `colour.<part> #rrggbb` |
+| Colours from the theme (GFOpenLook), the screen's own pens, or the user's | `colours theme\|screen\|own`, `colour.<part> #rrggbb` |
 | Keyboard control, its key (a commodities key description), R.Amiga+R.Alt, pointer to the bar | `keyboard`, `keyboard.key "ramiga space"`, `keyboard.ralt`, `keyboard.top` |
 | Programs keep running while a menu is open | `programs.keep-running on\|off` |
 | Which MagicMenu file was taken over, so the take-over happens once | `imported "ENVARC:MagicMenu.prefs"` |
 
 The colour parts are `background`, `text`, `selected`, `selected.text`,
 `light`, `dark` and `shadow`. With `colours theme` the menus use the
-OpenLook theme's `menu`, `menu.text`, `accent`, `accent.text`,
+GFOpenLook theme's `menu`, `menu.text`, `accent`, `accent.text`,
 `frame.highlight` and `menu.line` keys, light or dark as Look says.
 
-### The settings format (a proposal for the OpenMenus engine)
+### The settings format (a proposal for the GFOpenMenus engine)
 
-`ENV:OpenMenus/Menus` is format 1. It is one setting per line, `key value`,
+`ENV:GFOpenMenus/Menus` is format 1. It is one setting per line, `key value`,
 and a `;` starts a comment. Unknown keys are skipped, so a newer file still
 loads in an older reader. A missing key takes its default (`om_defaults`).
 `src/om_prefs.c` is plain C with no Amiga calls. It reads and writes the
@@ -43,18 +43,18 @@ file, so the engine can compile the same file and the two can never
 disagree. The engine is Main Discourse's: change this format only together
 with it.
 
-Lite (from Look) wins over the menus. When `lite` is on, OpenMenus leaves
+Lite (from Look) wins over the menus. When `lite` is on, GFOpenMenus leaves
 out shadows and see-through, whatever this file says. The editor says so on
 its status line.
 
 ### MagicMenu's settings, taken over
 
-On the first start, when there is no `ENVARC:OpenMenus/Menus`, nothing has
+On the first start, when there is no `ENVARC:GFOpenMenus/Menus`, nothing has
 been taken over yet, and `ENVARC:MagicMenu.prefs` (or `ENV:`) exists, Menus
 reads MagicMenu's settings into the window. Save keeps them. **Take over
 MagicMenu's...** does the same at any time. From the Shell,
 `Menus MAGICMENU ENVARC:MagicMenu.prefs SAVE` does it with no window; this
-is what OpenUp's part runs once when it installs OpenMenus.
+is what GFOpenUp's part runs once when it installs GFOpenMenus.
 
 The reader (`om_from_magicmenu`) is written from the file's layout, with no
 MagicMenu code (MagicMenu is GPL). The layout is text: `MagicMenu/2:`, then
@@ -64,7 +64,7 @@ colour is `Name.R`, `Name.G` and `Name.B`, each 32 bits with the level
 spread across all four bytes. MagicMenu 1.x's binary file (it starts with
 `0x0131CD52`) is recognised and refused with a plain reason.
 
-| MagicMenu | OpenMenus |
+| MagicMenu | GFOpenMenus |
 | --- | --- |
 | `MenuType` 0 pulldown, 1 popup, 2 pointer-dependent | `open` |
 | `PDMode`, `PUMode`: 0 hold, 1 sticky on move, 2 sticky on click (3 keyboard: hold) | `pulldown`, `popup` |
@@ -79,7 +79,7 @@ spread across all four bytes. MagicMenu 1.x's binary file (it starts with
 | `KCEnabled`, `KCKeyStr`, `KCAltRCommand`, `KCGoTop` | `keyboard*` |
 | `NonBlocking` | `programs.keep-running` |
 
-A quoted value in OpenMenus' own file escapes `"` as `\"` and `\` as `\\`, so a
+A quoted value in GFOpenMenus' own file escapes `"` as `\"` and `\` as `\\`, so a
 picture's name with a quote in it survives Save.
 
 `tests/run.sh` runs 46 checks on the host's `cc`. They cover reading and
@@ -89,15 +89,15 @@ the 1.x binary refusal, and escapes both ways.
 ### Simple and Advanced
 
 Menus opens in the **Simple** view, which puts the theme first: Use
-OpenMenus, how menus open and how they work (one choice for both kinds),
+GFOpenMenus, how menus open and how they work (one choice for both kinds),
 colours, shadow, the theme in use with a **Look...** button, and Take over
 MagicMenu's. **View > Advanced** (Amiga-A) shows every setting. The view
 hides gadgets only and never changes a setting. `ADVANCED` on the Shell
 line opens in Advanced.
 
-The view is shared by every OpenPrefs editor. It is stored in
-`ENV:OpenAmiga/PrefsView` and `ENVARC:`, which holds `simple` or
-`advanced`, and it is written whenever the view changes. OpenUp Setup asks
+The view is shared by every GFOpenPrefs editor. It is stored in
+`ENV:GFOpenAmiga/PrefsView` and `ENVARC:`, which holds `simple` or
+`advanced`, and it is written whenever the view changes. GFOpenUp Setup asks
 for it on its first page.
 
 ### From the Shell
@@ -108,11 +108,11 @@ for it on its first page.
 
 `Menus/build.sh [OUT_DIR]` uses the os32 stove (or `CC=`). The theme reader
 comes from an opengadtools checkout beside this one (or `OGT=`). It is built
-for the 68040 (-m68040), an FPU is not needed, and it never uses OpenGPU.
+for the 68040 (-m68040), an FPU is not needed, and it never uses GFOpenGPU.
 
-### The engine, OpenMenus 0.1
+### The engine, GFOpenMenus 0.1
 
-`Menus/engine/openmenus.c` builds `C:OpenMenus` (`Menus/engine/build.sh`).
+`Menus/engine/openmenus.c` builds `C:GFOpenMenus` (`Menus/engine/build.sh`).
 Since 18 October 2026 the engine is built with GCC 16 (the os32-gcc16 stove,
 `-fno-tree-loop-distribute-patterns`), and its script stops when given an
 older GCC: the os32 stove's GCC 6.5.0b at -O2 compiled `copy_item()`'s
@@ -130,7 +130,7 @@ It is a commodity and does not patch Intuition:
   are the screen bar's titles (pull-down), or a list of titles at the
   pointer (pop-up), then the items, then the subitems.
 - **Following the mouse.** The mouse is followed every 20 ms, and the buttons
-  go to OpenMenus while a menu is open. Esc closes the menu.
+  go to GFOpenMenus while a menu is open. Esc closes the menu.
 - **Giving the choice.** The choice goes to the program as Intuition gives
   it: IDCMP_MENUPICK with FULLMENUNUM on the window's port, with check marks
   and mutual exclusion set first in the window's own strip. MENUNULL is sent
@@ -140,21 +140,21 @@ It is a commodity and does not patch Intuition:
 - **MENUVERIFY.** It is asked first, as Intuition asks it. A program's
   MENUCANCEL keeps the menu shut.
 - **Settings.** It reads this file at start and on Ctrl-F to the task of its
-  port `OpenMenus`. Colours come from the theme, the screen's pens, or the
+  port `GFOpenMenus`. Colours come from the theme, the screen's pens, or the
   user's. Lite leaves out the shadow.
 
-Tested on a scratch OS 3.2.3 (OpenRTG 800x600, 6 October 2026), all with
+Tested on a scratch OS 3.2.3 (GFOpenRTG 800x600, 6 October 2026), all with
 "Bar or pointer" and hold and release:
 - Workbench's menus from the bar: Backdrop? toggled Workbench's backdrop.
 - Workbench's menus from the bar: Open volume > RAM Disk opened the RAM Disk.
 - A pop-up at the pointer: the check mark on Backdrop? showed.
-- OpenPrefs Windows' GadTools menus as a pop-up: View > Advanced switched
+- GFOpenPrefs Windows' GadTools menus as a pop-up: View > Advanced switched
   the editor's view.
 
 Not in 0.1: keyboard control, the opening delays, see-through and pictures,
 and a pop-up that opens on the item last chosen. The sticky modes are written
 but not yet tested. The Menus editor keeps these settings, and changing one
-says on its status line that OpenMenus 0.1 keeps it for later.
+says on its status line that GFOpenMenus 0.1 keeps it for later.
 
 ## Keyboard control (0.3)
 
@@ -167,26 +167,26 @@ letter chooses by command key, Return chooses, Space chooses a check mark
 and keeps the menu open (the choices go as one NextSelect chain), Esc closes
 one level and Help sends IDCMP_MENUHELP. The same keys work a menu opened
 with the mouse, and the mouse takes over from the keys at once. While a menu
-is open every key is OpenMenus'; with no menu strip the key goes on to the
+is open every key is GFOpenMenus'; with no menu strip the key goes on to the
 program. Where a key moves the highlight is `src/om_kbd.c`, tested on the
 host by `tests/test_om_kbd.c`. Design: KEYBOARD_CONTROL.md (6 October 2026).
 
-Tried on OS 3.2.3 (OpenRTG off, Picasso96), 6 October 2026: Right Amiga +
+Tried on OS 3.2.3 (GFOpenRTG off, Picasso96), 6 October 2026: Right Amiga +
 Space opened Workbench's menus; Down, Right, Return on Open volume > RAM Disk
 opened it; "u" in Window moved to Update; Space on Backdrop? set the check
 and kept the menu open, and Esc then switched Workbench to backdrop; Right
 Amiga + B in the open menu switched it back; the mouse took over from the
 keys and the keys from the mouse.
 
-### Right-click on icons and the desktop (OpenMenus 0.2)
+### Right-click on icons and the desktop (GFOpenMenus 0.2)
 
 The design Dale approved on 6 October 2026 ("build it"). The right button on
 an icon, or on the background of a Workbench window, opens a menu at the
 pointer:
 
-- **Icon:** Open, Open with (OpenView, MultiView, Choose a program), Information,
+- **Icon:** Open, Open with (GFOpenView, MultiView, Choose a program), Information,
   Rename, Copy, Snapshot, Leave out (Put away on the desktop), then Extract here and
-  Open in OpenCompress for archives, Send Out, then Delete. A disk gets Format
+  Open in GFOpenCompress for archives, Send Out, then Delete. A disk gets Format
   and Eject, and the Trashcan gets Empty trash. Several selected icons get the
   entries that make sense for several, under "N icons".
 - **Background:** for the desktop, Execute command, Shell, Arrange icons, Show,
@@ -205,20 +205,20 @@ patches nothing:
 - If Workbench is busy with a requester, the menu gives up after a second, so
   the mouse is never held.
 - The right button on the screen bar or in a program's window is unchanged.
-- **No `WORKBENCH` port, no right-click menu (0.4.5, W67).** OpenBench marks its drawers and its desktop as Workbench's windows but has no ARexx port. OpenMenus 0.4.4 took the right press there, asked nobody, and showed nothing (Dale, 18 October: "no right click menu in list mode"). Now it looks for the port at the press: without it, the press is an ordinary one, and the window's own menus open (OpenBench's Window, View and Icons, or its desktop's).
-- **Built -fno-late-combine-instructions (0.4.6, W134).** OpenAmigaGCC 16.2.0-open3's late-combine pass made `Common/wbclose.h`'s `strcpy(r->name, "OpenWBNotify")` a copy that stored each byte one place late (`move.b (a1)+,(a1,d0.l)`), so a root semaphore OpenMenus made was named "" and OpenLook's notice and OpenBench never found it. `Menus/engine/build.sh` turns the pass off on a compiler that has it, until OpenAmigaGCC open4 (openamigagcc #29). No source changed.
+- **No `WORKBENCH` port, no right-click menu (0.4.5, W67).** GFOpenBench marks its drawers and its desktop as Workbench's windows but has no ARexx port. GFOpenMenus 0.4.4 took the right press there, asked nobody, and showed nothing (Dale, 18 October: "no right click menu in list mode"). Now it looks for the port at the press: without it, the press is an ordinary one, and the window's own menus open (GFOpenBench's Window, View and Icons, or its desktop's).
+- **Built -fno-late-combine-instructions (0.4.6, W134).** GFOpenAmigaGCC 16.2.0-open3's late-combine pass made `Common/wbclose.h`'s `strcpy(r->name, "OpenWBNotify")` a copy that stored each byte one place late (`move.b (a1)+,(a1,d0.l)`), so a root semaphore GFOpenMenus made was named "" and GFOpenLook's notice and GFOpenBench never found it. `Menus/engine/build.sh` turns the pass off on a compiler that has it, until GFOpenAmigaGCC open4 (openamigagcc #29). No source changed.
 - **Slower when idle (0.4.7).** The bar's tick (100 ms, or 500 ms for the title bar) went on whether anyone was there or not, so with GFOpenSpeaker the desktop woke 15 times a second doing nothing. After 2 s with no key, button, move or wheel it ticks every 500 ms, and the first input cuts the slow tick short and goes back to full speed (`Common/idlepace.h`, tested in `Common/tests/run.sh`). GFOpenSpeaker does the same, 200 ms to 1 s.
 
 `Menus/engine/wbprobe.c` sends commands to the port and prints the answers.
 
 **Settings** (format 1): `rightclick` (on by default since Dale approved it), `rightclick.extras`
-(the Open family's entries), `rightclick.selection all|one` and
+(the GFOpen family's entries), `rightclick.selection all|one` and
 `rightclick.name`.
 
 **In the Menus editor** (board 4 of the design): the Simple view has an
 **Icon menus** checkbox, with the line "The right button on the screen bar or
 in a program's window always opens that program's own menus." under both
-columns. The Advanced view puts Icon menus beside Use OpenMenus, then
+columns. The Advanced view puts Icon menus beside Use GFOpenMenus, then
 **They show** (Workbench's only, or with Open's too), **Selected** (that icon
 only, or the whole selection) and **Name at the top**; the line shows on the
 status bar when Icon menus is switched. To fit a 256-line PAL Workbench with
@@ -227,41 +227,41 @@ the shadow's size and strength share a row, and Take over MagicMenu's moves
 under the preview. The Advanced view keeps PAL's tighter spacing on every screen,
 so it is 251 lines high (Topaz 8) wherever it is measured.
 
-With OpenLook's tabs above it (OpenLook 1.1) the Advanced view needed 311 lines
-in Topaz 8. Menus 0.2.5 (OpenLook 1.2, 12 October 2026) lays it out for a
+With GFOpenLook's tabs above it (GFOpenLook 1.1) the Advanced view needed 311 lines
+in Topaz 8. Menus 0.2.5 (GFOpenLook 1.2, 12 October 2026) lays it out for a
 screen under 400 lines: no preview (Simple has it, and Test shows the real
-menus), how menus open and the keys on the left with Use OpenMenus at their
+menus), how menus open and the keys on the left with Use GFOpenMenus at their
 foot, and on the right the look, then the right-click menus (Icon menus and
 Name at the top on one row, They show, Selected) and Take over MagicMenu's,
 one line between rows. Measured on a PAL High Res Workbench in Topaz 8 it is
-640 x 248 inside OpenLook and 634 x 248 on its own. Taller screens keep the
+640 x 248 inside GFOpenLook and 634 x 248 on its own. Taller screens keep the
 layout above.
 
-### For the OpenUp part (to add in openamigaup)
+### For the GFOpenUp part (to add in openamigaup)
 
-    menus = Part(top, "OpenMenus", "0.1", "OpenMenus: our own menus, and their editor")
+    menus = Part(top, "GFOpenMenus", "0.1", "GFOpenMenus: our own menus, and their editor")
     menus.add("Prefs/Menus", (a.openamigaprefs / "Menus/build/os3/Menus").read_bytes(), "SYS:Prefs/Menus")
     menus.add("Prefs/Menus.info", icons.icon(icons.WBTOOL, "page", stack=16384), "SYS:Prefs/Menus.info")
-    menus.add("C/OpenMenus", (a.openamigaprefs / "Menus/build/os3/OpenMenus").read_bytes(), "SYS:C/OpenMenus")
-    menus.line("startup Run >NIL: C:OpenMenus")
+    menus.add("C/GFOpenMenus", (a.openamigaprefs / "Menus/build/os3/GFOpenMenus").read_bytes(), "SYS:C/GFOpenMenus")
+    menus.line("startup Run >NIL: C:GFOpenMenus")
     # once, at install: MagicMenu's settings taken over (does nothing without them)
     #   SYS:Prefs/Menus MAGICMENU ENVARC:MagicMenu.prefs SAVE
 
-## Where the menu bar sits (phase 1 in OpenMenus 0.4)
+## Where the menu bar sits (phase 1 in GFOpenMenus 0.4)
 
 We, 6 October 2026: "we should support the same menu bar options as Windows
 and Linux, top and bottom, left and right sides of the screen, or as a 'start'
-menu like pop up from OpenDock. The latter might need to follow in a phase 2."
+menu like pop up from GFOpenDock. The latter might need to follow in a phase 2."
 
 **Phase 1: the bar at any edge.** Intuition always draws the menu titles in
-the screen's title bar, at the top. OpenMenus already draws its own panels
+the screen's title bar, at the top. GFOpenMenus already draws its own panels
 (borderless windows that never take the focus), so it can draw the bar the
 same way, along whichever edge is chosen:
 
 | `bar` | What the user sees |
 | --- | --- |
 | `title` (the default) | The screen's own title bar, as now: nothing moves |
-| `top` | OpenMenus' own bar along the top, the screen's title bar hidden behind it |
+| `top` | GFOpenMenus' own bar along the top, the screen's title bar hidden behind it |
 | `bottom` | The bar along the bottom, as Windows' taskbar sits |
 | `left`, `right` | A bar down the side, the menu titles one under another; a menu opens beside its title, towards the middle of the screen |
 
@@ -270,7 +270,7 @@ same way, along whichever edge is chosen:
 - **On which screens:** `bar.screens workbench|all|rtg`. A game's own screen
   never gets one: only screens that show a title bar of their own.
 - **Room for it:** for `bottom`, `left` and `right`, Workbench's backdrop
-  window and new windows keep clear of the bar, through OpenWindows' places
+  window and new windows keep clear of the bar, through GFOpenWindows' places
   (it already places windows). The bar's width is the widest title.
 - **Autohide:** `bar.autohide on|off`. Hidden, it shows when the pointer
   touches its edge, as a Linux panel does.
@@ -280,11 +280,11 @@ same way, along whichever edge is chosen:
   the screens, and Autohide, in Simple view; the Advanced view adds the bar's
   width and font.
 - **Programs that draw in the title bar** (a clock commodity, a screen's
-  title text) still have it with `title`; with an OpenMenus bar on top, the
+  title text) still have it with `title`; with a GFOpenMenus bar on top, the
   title bar's own text shows at the bar's far end.
 
 **What 0.4 does (6 October 2026),** tried on OS 3.2.3 at all four edges:
-- `bar title|top|bottom|left|right` and `bar.autohide on|off` in `ENV:OpenMenus/Menus`; the editor's **Menu bar** cycle (Title bar, Top, Bottom, Left, Right) and **Hide** beside it, in both views. Use or Save moves the bar at once.
+- `bar title|top|bottom|left|right` and `bar.autohide on|off` in `ENV:GFOpenMenus/Menus`; the editor's **Menu bar** cycle (Title bar, Top, Bottom, Left, Right) and **Hide** beside it, in both views. Use or Save moves the bar at once.
 - Our bar is a borderless window on the **Workbench screen** that never takes the activation. It shows the active window's menu titles, follows them every 100 ms, and comes back in front when a window covers it.
 - Either button on a title opens that menu: the left button keeps it open until the next click, the right button is hold-and-release or sticky as the settings say. The click never reaches Intuition, so the window under the pointer keeps the activation.
 - The right button's pull-down on the Workbench screen opens from our bar too; other screens keep their title bar.
@@ -294,16 +294,16 @@ same way, along whichever edge is chosen:
 
 **Not yet:** `bar.screens` (only the Workbench screen has our bar); keeping windows and icons clear of a bottom or side bar (the left bar covers the disk icons); Up and Down to step along a side bar by key (Left and Right switch menus there too); the bar's own width and font in the Advanced view. The Workbench screen can't close (a screen mode change) while our bar is open: turn the bar off first.
 
-**Phase 2: a start-style menu from OpenDock.** A button at the dock's end opens
+**Phase 2: a start-style menu from GFOpenDock.** A button at the dock's end opens
 a pop-up of programs, the Workbench menu's own items, and Shut down/Reboot,
 laid out as the dock's edge says (up from a bottom dock, across from a side
-one). It reuses OpenMenus' panels and its keyboard control. It follows the
+one). It reuses GFOpenMenus' panels and its keyboard control. It follows the
 phase 1 bar, so the two share the edge rules and how the windows keep clear.
 
 ## Next
 
 - The menu bar's "not yet" list (above), then the start-style pop-up from
-  OpenDock (phase 2).
+  GFOpenDock (phase 2).
 
 - In the engine: the opening delays, see-through and pictures, and a pop-up
   opening on the item last chosen. The editor keeps these settings already.

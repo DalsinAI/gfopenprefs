@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""check_stricmp_a6.py [STOVE]: builds OpenTypes and checks, in its machine code, that every call of
+"""check_stricmp_a6.py [STOVE]: builds GFOpenTypes and checks, in its machine code, that every call of
 utility.library's Stricmp (jsr a6@(-162)) is made with A6 holding UtilityBase.
 
-OpenTypes 0.2 compared tool names as Stricmp(base(a), base(b)); GCC 6.5 then called Stricmp with A6 still
+GFOpenTypes 0.2 compared tool names as Stricmp(base(a), base(b)); GCC 6.5 then called Stricmp with A6 still
 holding dos.library, so the call went to a dos.library vector and returned 0 ("equal") for every pair, and
-OpenUp 0.6.14 to 0.7.0 changed the default tool of about 40 icons of AmigaOS 3.2.3 to OpenView (9 Oct 2026).
+GFOpenUp 0.6.14 to 0.7.0 changed the default tool of about 40 icons of AmigaOS 3.2.3 to GFOpenView (9 Oct 2026).
 The names are compared by same_program() now, which calls no library.
 
 The base of a call is the operand of the last `moveal X,a6` before it; all calls must load the same X (the
@@ -19,7 +19,7 @@ from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
-STOVE = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(os.environ.get("STOVE", Path.home() / "AmigaChrome/stoves/os32"))
+STOVE = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(os.environ.get("STOVE", Path.home() / "AmiCradle/stoves/os32"))
 OBJDUMP = STOVE / "prefix/bin/m68k-amigaos-objdump"
 
 
@@ -46,7 +46,7 @@ def main() -> int:
         return 0
     with tempfile.TemporaryDirectory() as tmp:
         subprocess.run(["sh", str(HERE / "build.sh"), tmp], check=True, stdout=subprocess.DEVNULL, env=dict(os.environ, STOVE=str(STOVE)))
-        text = subprocess.run([str(OBJDUMP), "-d", str(Path(tmp) / "OpenTypes")], check=True, capture_output=True, text=True).stdout
+        text = subprocess.run([str(OBJDUMP), "-d", str(Path(tmp) / "GFOpenTypes")], check=True, capture_output=True, text=True).stdout
     calls = a6_sources(text)
     if not calls:
         print("FAIL: no call of Stricmp found; the check needs updating")

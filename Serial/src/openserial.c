@@ -1,7 +1,7 @@
-/* OpenSerial: the serial port's settings in one OpenPrefs editor. It takes over
- * the OS's Serial editor (OpenUp's RECONCILE puts that in SYS:Prefs/Classic).
+/* GFOpenSerial: the serial port's settings in one GFOpenPrefs editor. It takes over
+ * the OS's Serial editor (GFOpenUp's RECONCILE puts that in SYS:Prefs/Classic).
  *
- *   OpenSerial [FROM file] [USE] [SAVE]
+ *   GFOpenSerial [FROM file] [USE] [SAVE]
  *
  *   - the baud rate, the buffer sizes, handshaking (none, XON/XOFF, RTS/CTS),
  *     parity, bits per character and stop bits, and whether the port is shared,
@@ -11,14 +11,14 @@
  * reads it at once); Cancel changes nothing. Everything else in the file is
  * kept as it was.
  *
- * Built into OpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open
- * preferences in OpenBench natively) as OpenSerial, it follows OpenBench's
- * desktop/ob_builtin.h: dos, intuition, graphics and gadtools are OpenBench's;
+ * Built into GFOpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open
+ * preferences in GFOpenBench natively) as GFOpenSerial, it follows GFOpenBench's
+ * desktop/ob_builtin.h: dos, intuition, graphics and gadtools are GFOpenBench's;
  * its globals are static, and its version string is left out; it starts as
  * ob_builtin.c starts it, argc 0 and no WBStartup message, so it reads no
  * arguments and writes nothing to Output(); Ctrl-C quits as Cancel does and
  * Ctrl-F brings the window to the front; as its statics outlive a run, each
- * run sets again the ones it counts on. The stand-alone OpenSerial builds as
+ * run sets again the ones it counts on. The stand-alone GFOpenSerial builds as
  * before.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -48,7 +48,7 @@
 #endif
 
 #ifndef IN_OPENBENCH
-static const char version[] __attribute__((used)) = "$VER: OpenSerial 0.1 (10.10.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenSerial 0.1 (10.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 #endif
 
 /* sp_SerialFlags' bits, as the OS's Serial editor sets them (not in every NDK's prefs/serial.h) */
@@ -300,7 +300,7 @@ static int gui(void)
     (ng.ng_LeftEdge = (x), ng.ng_TopEdge = (y), ng.ng_Width = (w), ng.ng_Height = (h), ng.ng_GadgetText = (STRPTR)(text), \
      ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
 #ifdef LT_ONE
-    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_SERIAL);     /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_SERIAL);     /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 24, lh);
 #endif
     row = top;
@@ -331,9 +331,9 @@ static int gui(void)
     }
     if (!g) { rc = RETURN_FAIL; goto out; }
 #ifdef LT_ONE
-    win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | BUTTONIDCMP | INTEGERIDCMP | CYCLEIDCMP | CHECKBOXIDCMP | TEXTIDCMP, "OpenSerial 0.1");
+    win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | BUTTONIDCMP | INTEGERIDCMP | CYCLEIDCMP | CHECKBOXIDCMP | TEXTIDCMP, "GFOpenSerial 0.1");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Serial", WA_ScreenTitle, (ULONG)"OpenSerial 0.1", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Serial", WA_ScreenTitle, (ULONG)"GFOpenSerial 0.1", WA_PubScreen, (ULONG)scr,
                          WA_Left, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, WA_Top, scr->BarHeight + 20,
                          WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
@@ -350,7 +350,7 @@ static int gui(void)
     while (!quit) {
         struct IntuiMessage *m;
 #ifdef IN_OPENBENCH
-        /* OpenBench's Ctrl-C (it is quitting): as Cancel; its Ctrl-F (opened again): the window to the front */
+        /* GFOpenBench's Ctrl-C (it is quitting): as Cancel; its Ctrl-F (opened again): the window to the front */
         ULONG got = Wait((1UL << win->UserPort->mp_SigBit) | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_C) quit = 1;
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -420,14 +420,14 @@ int main(int argc, char **argv)
 #if defined(IN_OPENBENCH) || defined(LT_ONE)
     /* Built in, it starts as ob_builtin.c starts it: argc 0, argv NULL and no WBStartup message, so the
      * window, as from Workbench, with nothing read from the Shell or written to Output(). Its statics outlive
-     * a run inside OpenBench: the file the run before read and freed is not freed again. */
+     * a run inside GFOpenBench: the file the run before read and freed is not freed again. */
     file_data = NULL;
     file_len = 0;
     win = NULL;
 #else
     (void)version;
 #endif
-    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"OpenSerial"); return RETURN_FAIL; }
+    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"GFOpenSerial"); return RETURN_FAIL; }
     load_serial(args[0] ? (const char *)args[0] : SERIAL_ENV);
     if (args[1] || args[2]) {
         rc = (args[2] && !save_serial(SERIAL_ENVARC)) || !save_serial(SERIAL_ENV) ? RETURN_ERROR : RETURN_OK;

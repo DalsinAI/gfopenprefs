@@ -13,7 +13,7 @@
 
 #include "sp_amiga.h"
 
-#ifndef IN_OPENBENCH                 /* inside OpenBench, ExpansionBase is OpenBench's: sp_board has its own */
+#ifndef IN_OPENBENCH                 /* inside GFOpenBench, ExpansionBase is GFOpenBench's: sp_board has its own */
 struct ExpansionBase *ExpansionBase;
 #endif
 

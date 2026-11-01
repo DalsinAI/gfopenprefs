@@ -1,4 +1,4 @@
-/* tb_fade.h: how solid OpenTitle's see-through bar is from moment to moment (OpenTitle 0.7.5).
+/* tb_fade.h: how solid GFOpenTitle's see-through bar is from moment to moment (GFOpenTitle 0.7.5).
  *
  * The user, 24 October 2026, 21:25: "make the title bar translucent until moused over then it goes its blue colour".
  * At rest the bar's background is at the rest level (tb_prefs' seethrough.opacity, 40% by default). While the bar
@@ -11,8 +11,8 @@
  *   tbf_init(&f, rest, hot)     the level at rest (0 clear to 255 solid); starts there, or solid when hot
  *   tbf_step(&f, dt, hot)       dt ms later: the level now
  *   tbf_next(&f)                ms until a step is due (0: none, so nothing need wake for the bar)
- *   tbp_on_bar(&p, x, y, on)    whether the pointer counts as on the bar (OpenTitle 0.7.7): on it, and moved since
- *                               OpenTitle first looked
+ *   tbp_on_bar(&p, x, y, on)    whether the pointer counts as on the bar (GFOpenTitle 0.7.7): on it, and moved since
+ *                               GFOpenTitle first looked
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #ifndef TB_FADE_H
@@ -79,11 +79,11 @@ static __attribute__((unused)) int tbf_next(const tb_fade *f)
     return f->level > f->rest ? TBF_STEP_MS : 0;              /* going back to rest, or at rest */
 }
 
-/* The pointer's part in hot (OpenTitle 0.7.7; Dale, 27 October 2026, 07:39 Cyprus). After a boot the pointer is where
+/* The pointer's part in hot (GFOpenTitle 0.7.7; Dale, 27 October 2026, 07:39 Cyprus). After a boot the pointer is where
  * Intuition put it, the screen's top left corner, which is on the bar: until someone moved the mouse the bar stayed
- * solid, as if pointed at (Instance-32, 26 October, 20:07 UTC: full16b-t5 and OpenBench 0.1.43 deployed, the pointer
+ * solid, as if pointed at (Instance-32, 26 October, 20:07 UTC: full16b-t5 and GFOpenBench 0.1.43 deployed, the pointer
  * at 0,0 since the boot, the bar solid; in a lab copy the same, and see-through once the pointer moved). A pointer
- * that hasn't moved since OpenTitle first looked doesn't count as on the bar; once it has moved, it counts wherever
+ * that hasn't moved since GFOpenTitle first looked doesn't count as on the bar; once it has moved, it counts wherever
  * it is, as before. x, y are the screen's MouseX and MouseY, on whether they are on the bar. */
 typedef struct {
     int x, y;                                  /* where the pointer was at the first look */

@@ -1,8 +1,8 @@
-/* OpenIControl: how Intuition handles screens, menus, requesters and text gadgets, as one section of OpenPrefs
- * (Dale, 21 October 2026: IControl folded into OpenPrefs). It takes over the OS's IControl editor (OpenUp's
+/* GFOpenIControl: how Intuition handles screens, menus, requesters and text gadgets, as one section of GFOpenPrefs
+ * (Dale, 21 October 2026: IControl folded into GFOpenPrefs). It takes over the OS's IControl editor (GFOpenUp's
  * RECONCILE puts that in SYS:Prefs/Classic).
  *
- *   OpenIControl [FROM file] [USE] [SAVE]
+ *   GFOpenIControl [FROM file] [USE] [SAVE]
  *
  *   - the verify time-out, the keys held to drag a screen with the mouse, and the Amiga-key shortcuts
  *     (Workbench to front, front screen to back, a requester's OK and Cancel)
@@ -27,7 +27,7 @@
 #include <string.h>
 #include <stdio.h>
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -39,7 +39,7 @@
 #include "pf_iff.h"
 #include "ic_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: OpenIControl 0.1 (21.10.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenIControl 0.1 (21.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 
 #define IC_ENV "ENV:Sys/icontrol.prefs"
 #define IC_ENVARC "ENVARC:Sys/icontrol.prefs"
@@ -63,7 +63,7 @@ static int write_file(int save, void (*say)(const char *))
     return 1;
 }
 
-static void say_shell(const char *s) { Printf((STRPTR)"OpenIControl: %s\n", (ULONG)s); }
+static void say_shell(const char *s) { Printf((STRPTR)"GFOpenIControl: %s\n", (ULONG)s); }
 
 /* ---- the window ------------------------------------------------------------------------------------ */
 
@@ -113,7 +113,7 @@ static int put_in_place(int save)
 }
 
 /* "Screen drag" left of its four boxes, which have no label of their own on that side; x and the row as
- * the page laid them out (opshift.h moves the drawing beside OpenPrefs's list) */
+ * the page laid them out (opshift.h moves the drawing beside GFOpenPrefs's list) */
 static void drag_label(int x, int lh)
 {
     struct RastPort *wrp = win->RPort;
@@ -175,7 +175,7 @@ static int gui(void)
     (ng.ng_LeftEdge = (x), ng.ng_TopEdge = (y), ng.ng_Width = (w), ng.ng_Height = (h), ng.ng_GadgetText = (STRPTR)(text), \
      ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
 #ifdef LT_ONE
-    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_ICONTROL);   /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_ICONTROL);   /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 24, lh);
 #endif
     row = top;
@@ -220,9 +220,9 @@ static int gui(void)
                    STRINGIDCMP | TEXTIDCMP)
 #ifdef LT_ONE
     win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1,
-                  glist, IDCMP_ALL, "OpenIControl 0.1");
+                  glist, IDCMP_ALL, "GFOpenIControl 0.1");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"IControl", WA_ScreenTitle, (ULONG)"OpenIControl 0.1", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"IControl", WA_ScreenTitle, (ULONG)"GFOpenIControl 0.1", WA_PubScreen, (ULONG)scr,
                          WA_Left, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, WA_Top, scr->BarHeight + 20,
                          WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
@@ -301,8 +301,8 @@ int main(int argc, char **argv)
     int rc;
     (void)argv;
     (void)version;
-    win = NULL;                             /* built into OpenPrefs, the statics outlive a run */
-    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"OpenIControl"); return RETURN_FAIL; }
+    win = NULL;                             /* built into GFOpenPrefs, the statics outlive a run */
+    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"GFOpenIControl"); return RETURN_FAIL; }
     if (!pf_open_lib()) { if (rd) FreeArgs(rd); return RETURN_FAIL; }
     pf_init(&file);
     load_file(args[0] ? (const char *)args[0] : NULL);

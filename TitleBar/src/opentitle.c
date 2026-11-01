@@ -1,55 +1,55 @@
-/* OpenTitle 0.1: the Workbench screen's title bar as Dale drew it on
- * 6 October 2026: AmigaChrome's logo at the far left, Workbench's title with
+/* GFOpenTitle 0.1: the Workbench screen's title bar as Dale drew it on
+ * 6 October 2026: AmiCradle's logo at the far left, Workbench's title with
  * the free chip and fast memory after it, and the day, date and time at the
- * right end, just left of OpenSpeaker. Optionally the display's border
+ * right end, just left of GFOpenSpeaker. Optionally the display's border
  * around the screen is black.
  *
- * 0.5 (8 October 2026): a cog at the bar's far end, right of OpenSpeaker and
+ * 0.5 (8 October 2026): a cog at the bar's far end, right of GFOpenSpeaker and
  * left of the screen's depth gadget. A click lists the Open settings editors
  * that are installed, and "All Prefs..." (the SYS:Prefs drawer); choosing
  * one starts it as a double-click on its icon does.
  *
  * The free memory is Workbench's own: its title format (the WBTF chunk of
  * Sys/Workbench.prefs, as Prefs/Workbench writes it) becomes
- *   "OpenBench 0.1 - Chip %mcek KB, Fast %mfek KB, GPU = 1, CPU = 1 (m68k) + 8 (m68k)"
+ *   "GFOpenBench 0.1 - Chip %mcek KB, Fast %mfek KB, GPU = 1, CPU = 1 (m68k) + 8 (m68k)"
  * (0.6.9; both in whole KB, as the Amiga always showed them: the user, 10
  * October 2026; the earlier Workbench ones are still known as ours and replaced)
  * in ENV:, so IPrefs shows it and it updates as Workbench does; spaces
  * before it leave room for the logo.
  *
  * The logo and the clock are two small borderless windows in the title bar,
- * as OpenSpeaker is. The clock is in OpenMenus' tray (ENV:OpenMenus/Tray/Clock,
+ * as GFOpenSpeaker is. The clock is in GFOpenMenus' tray (ENV:GFOpenMenus/Tray/Clock,
  * "width order", order 10: left of the speaker, order 0), and goes where
- * OpenMenus' bar is when OpenMenus puts it at an edge. A click on either
+ * GFOpenMenus' bar is when GFOpenMenus puts it at an edge. A click on either
  * leaves the active window active.
  *
- *   OpenTitle        (started at boot; Ctrl-C quits, Ctrl-F reads
- *                     ENV:OpenPrefs/TitleBar again; since 0.7 the cog
+ *   GFOpenTitle        (started at boot; Ctrl-C quits, Ctrl-F reads
+ *                     ENV:GFOpenPrefs/TitleBar again; since 0.7 the cog
  *                     stays, so it no longer quits when nothing else is on)
  *
  * 0.6 (8 October 2026): the taskspace. Other programs put icons in the row
- * beside the cog, the speaker and the network icons through OpenTitle's
- * port (include/taskspace.h); OpenTitle draws them, lights them under the
+ * beside the cog, the speaker and the network icons through GFOpenTitle's
+ * port (include/taskspace.h); GFOpenTitle draws them, lights them under the
  * pointer, shows their help under them and tells the program of a click.
  * Tata is the first.
  *
- * 0.6.13 (11 October 2026): the cog asks OpenBench first (Common/obmsg.h), so an editor built into OpenBench
- *   runs there; Workbench's OpenWorkbenchObject, then Run, when OpenBench isn't running.
+ * 0.6.13 (11 October 2026): the cog asks GFOpenBench first (Common/obmsg.h), so an editor built into GFOpenBench
+ *   runs there; Workbench's OpenWorkbenchObject, then Run, when GFOpenBench isn't running.
  * 0.6.12 (11 October 2026): the title's room for the logo is worked out from the logo's width and the bar's
- *   font (Common/barlogo.h, shared with OpenBench), and made again when the bar changes height: the bigger
+ *   font (Common/barlogo.h, shared with GFOpenBench), and made again when the bar changes height: the bigger
  *   logo covered the title's first letter. The cores say what they run: "+ 8 (m68k)", "+ 8 (m68k, x86-64)".
  * 0.6.10 (11 October 2026): the counts read "GPU = 1, CPU = 1 (m68k)", as the user put them.
  * 0.6.6 (10 October 2026): the editor the cog starts opens at the screen's top right, 20 pixels in (with
- *   OpenWindows 0.8.1); Network (OpenSocketControl) in the cog's list.
- * 0.6.5 (10 October 2026): the cog's list has Date and time (OpenDateTime)
- *   and Printers (OpenPrint's Printers and Queue), each when it is there.
+ *   GFOpenWindows 0.8.1); Network (GFOpenSocketControl) in the cog's list.
+ * 0.6.5 (10 October 2026): the cog's list has Date and time (GFOpenDateTime)
+ *   and Printers (GFOpenPrint's Printers and Queue), each when it is there.
  * 0.6.4 (10 October 2026): a double-click on the date and time opens
- * OpenDateTime, the date, time and region editor (the OS's Time editor until
+ * GFOpenDateTime, the date, time and region editor (the OS's Time editor until
  * it is installed).
  *
  * 0.6.3 (10 October 2026): fast memory in whole KB like chip memory, as the
  * Amiga always showed it, and the processors after it: " - 1 CPU + 8 cores"
- * (openmulticore.library's board), or " - 1 CPU".
+ * (gfopenmulticore.library's board), or " - 1 CPU".
  *
  * 0.6.2 (10 October 2026): the bar's icons sit under windows that overlap the
  * bar (they are windows of their own and are no longer raised over the
@@ -58,12 +58,12 @@
  * centred in the bar.
  *
  * 0.7.5 (25 October 2026, the user, 24 October, 21:25: "make the title bar translucent until moused over then it goes
- *   its blue colour"): the see-through bar, as far as OpenTitle can take it. Where the screen can (composited by
- *   OpenLayers, 32-bit, something behind the bar to see, and Intuition taking the bar's opacity: TB_ICTRL_BAROPACITY,
+ *   its blue colour"): the see-through bar, as far as GFOpenTitle can take it. Where the screen can (composited by
+ *   GFOpenLayers, 32-bit, something behind the bar to see, and Intuition taking the bar's opacity: TB_ICTRL_BAROPACITY,
  *   proposed to Team 4, not in Intuition yet), the bar's background rests at seethrough.opacity (40%) and goes solid
- *   while the pointer is on the bar or a menu is open (tb_fade.h: 150 ms in, 300 ms out after 300 ms); OpenTitle's
+ *   while the pointer is on the bar or a menu is open (tb_fade.h: 150 ms in, 300 ms out after 300 ms); GFOpenTitle's
  *   own bar windows keep their glyphs opaque and let the bar show round them. Elsewhere, and everywhere until
- *   Intuition takes it, the bar is solid as before. The seethrough line of ENV:OpenPrefs/TitleBar switches it.
+ *   Intuition takes it, the bar is solid as before. The seethrough line of ENV:GFOpenPrefs/TitleBar switches it.
  * 0.7.4 (25 October 2026, the user, 00:12: "perhaps m68k/x64 since its running on" one): the cores read
  *   "+ 10 (m68k/x64)", 68k code on the host's x86-64 cores, from the board's ISAS (Common/barlogo.h).
  * 0.7.3 (24 October 2026, the user, 21:39: "improve spacing on the sys icon tray"): every tray icon has the same
@@ -72,16 +72,16 @@
  *   width and 2 pixels, bar_end()), not 2 bar heights from the edge.
  * 0.7 (17 October 2026, Dale, 08:26: "The cog should be present on all standard screens so Workbench screen
  *   has it all the time"): the cog is always on the Workbench screen's bar (the "cog on|off" line of
- *   ENV:OpenPrefs/TitleBar is kept but read no more), and its list is OpenPrefs's sections, each running
- *   OpenPrefs SECTION (SYS:Preferences/OpenPrefs, else SYS:Prefs/OpenPrefs), then Printers, Network, OpenUp Setup
+ *   ENV:GFOpenPrefs/TitleBar is kept but read no more), and its list is GFOpenPrefs's sections, each running
+ *   GFOpenPrefs SECTION (SYS:Preferences/GFOpenPrefs, else SYS:Prefs/GFOpenPrefs), then Printers, Network, GFOpenUp Setup
  *   and Tata when they are there, and All Prefs.... The cog alone is also on every other public screen that
  *   shows its title bar (in the public screen list, not private, SHOWTITLE), as a visitor window while the
- *   screen has a window of its own, so its owner can close it; its list opens OpenPrefs on that screen
+ *   screen has a window of its own, so its owner can close it; its list opens GFOpenPrefs on that screen
  *   (PUBSCREEN=). Never on a custom screen that isn't public (a game's), nor on one with no title bar.
  *
- * 0.7.6 (25 October 2026, Team 4's bar-opacity agent): the check that OpenLayers has ComposeLayerInfo asked for
+ * 0.7.6 (25 October 2026, Team 4's bar-opacity agent): the check that GFOpenLayers has ComposeLayerInfo asked for
  *   a 264-byte table (lib_NegSize); 47.106's is 258, so the see-through bar was never tried. It asks for 258.
- * 0.7.7 (27 October 2026, Dale, 07:39 Cyprus): a pointer that hasn't moved since OpenTitle started doesn't count as on
+ * 0.7.7 (27 October 2026, Dale, 07:39 Cyprus): a pointer that hasn't moved since GFOpenTitle started doesn't count as on
  *   the bar (tb_fade.h, tbp_on_bar). After a boot the pointer sits at the screen's top left corner, on the bar, so the
  *   see-through bar stayed solid until someone moved the mouse (Instance-32, 26 October). The menus, the cog's list
  *   and the menu button still make it solid as before.
@@ -133,30 +133,30 @@
 #include "cogplace.h"
 #include "barlogo.h"
 #include "obmsg.h"
-#include "../../Common/prefsapp.h"           /* where OpenPrefs is (SYS:Preferences) */
+#include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: OpenTitle 0.7.7 (27.10.2026) OpenPrefs, AmigaChrome Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.7.7 (27.10.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
 struct Library *LayersBase, *UtilityBase, *SocketBase, *WorkbenchBase, *CyberGfxBase;
 
-#define MENUS_ENV  "ENV:OpenMenus/Menus"
-#define TRAY_DIR   "ENV:OpenMenus/Tray"
-#define CLOCK_ORDER 10                         /* left of the network icons (5) and OpenSpeaker (0) */
+#define MENUS_ENV  "ENV:GFOpenMenus/Menus"
+#define TRAY_DIR   "ENV:GFOpenMenus/Tray"
+#define CLOCK_ORDER 10                         /* left of the network icons (5) and GFOpenSpeaker (0) */
 #define NET_ORDER   5
-#define COG_ORDER   (-5)                       /* the far end: right of OpenSpeaker (0), left of the depth gadget */
-#define NET_TOOL   "SYS:Tools/Commodities/OpenSocketControl"
-#define WIFI_DEVICE "opensocketwifi.device"    /* OpenSocket's: the PC's (or the card's) Wi-Fi */
+#define COG_ORDER   (-5)                       /* the far end: right of GFOpenSpeaker (0), left of the depth gadget */
+#define NET_TOOL   "SYS:Tools/Commodities/GFOpenSocketControl"
+#define WIFI_DEVICE "gfopensocketwifi.device"    /* GFOpenSocket's: the PC's (or the card's) Wi-Fi */
 #define WIFI_STATUS 2
 #define WB_ENV     "ENV:Sys/Workbench.prefs"
-/* 0.6.9: the screen says what it is (the user, 10 October 2026: "OpenBench x.x - ChipMem, FastMem,
+/* 0.6.9: the screen says what it is (the user, 10 October 2026: "GFOpenBench x.x - ChipMem, FastMem,
  * GPU count, CPU count"); the GPUs and CPUs follow, written once, as the format has no tokens for them */
 #define OPENBENCH_VERSION "0.1"
-#define TITLE_MEM  "OpenBench " OPENBENCH_VERSION " - Chip %mcek KB, Fast %mfek KB"
-#define TITLE_PLAIN "OpenBench " OPENBENCH_VERSION
-#define TITLE_MEM_068 "Workbench %r  Chip %mcek KB  Fast %mfek KB"   /* OpenTitle 0.6.3 to 0.6.8: still ours */
-#define TITLE_MEM_062 "Workbench %r  Chip %mcek KB  Fast %mfem MB"   /* OpenTitle 0.6.2 and before */
+#define TITLE_MEM  "GFOpenBench " OPENBENCH_VERSION " - Chip %mcek KB, Fast %mfek KB"
+#define TITLE_PLAIN "GFOpenBench " OPENBENCH_VERSION
+#define TITLE_MEM_068 "Workbench %r  Chip %mcek KB  Fast %mfek KB"   /* GFOpenTitle 0.6.3 to 0.6.8: still ours */
+#define TITLE_MEM_062 "Workbench %r  Chip %mcek KB  Fast %mfem MB"   /* GFOpenTitle 0.6.2 and before */
 #define TITLE_PLAIN_068 "Amiga Workbench %r"
 #define LOGO_PAD   "         "                 /* a title with room for the logo starts with these (0.6.12: and as many
                                                 * more as the logo needs, Common/barlogo.h) */
@@ -172,7 +172,7 @@ static struct Window *last_other;              /* the window that was active bef
 static char shown[40];
 static int wb_down;                            /* Workbench is shutting down or shut: 1 our windows are closed, 2 to open them again */
 
-/* the network icons: LAN and Wi-Fi, from OpenSocket */
+/* the network icons: LAN and Wi-Fi, from GFOpenSocket */
 static struct Window *net_w, *pop_w;
 static WORD nx, ny, nw, nh;
 static int lan_state;                          /* 0 no bsdsocket.library, 1 no address, 2 connected */
@@ -219,11 +219,11 @@ static void read_prefs(void)
     if (t) FreeVec(t);
 }
 
-/* ---- the tray and OpenMenus' settings, read when they change (0.7.2) --------------------------
- * Every 2 s OpenTitle places its windows, and each place read ENV:OpenMenus/Tray afresh, every file
- * in it, four times a pass, and ENV:OpenMenus/Menus once (Team 4's OpenMonitor Calls view, 24 Oct
+/* ---- the tray and GFOpenMenus' settings, read when they change (0.7.2) --------------------------
+ * Every 2 s GFOpenTitle places its windows, and each place read ENV:GFOpenMenus/Tray afresh, every file
+ * in it, four times a pass, and ENV:GFOpenMenus/Menus once (Team 4's GFOpenMonitor Calls view, 24 Oct
  * 2026). Now both are read once and again only when a DOS notification says they changed, or when
- * OpenTitle changes the tray itself. Without the notifications they are read every time, as before. */
+ * GFOpenTitle changes the tray itself. Without the notifications they are read every time, as before. */
 #define TRAY_MAX 24
 static struct { char name[32]; int w, order; } tray_tab[TRAY_MAX];
 static int tray_n, tray_ok, edge_ok, edge_bar;
@@ -265,7 +265,7 @@ static int read_bar_edge(void)
 {
     struct MsgPort *port;
     Forbid();
-    port = FindPort((STRPTR)"OpenMenus");
+    port = FindPort((STRPTR)"GFOpenMenus");
     Permit();
     if (!port) return OM_BAR_TITLE;
     if (!edge_ok || !menus_watched) {
@@ -283,7 +283,7 @@ static void tell_openmenus(void)
 {
     struct MsgPort *p;
     Forbid();
-    if ((p = FindPort((STRPTR)"OpenMenus")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
+    if ((p = FindPort((STRPTR)"GFOpenMenus")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
     Permit();
 }
 
@@ -293,8 +293,8 @@ static void tray(const char *name, int width, int order)
     char t[24], path[64];
     if (width > 0) {
         if ((lock = Lock((STRPTR)TRAY_DIR, ACCESS_READ))) UnLock(lock);
-        else {                                 /* ENV:OpenMenus is there only once OpenMenus has settings */
-            if ((lock = CreateDir((STRPTR)"ENV:OpenMenus"))) UnLock(lock);
+        else {                                 /* ENV:GFOpenMenus is there only once GFOpenMenus has settings */
+            if ((lock = CreateDir((STRPTR)"ENV:GFOpenMenus"))) UnLock(lock);
             if ((lock = CreateDir((STRPTR)TRAY_DIR))) UnLock(lock);
         }
         snprintf(path, sizeof path, TRAY_DIR "/%s", name);
@@ -418,11 +418,11 @@ static void wb_set_title(const char *fmt)
 }
 
 /* How many processors the machine has, after the memory (the user, 10 October 2026: "a - with number of
- * cpus / cores"): the main CPU, and the cores openmulticore.library's board gives (OMC_CoreCount, its first
+ * cpus / cores"): the main CPU, and the cores gfopenmulticore.library's board gives (OMC_CoreCount, its first
  * call, -30; 0 without a board or without the library). Written into the title once, at the start and on
  * Ctrl-F, as Workbench's title format has no token for it. */
 /* The cores the CPU cores board presents through AutoConfig (the user, 10 October 2026: "the cpu count
- * should read the amount of cores presented via autoconfig"): an AmigaChrome Team ($DA15) product 7 board carrying
+ * should read the amount of cores presented via autoconfig"): an AmiCradle Team ($DA15) product 7 board carrying
  * the ACSV block, CLASS ($20) 2, UNITS ($24) its cores. 0 without the board. */
 struct ExpansionBase *ExpansionBase;   /* opened for the look, closed after (the type proto/expansion.h declares) */
 static ULONG board_isas;                       /* 0.6.12: what the cores run (ISAS, $28; Common/barlogo.h) */
@@ -445,7 +445,7 @@ static ULONG board_cores(void)
 
 static ULONG omc_cores(void)
 {
-    struct Library *omc = OpenLibrary((STRPTR)"openmulticore.library", 0);
+    struct Library *omc = OpenLibrary((STRPTR)"gfopenmulticore.library", 0);
     ULONG n = 0;
     if (omc) {
         register ULONG d0 __asm("d0");
@@ -457,7 +457,7 @@ static ULONG omc_cores(void)
     return n > 1024 ? 0 : n;
 }
 
-/* The GPUs (0.6.9): AmigaChrome's graphics boards, ACRTG (AmigaChrome Team $DA15, up to four), counted
+/* The GPUs (0.6.9): AmiCradle's graphics boards, ACRTG (AmiCradle Team $DA15, up to four), counted
  * through AutoConfig as the cores are: product 9, the 16 MiB board, and product 15, the 64 MiB one (0.6.15;
  * before, a 64 MiB machine showed GPU = 0). 0 on a machine without one. */
 static ULONG board_gpus(void)
@@ -476,7 +476,7 @@ static ULONG board_gpus(void)
 }
 
 /* ", GPU = 1, CPU = 1 (m68k) + 8 (m68k)": after the memory (0.6.10, the user, 10 October 2026: "GPU = 1,
- * CPU = 1 (m68k)"); the cores only when the board or openmulticore.library gives them */
+ * CPU = 1 (m68k)"); the cores only when the board or gfopenmulticore.library gives them */
 static void cpus_text(char *buf, int size)
 {
     ULONG n = board_cores(), g = board_gpus();
@@ -491,7 +491,7 @@ static int ours(const char *fmt)
     size_t m = strlen(TITLE_MEM);
     while (*f == ' ') f++;
     if (!strncmp(f, TITLE_MEM, m) && (!f[m] || !strncmp(f + m, ", ", 2))) return 1;   /* with or without the GPUs and CPUs */
-    m = strlen(TITLE_MEM_068);                       /* 0.6.3 to 0.6.8's, replaced by the OpenBench one */
+    m = strlen(TITLE_MEM_068);                       /* 0.6.3 to 0.6.8's, replaced by the GFOpenBench one */
     if (!strncmp(f, TITLE_MEM_068, m) && (!f[m] || !strncmp(f + m, " - ", 3))) return 1;
     return !strcmp(f, TITLE_MEM_062) || !strcmp(f, TITLE_PLAIN) || !strcmp(f, TITLE_PLAIN_068);
 }
@@ -558,18 +558,18 @@ static void bar_paint(struct Window *win, WORD x, WORD y, WORD pw, WORD ph)
 /* ---- 0.7.5: our bar windows on the see-through bar ---------------------------------------------
  * Each bar window (the logo, the clock, the network icons, the cog, the taskspace's icons) is drawn as before, in the
  * bar's colours, and then, while the bar is see-through, keyed: a pixel in its row's bar colour (bp_paint's) takes
- * see_tray_bg, any other (text, glyphs, the logo, a lit edge) is opaque. The window's layer has OpenLayers'
+ * see_tray_bg, any other (text, glyphs, the logo, a lit edge) is opaque. The window's layer has GFOpenLayers'
  * LAYERLOOK_ALPHA, so its own alpha counts. see_tray_bg is 0 while the bar is less than solid: the bar itself
  * shows round the glyphs, at whatever opacity it has; and 255 once it is solid, so the window covers the bar as
- * before (a title long enough to run under the tray stays hidden). Pens and RECTFMT_ARGB leave an OpenRTG 32-bit
+ * before (a title long enough to run under the tray stays hidden). Pens and RECTFMT_ARGB leave a GFOpenRTG 32-bit
  * pixel's alpha 0, so the alpha goes in with RECTFMT_RAW, the bitmap's own pixels, which keeps it. */
 #ifndef RECTFMT_RAW
 #define RECTFMT_RAW 5                          /* CyberGraphX 43: the bitmap's own pixel format */
 #endif
 #define SEE_LOOK_ALPHA 8UL                     /* openamigagfx include/graphics/openlayers.h: LAYERLOOK_ALPHA */
 
-/* OpenLayers 47.101 and up: SetLayerLook(layer, what, value) (-258, openamigagfx include/graphics/openlayers.h); ~0
- * for a classic layer. Only once see_screen() has found OpenLayers. A6 saved by hand, as OpenWindows does. */
+/* GFOpenLayers 47.101 and up: SetLayerLook(layer, what, value) (-258, openamigagfx include/graphics/openlayers.h); ~0
+ * for a classic layer. Only once see_screen() has found GFOpenLayers. A6 saved by hand, as GFOpenWindows does. */
 static ULONG layer_look(struct Layer *l, ULONG what, ULONG value)
 {
     register struct Library *a1 __asm("a1") = LayersBase;
@@ -640,7 +640,7 @@ static void free_pens(void)
 #endif
 static WORD logo_size(WORD bar_h, WORD *w)
 {
-    return barlogo_size(bar_h, w);        /* OpenBench leaves room for the same (Common/barlogo.h) */
+    return barlogo_size(bar_h, w);        /* GFOpenBench leaves room for the same (Common/barlogo.h) */
 }
 
 static WORD logo_window_w(void)
@@ -805,7 +805,7 @@ static struct Window *bar_window(WORD x, WORD y, WORD w, WORD h)
 
 /* ---- the network icons ----------------------------------------------------------------------- */
 
-struct wifi_row {                              /* opensocketwifi.device's record (acnetwork.h), 64 bytes */
+struct wifi_row {                              /* gfopensocketwifi.device's record (acnetwork.h), 64 bytes */
     char ssid[33];
     UBYTE bssid[6], signal, security, flags, reserved0[2];
     ULONG channel, rate_mbps;
@@ -945,7 +945,7 @@ static void net_open(void)
 #define POP_W 230
 static void pop_lines(char l[3][64])
 {
-    if (lan_state == 0) strcpy(l[0], "Network: OpenSocket isn't running");
+    if (lan_state == 0) strcpy(l[0], "Network: GFOpenSocket isn't running");
     else if (lan_state == 1) strcpy(l[0], "Network: not connected");
     else snprintf(l[0], 64, "Network: connected, %s", lan_addr);
     if (wifi_state < 0) strcpy(l[1], "Wi-Fi: none");
@@ -1040,9 +1040,9 @@ static const char *const cog13[13] = {
     "####.....####", "..###...###..", "..#########..", ".###########.", ".##..###..##.", ".....###.....",
 };
 
-/* The cog's list (0.7): OpenPrefs's sections (section: OpenPrefs SECTION; 0.7.1: by the pages' names, as
- * OpenPrefs lists them), then the other settings programs
- * that are there (needs, or path when NULL), as in OpenUpMenu's Tools > Preferences (openamigaup
+/* The cog's list (0.7): GFOpenPrefs's sections (section: GFOpenPrefs SECTION; 0.7.1: by the pages' names, as
+ * GFOpenPrefs lists them), then the other settings programs
+ * that are there (needs, or path when NULL), as in GFOpenUpMenu's Tools > Preferences (openamigaup
  * src/openupmenu.c). */
 static const struct { const char *label, *path, *section, *needs; } cog_items[] = {
     { "Theme",         NULL, "THEME",    NULL },
@@ -1061,14 +1061,14 @@ static const struct { const char *label, *path, *section, *needs; } cog_items[] 
     { "System",        NULL, "SYSTEM",   NULL },
     { "Blanker",       NULL, "BLANKER",  NULL },
     { NULL,            NULL, NULL,       NULL },                          /* a line */
-    { "Printers",      "SYS:Utilities/OpenPrint/Printers and Queue", NULL, NULL },  /* 0.6.5: OpenPrint's printers */
-    { "Network",       "SYS:Tools/Commodities/OpenSocketControl", NULL, NULL },     /* 0.6.6: OpenSocket's settings and status */
-    { "OpenUp Setup",  "SYS:Prefs/OpenUp-Setup", NULL, NULL },
-    { "Tata",          "SYS:Prefs/OpenTata",     NULL, NULL },            /* 0.6: Tata's window, when Tata is installed */
+    { "Printers",      "SYS:Utilities/GFOpenPrint/Printers and Queue", NULL, NULL },  /* 0.6.5: GFOpenPrint's printers */
+    { "Network",       "SYS:Tools/Commodities/GFOpenSocketControl", NULL, NULL },     /* 0.6.6: GFOpenSocket's settings and status */
+    { "GFOpenUp Setup",  "SYS:Prefs/GFOpenUp-Setup", NULL, NULL },
+    { "Tata",          "SYS:Prefs/GFOpenTata",     NULL, NULL },            /* 0.6: Tata's window, when Tata is installed */
     { NULL,            NULL, NULL,       NULL },                          /* a line */
     { "All Prefs...",  "SYS:Prefs",              NULL, NULL },
 };
-#define COG_SECTIONS 15                        /* the first ones: OpenPrefs's */
+#define COG_SECTIONS 15                        /* the first ones: GFOpenPrefs's */
 #define COG_ITEMS (int)(sizeof cog_items / sizeof cog_items[0])
 #define COG_PAD 10
 static int menu_idx[COG_ITEMS], menu_n;        /* what the list shows: indexes into cog_items */
@@ -1087,13 +1087,13 @@ static int exists(const char *path)
     return l != 0;
 }
 
-/* OpenPrefs: SYS:Preferences', else an older disk's SYS:Prefs one (Common/prefsapp.h); NULL when neither is there */
+/* GFOpenPrefs: SYS:Preferences', else an older disk's SYS:Prefs one (Common/prefsapp.h); NULL when neither is there */
 static const char *prefs_app(void)
 {
     return op_app_path(0);
 }
 
-/* OpenPrefs at a section, on the public screen pub (NULL: the default), as a process of its own */
+/* GFOpenPrefs at a section, on the public screen pub (NULL: the default), as a process of its own */
 static void prefs_start(const char *pub, const char *section)
 {
     const char *app = prefs_app();
@@ -1137,7 +1137,7 @@ static int over_cog(void)
     return cog_w && IntuitionBase->FirstScreen == scr && x >= gx && x < gx + gw && y >= gy && y < gy + gh;
 }
 
-/* plain in the bar's pens; raised under the pointer; filled while its list is open, as OpenSpeaker is */
+/* plain in the bar's pens; raised under the pointer; filled while its list is open, as GFOpenSpeaker is */
 static void draw_cog(int force)
 {
     struct RastPort *rp;
@@ -1191,7 +1191,7 @@ static void draw_menu(void)
     if (!menu_w) return;
     rp = menu_w->RPort;
     w = menu_w->Width; h = menu_w->Height;
-    if (pt_ok) pt_panel(rp, w, h);              /* the theme's menu colour and a slim frame, as OpenMenus' menus */
+    if (pt_ok) pt_panel(rp, w, h);              /* the theme's menu colour and a slim frame, as GFOpenMenus' menus */
     else {
         SetAPen(rp, dri->dri_Pens[BARBLOCKPEN]);
         RectFill(rp, 1, 1, w - 2, h - 2);
@@ -1292,7 +1292,7 @@ static void menu_open(void)
 }
 
 /* starts an editor as a double-click on its icon does (its icon's stack and tool types count) */
-/* 0.6.6: the window the editor opens goes to the screen's top right, by the cog (OpenWindows 0.8.1, cogplace.h) */
+/* 0.6.6: the window the editor opens goes to the screen's top right, by the cog (GFOpenWindows 0.8.1, cogplace.h) */
 static void cog_arm(void)
 {
     struct cogplace *cp;
@@ -1313,7 +1313,7 @@ static void cog_start(const char *path)
     BPTR in, out;
     char cmd[80];
     cog_arm();
-    if (ob_open(path) > 0) return;                     /* 0.6.13: OpenBench opens it (a built-in runs inside it) */
+    if (ob_open(path) > 0) return;                     /* 0.6.13: GFOpenBench opens it (a built-in runs inside it) */
     if (!WorkbenchBase) WorkbenchBase = OpenLibrary((STRPTR)"workbench.library", 44);
     if (WorkbenchBase && OpenWorkbenchObjectA((STRPTR)path, NULL)) return;
     if (!strcmp(path, "SYS:Prefs")) return;             /* a drawer needs Workbench */
@@ -1331,7 +1331,7 @@ static void menu_pick(int row)
 {
     const char *path;
     if (row < 0 || row >= menu_n) return;
-    if (cog_items[menu_idx[row]].section) {   /* 0.7: OpenPrefs at its section, by the cog */
+    if (cog_items[menu_idx[row]].section) {   /* 0.7: GFOpenPrefs at its section, by the cog */
         const char *section = cog_items[menu_idx[row]].section;
         menu_close(1);
         cog_arm();
@@ -1562,7 +1562,7 @@ static void ts_replies(void)
     while (ts_reply && (m = GetMsg(ts_reply))) { FreeVec(m); ts_out--; }
 }
 
-/* a program's message on OpenTitle's port */
+/* a program's message on GFOpenTitle's port */
 static void ts_command(struct TaskspaceMsg *m)
 {
     int i;
@@ -1621,7 +1621,7 @@ static void port_events(struct MsgPort *port)
     }
 }
 
-/* OpenTitle is ending: each program hears its icon has gone, and has two seconds to reply */
+/* GFOpenTitle is ending: each program hears its icon has gone, and has two seconds to reply */
 static void ts_end(void)
 {
     int i, n;
@@ -1646,7 +1646,7 @@ static int ts_is(struct Window *w)
 
 /* ---- 0.7.5: the see-through bar ------------------------------------------------------------------
  * The bar is Intuition's: it draws the background, the title and the depth gadget into the screen's BarLayer with
- * pens, and nothing tells a program when it draws them again. OpenLayers can make a layer translucent
+ * pens, and nothing tells a program when it draws them again. GFOpenLayers can make a layer translucent
  * (SetLayerOpacity) or let its own alpha count (LAYERLOOK_ALPHA), but either from outside would fade the title and
  * the depth gadget with the background, or lose them (pens leave a 32-bit pixel's alpha 0). So the bar's
  * background opacity is asked of Intuition, with a call proposed to Team 4 on 25 October 2026 and not in
@@ -1661,16 +1661,16 @@ static int ts_is(struct Window *w)
  * and the bar stays as it was. The rest is ready for it: the setting, the fade and its timing, and our windows.
  *
  * See-through only where all of these hold, checked when the windows open (and the last every 2 s):
- *   - the Workbench screen's own title bar (not OpenMenus' bar at an edge), shown;
- *   - OpenLayers composites the screen (47.102's LAYERS_COMPOSE_WHY answers 0): RTG, not 8-bit, the switch on;
+ *   - the Workbench screen's own title bar (not GFOpenMenus' bar at an edge), shown;
+ *   - GFOpenLayers composites the screen (47.102's LAYERS_COMPOSE_WHY answers 0): RTG, not 8-bit, the switch on;
  *   - 32 bits a pixel, where a layer's own alpha counts (our windows' glyphs stay opaque on the clear bar);
  *   - Intuition takes TB_ICTRL_BAROPACITY;
- *   - a layer behind the bar covers it all, so there is something to see. OpenBench's backdrop window starts
+ *   - a layer behind the bar covers it all, so there is something to see. GFOpenBench's backdrop window starts
  *     under the bar (openamigabench desktop/openbench.c), so with it alone there is only the compositor's black.
  * Elsewhere (AGA, PAL, 8 or 16-bit, a screen classic layers draw) nothing here runs and the bar is solid.
  *
  * The cost at rest is today's: no extra wake. Each wake the loop already has (a tenth of a second while the pointer
- * is on the bar, half a second otherwise) also looks at the pointer's height, at OpenTitle's own lists and at the
+ * is on the bar, half a second otherwise) also looks at the pointer's height, at GFOpenTitle's own lists and at the
  * menu button (input.device's PeekQualifier): no calls into the screen. Only while the bar fades does the loop
  * wake every TBF_STEP_MS (40 ms): at most 4 steps in, then one after the grace, then 8 steps out; each is one
  * IntuitionControlA. */
@@ -1695,8 +1695,8 @@ static int see_screen(void)
     ULONG why;
     if (!scr || bar_edge != OM_BAR_TITLE || !(scr->Flags & SHOWTITLE) || !scr->BarLayer || !CyberGfxBase) return 0;
     if (LayersBase->lib_Version != 47 || LayersBase->lib_Revision < 102 || LayersBase->lib_NegSize < 258) return 0;   /* 0.7.6: 47.106's table is 258 bytes */
-    {   /* ComposeLayerInfo(li, NULL, LAYERS_COMPOSE_WHY) (-246, OpenLayers 47.102): 0 while it composites. As
-         * OpenPrefs' Windows page asks it; A6 saved by hand */
+    {   /* ComposeLayerInfo(li, NULL, LAYERS_COMPOSE_WHY) (-246, GFOpenLayers 47.102): 0 while it composites. As
+         * GFOpenPrefs' Windows page asks it; A6 saved by hand */
         register struct Library *d1 __asm("d1") = LayersBase;
         register void *a0 __asm("a0") = &scr->LayerInfo;
         register void *a1 __asm("a1") = NULL;
@@ -1707,7 +1707,7 @@ static int see_screen(void)
     }
     if (why != 0) return 0;
     if (GetCyberMapAttr(scr->RastPort.BitMap, CYBRMATTR_BPPIX) != 4) return 0;
-    /* a composited screen means AmigaChrome's own Intuition (only it asks layers to composite), so the call is there */
+    /* a composited screen means AmiCradle's own Intuition (only it asks layers to composite), so the call is there */
     if (IntuitionBase->LibNode.lib_Version < 47) return 0;
     return bar_opacity(~0UL) != 0;
 }
@@ -1730,12 +1730,12 @@ static tb_ptr see_ptr;                         /* 0.7.7: where the pointer was a
 static int see_hot(void)
 {
     if (menu_w || pop_w) return 1;
-    /* 0.7.7: the pointer counts only once it has moved since OpenTitle first looked (tbp_on_bar): after a boot it
+    /* 0.7.7: the pointer counts only once it has moved since GFOpenTitle first looked (tbp_on_bar): after a boot it
      * rests at the top left corner, on the bar */
     if (IntuitionBase->FirstScreen == scr
         && tbp_on_bar(&see_ptr, scr->MouseX, scr->MouseY, scr->MouseY >= 0 && scr->MouseY <= scr->BarHeight)) return 1;
     if (input_io.io_Device) {
-        struct Library *InputBase = (struct Library *)input_io.io_Device;   /* PeekQualifier's base, as OpenBench has it */
+        struct Library *InputBase = (struct Library *)input_io.io_Device;   /* PeekQualifier's base, as GFOpenBench has it */
         (void)InputBase;
         if (PeekQualifier() & IEQUALIFIER_RBUTTON) return 1;
     }
@@ -1797,7 +1797,7 @@ static void see_on(void)
     see_apply(see_fade.level);
 }
 
-/* fresh: the windows have just opened (the screen, the setting or OpenMenus' bar may have changed) */
+/* fresh: the windows have just opened (the screen, the setting or GFOpenMenus' bar may have changed) */
 static void see_check(int fresh)
 {
     int want;
@@ -2081,11 +2081,11 @@ static void events(struct Window *w)
         else if (cls == IDCMP_MOUSEBUTTONS && code == SELECTDOWN) {
             if (w == net_w) { if (pop_w) pop_close(); else pop_open(); return; }
             if (w == clock_w) {
-                /* 0.6.4: a double-click on the date and time opens OpenDateTime (date, time, the clock and the
+                /* 0.6.4: a double-click on the date and time opens GFOpenDateTime (date, time, the clock and the
                  * region in one editor); until it is installed, the OS's Time editor (the user, 10 Oct 2026) */
                 static ULONG last_s, last_m;
                 if (last_s && DoubleClick(last_s, last_m, secs, micros)) {
-                    static const char *const editors[] = { "SYS:Prefs/OpenDateTime", "SYS:Prefs/Time", "SYS:Prefs/Classic/Time" };
+                    static const char *const editors[] = { "SYS:Prefs/GFOpenDateTime", "SYS:Prefs/Time", "SYS:Prefs/Classic/Time" };
                     int k;
                     last_s = 0;
                     for (k = 0; k < 3; k++) {
@@ -2117,7 +2117,7 @@ static void events(struct Window *w)
     }
 }
 
-/* 1 when the bar's title has room for the logo: Workbench's, which OpenTitle's
+/* 1 when the bar's title has room for the logo: Workbench's, which GFOpenTitle's
  * title format starts with spaces (another program's starts at the left edge) */
 static int wb_title_shown(void)
 {
@@ -2177,7 +2177,7 @@ int main(void)
     Forbid();
     port = FindPort((STRPTR)TB_PORT);
     Permit();
-    if (port) { PutStr((STRPTR)"OpenTitle is already running\n"); goto out; }
+    if (port) { PutStr((STRPTR)"GFOpenTitle is already running\n"); goto out; }
     if (!(port = CreateMsgPort())) goto out;
     port->mp_Node.ln_Name = (char *)TB_PORT;
     port->mp_Node.ln_Pri = 0;
@@ -2208,9 +2208,9 @@ int main(void)
              * aborted one comes back too, and its reply sets the timer port's
              * signal after Wait() has returned; WaitIO() takes the reply but leaves
              * the signal. Left set, the next Wait() returned at once, its request
-             * was aborted again, and OpenTitle went round without stopping: any
+             * was aborted again, and GFOpenTitle went round without stopping: any
              * message woke it into that, a taskspace icon's first of all, and no
-             * task below priority 0 ran again (OpenFTP's transfers, 8 Oct 2026). */
+             * task below priority 0 ran again (GFOpenFTP's transfers, 8 Oct 2026). */
             {
                 int done = CheckIO((struct IORequest *)tr) != NULL;
                 if (!done) AbortIO((struct IORequest *)tr);
@@ -2263,12 +2263,12 @@ int main(void)
         if (waited < 500) continue;
         waited = 0;                            /* every half second, as before */
         if (pop_w && ++pop_ticks > 20) pop_close();     /* the panel goes after 10 s */
-        /* 0.6.11: the bar changed height (OpenLook makes it taller as it starts): every window made again */
+        /* 0.6.11: the bar changed height (GFOpenLook makes it taller as it starts): every window made again */
         if (scr && scr->BarHeight != made_bh) { close_all(); if (!open_all()) break; apply_title(); }   /* 0.6.12: the room for the logo too */
         logo_follow();
         draw_clock(0);
         if (tick % 2 == 0) os_poll(1);        /* every second: the other public screens' cogs (0.7) */
-        if (++tick % 4 == 0) {                 /* every 2 s: the tray and OpenMenus' bar may have moved */
+        if (++tick % 4 == 0) {                 /* every 2 s: the tray and GFOpenMenus' bar may have moved */
             int edge = read_bar_edge();
             WORD ox = cx, oy = cy, ow = cw, oh = ch;
             if (edge != bar_edge && (clock_w || net_w || cog_w || ts_count())) { close_all(); if (!open_all()) break; }
@@ -2322,7 +2322,7 @@ int main(void)
                 cog_drawn = -1; draw_cog(1);
                 for (i = 0; i < TS_ICONS; i++) if (ts[i]) ts_draw(ts[i], 1);
             }
-            if (scr) see_check(0);                /* 0.7.5: something behind the bar to see (OpenBench may have come or gone) */
+            if (scr) see_check(0);                /* 0.7.5: something behind the bar to see (GFOpenBench may have come or gone) */
         }
     }
     os_poll(0);                                /* the other screens' cogs closed */

@@ -1,6 +1,6 @@
 /* pf_iff: an OS preferences file (IFF FORM PREF) as the list of its chunks, in file order, PRHD first.
  *
- * The Appearance tabs of OpenLook (Look/src/appearance.c) read ENV:Sys/<name>.prefs into a pf_file, change
+ * The Appearance tabs of GFOpenLook (Look/src/appearance.c) read ENV:Sys/<name>.prefs into a pf_file, change
  * the fields they know inside a chunk's bytes (pf_prefs.c) and write the list back, so a chunk or a byte no
  * tab knows is carried across as it came (combined prefs design: "carry across any chunk we don't
  * understand"). The list, parse and write are plain C and tested on the host (Look/tests/run.sh); loading

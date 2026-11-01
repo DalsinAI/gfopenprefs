@@ -1,4 +1,4 @@
-/* Host tests for OpenDateTime's time zone rules (src/tzrule.c) and its table of
+/* Host tests for GFOpenDateTime's time zone rules (src/tzrule.c) and its table of
  * places (src/zones.h), built with the host's C compiler:
  *
  *   DateTime/test/run.sh
@@ -160,7 +160,7 @@ static void battery(void)
     CHECK("battery: ENVARC: never written: a restart on GMT, consistent", amiga_right(&a) && a.env_west == 0);
     amiga_look(&a, &z, 1);
     CHECK("battery: ENVARC: never written: the next look moves it, battery too", amiga_right(&a) && a.sys == a.utc + 3600 && a.bat == a.sys);
-    CHECK("battery: never on AmigaChrome", !tz_battery_follows(1, 1, 0, -60));
+    CHECK("battery: never on AmiCradle", !tz_battery_follows(1, 1, 0, -60));
 }
 
 static void tokyo(void)

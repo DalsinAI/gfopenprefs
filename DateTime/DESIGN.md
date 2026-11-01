@@ -1,9 +1,9 @@
-# OpenDateTime
+# GFOpenDateTime
 
-The date, the time and the region in one OpenPrefs editor (the user, 10
-October 2026: "time, locale should slide under a new Open app"; a double-click
+The date, the time and the region in one GFOpenPrefs editor (the user, 10
+October 2026: "time, locale should slide under a new GFOpen app"; a double-click
 on the date and time in the Workbench bar opens it). It takes over the OS's
-Time and Locale editors, which OpenUp's RECONCILE moves to SYS:Prefs/Classic.
+Time and Locale editors, which GFOpenUp's RECONCILE moves to SYS:Prefs/Classic.
 MIT, Copyright (c) 2026 AmigaChrome Team.
 
 ## 0.1 (10 October 2026)
@@ -17,10 +17,10 @@ MIT, Copyright (c) 2026 AmigaChrome Team.
 
 Save writes `ENV:Sys/Locale.prefs` and `ENVARC:`; Use writes `ENV:` (IPrefs
 reads it at once); Cancel changes nothing. Everything else in Locale prefs is
-kept. From the Shell: `OpenDateTime [FROM file] [USE] [SAVE]`.
+kept. From the Shell: `GFOpenDateTime [FROM file] [USE] [SAVE]`.
 
-Installed as `SYS:Prefs/OpenDateTime`. To come: the clock's 12 or 24 hours
-and the date's format for OpenTitle, and time-server setting (OpenSocket's
+Installed as `SYS:Prefs/GFOpenDateTime`. To come: the clock's 12 or 24 hours
+and the date's format for GFOpenTitle, and time-server setting (GFOpenSocket's
 sntp).
 
 ## 0.1.2 (12 October 2026): the region when none is saved, and the picks shown
@@ -47,12 +47,12 @@ locale.library runs on its own built-in region (united_states, GMT offset
   record has none, from the window and from the Shell's `USE` and `SAVE`.
 - **No highlight in the lists.** 0.1.1 removed `GTLV_ShowSelected` to lose
   the box beside the picked row, and the highlight went with it. The box was
-  the row's name: GadTools draws it in JAM2, and OpenLook gives JAM2 text a
+  the row's name: GadTools draws it in JAM2, and GFOpenLook gives JAM2 text a
   cell of its own colour. Each row is now drawn by the editor
   (`GTLV_CallBack`): the whole row in the fill colour when picked, the name
   in JAM1 over it. The pick shows as one even bar.
 
-Tested in lab `gcc16-c` (a copy of Instance-32), built into OpenBench and
+Tested in lab `gcc16-c` (a copy of Instance-32), built into GFOpenBench and
 stand-alone.
 
 ## 0.2.3 (1 November 2026): the battery clock follows ENVARC:
@@ -73,12 +73,12 @@ After a Ctrl-E the keeper aborts its timer request and waits for it. The reply l
 
 ## 0.2.1 (13 October 2026): no NULL output
 
-Setting the clock runs `C:Date` and `C:SetClock SAVE` with a `NIL:` input and a `NIL:` output, opened and closed around the calls. Before, the output was NULL. The Team's decision of 12 October: every synchronous call gets explicit handles, as OpenDock and OpenMenus do. If `NIL:` can't be opened, the clock is not set.
+Setting the clock runs `C:Date` and `C:SetClock SAVE` with a `NIL:` input and a `NIL:` output, opened and closed around the calls. Before, the output was NULL. The Team's decision of 12 October: every synchronous call gets explicit handles, as GFOpenDock and GFOpenMenus do. If `NIL:` can't be opened, the clock is not set.
 
 ## 0.2 (12 October 2026): a place, and summer time by itself
 
 The decision (12 October 2026): the user picks a place, such as
-Europe/London, not an offset; on AmigaChrome the host hands the Amiga its zone
+Europe/London, not an offset; on AmiCradle the host hands the Amiga its zone
 and offset; on a real Amiga the Team's locale side carries the summer time
 rules and switches by itself; Locale prefs, as the Team writes them, are the
 one owner of the zone. The whole design, with the host's side and ACFS's
@@ -95,7 +95,7 @@ dates, is amigachrome `docs/design/Design-Time-Zones.md`.
   a rule can't say (Morocco's Ramadan; Edmonton and Vancouver moving to one
   time all year) carry their changes from 2026, and the rule holds after.
   `src/tzrule.c` runs them, with no library, so the host tests build it too.
-- **On AmigaChrome** (the ACBridge board is there, and `accontrol.device`
+- **On AmiCradle** (the ACBridge board is there, and `accontrol.device`
   answers), the place and offset are the host's: the window shows them
   ("Europe/London, the host's: UTC+1:00 BST, summer time"), and the region and
   place lists are greyed. The battery clock runs on the host's time, so a
@@ -103,8 +103,8 @@ dates, is amigachrome `docs/design/Design-Time-Zones.md`.
 - **On a real Amiga** the offset saved is the place's at the clock's time.
   Picking a place doesn't move the clock: the clock is taken as right, and the
   offset as what was wrong.
-- **`OpenDateTime KEEP`**, the background part, keeps `lp_GMTOffset` right:
-  on AmigaChrome it asks the host once a minute and, when the offset changes,
+- **`GFOpenDateTime KEEP`**, the background part, keeps `lp_GMTOffset` right:
+  on AmiCradle it asks the host once a minute and, when the offset changes,
   sets the system clock on to the battery clock, which has moved with the
   host; on a real Amiga it looks just after each change of the place's rule,
   moves the clock (and the battery clock) by the change and saves the offset.
@@ -112,12 +112,12 @@ dates, is amigachrome `docs/design/Design-Time-Zones.md`.
   battery clock does, so a failed write never moves a clock twice. One runs at
   a time (the port `OpenDateTime.keeper`); Ctrl-C stops it; Use and Save send
   it Ctrl-E, to look again at once. It writes a line to its output when what
-  it did changes. To start it at boot: `Run >NIL: SYS:Prefs/OpenDateTime KEEP`
+  it did changes. To start it at boot: `Run >NIL: SYS:Prefs/GFOpenDateTime KEEP`
   in `S:User-Startup` (not added by anything yet).
-- **`OpenDateTime ZONE Europe/London [USE|SAVE]`** sets the place from the
-  Shell (on its own, as Use). **`OpenDateTime INFO`** says the place, the
+- **`GFOpenDateTime ZONE Europe/London [USE|SAVE]`** sets the place from the
+  Shell (on its own, as Use). **`GFOpenDateTime INFO`** says the place, the
   offset saved and in use, the host's, the clock and the next change.
-- With no Locale prefs at all on AmigaChrome, KEEP writes `ENV:` with the
+- With no Locale prefs at all on AmiCradle, KEEP writes `ENV:` with the
   editor's defaults (the United Kingdom, english) and the host's zone, so the
   offset is right; `ENVARC:` waits for a Save.
 - **Open: the autumn change holds waits.** Kickstart 3.2's `timer.device`

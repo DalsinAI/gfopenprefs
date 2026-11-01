@@ -1,5 +1,5 @@
-/* OpenPrefs Gamepads 0.2: game controllers, through OpenInput
- * (openinput.library; design: DESIGN.md, and openamigainput's
+/* GFOpenPrefs Gamepads 0.2: game controllers, through GFOpenInput
+ * (gfopeninput.library; design: DESIGN.md, and openamigainput's
  * Design-OpenInput.md section 8).
  *
  *   - the controllers, live: each one's name, maker and whether it is
@@ -10,7 +10,7 @@
  *   - the mapping: built in, or the user's own, made with Map... ("press
  *     the bottom face button", and so on, with Skip), in SDL's text format;
  *     the Advanced view shows the line and takes one typed in
- *   - "Let older games see modern pads": OpenInput's ReadJoyPort patch,
+ *   - "Let older games see modern pads": GFOpenInput's ReadJoyPort patch,
  *     opt-in and off by default, with the port and how the pad appears
  *     there (a CD32 pad or a joystick)
  *
@@ -19,15 +19,15 @@
  *
  *   Gamepads [USE] [SAVE] [ADVANCED]
  *
- * "Gamepads USE" at boot (OpenUp's startup) starts openinput.library, so
+ * "Gamepads USE" at boot (GFOpenUp's startup) starts gfopeninput.library, so
  * the ReadJoyPort patch is in when it is switched on.
  *
- * Built into OpenBench as OpenGamepads (the Team, 11 October 2026: the Open preferences in OpenBench
- * natively) with -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: OpenBench starts it as
+ * Built into GFOpenBench as GFOpenGamepads (the Team, 11 October 2026: the Open preferences in GFOpenBench
+ * natively) with -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: GFOpenBench starts it as
  * a process of its own with no arguments, as Workbench starts a tool, so it is the window; Ctrl-C is
- * Cancel, Ctrl-F brings the window to the front; openinput.library is opened under this editor's own
+ * Cancel, Ctrl-F brings the window to the front; gfopeninput.library is opened under this editor's own
  * name, and the pad it holds is let go as it quits; each start begins as a new program would, since
- * OpenBench's data stays from one start to the next.
+ * GFOpenBench's data stays from one start to the next.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include <exec/types.h>
@@ -56,7 +56,7 @@
 #include "gp_pad.h"
 #include "gp_draw.h"
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -66,18 +66,18 @@
 #endif
 
 #ifdef IN_OPENBENCH
-/* inside OpenBench, OpenBench's $VER is the one; a global OpenInputBase could be another built-in's:
- * every OpenInputBase below, and in openinput.library's calls, is this editor's own */
+/* inside GFOpenBench, GFOpenBench's $VER is the one; a global OpenInputBase could be another built-in's:
+ * every OpenInputBase below, and in gfopeninput.library's calls, is this editor's own */
 static struct Library *gamepads_openinput;
 #define OpenInputBase gamepads_openinput
 #else
-const char version[] __attribute__((used)) = "$VER: Gamepads 0.2 (9.10.2026) OpenPrefs, AmigaChrome Team";
+const char version[] __attribute__((used)) = "$VER: Gamepads 0.2 (9.10.2026) GFOpenPrefs, AmiCradle Team";
 
 struct Library *OpenInputBase;
 #endif
 
-#define VIEW_ENV "ENV:OpenAmiga/PrefsView"           /* shared by every OpenPrefs editor: simple or advanced */
-#define VIEW_ENVARC "ENVARC:OpenAmiga/PrefsView"
+#define VIEW_ENV "ENV:GFOpenAmiga/PrefsView"           /* shared by every GFOpenPrefs editor: simple or advanced */
+#define VIEW_ENVARC "ENVARC:GFOpenAmiga/PrefsView"
 #define PATCH_ENV "ENV:" OPENINPUT_LOWLEVELPATCH
 #define PATCH_ENVARC "ENVARC:" OPENINPUT_LOWLEVELPATCH
 #define PORTS_ENV "ENV:" OPENINPUT_PORTS
@@ -95,7 +95,7 @@ struct Library *OpenInputBase;
 static gp_settings cur, orig;
 static int tested;                                    /* Test wrote ENV: (Cancel puts it back) */
 static int advanced;
-static int have_lib;                                  /* a working openinput.library (1.2 or later) */
+static int have_lib;                                  /* a working gfopeninput.library (1.2 or later) */
 
 static struct OIControllerInfo pads[MAXPADS];
 static int npads;
@@ -116,7 +116,7 @@ static APTR notify_all, notify_state;
 
 /* mappings changed here: put back on Cancel, kept on Save */
 struct Change { UBYTE guid[16]; char was[MAPLEN]; char now[MAPLEN]; int own_was, own_now; };
-static struct Change *changes;            /* MAXCHANGES (8 KB), made at the start of main(): OpenPrefs holds every editor at once (W49) */
+static struct Change *changes;            /* MAXCHANGES (8 KB), made at the start of main(): GFOpenPrefs holds every editor at once (W49) */
 static int nchanges;
 
 /* the Map... wizard */
@@ -186,8 +186,8 @@ static int read_view(void)
 
 static void write_view(int a)
 {
-    write_file(VIEW_ENV, "ENV:OpenAmiga", a ? "advanced\n" : "simple\n", a ? 9 : 7);
-    write_file(VIEW_ENVARC, "ENVARC:OpenAmiga", a ? "advanced\n" : "simple\n", a ? 9 : 7);
+    write_file(VIEW_ENV, "ENV:GFOpenAmiga", a ? "advanced\n" : "simple\n", a ? 9 : 7);
+    write_file(VIEW_ENVARC, "ENVARC:GFOpenAmiga", a ? "advanced\n" : "simple\n", a ? 9 : 7);
 }
 
 static void load_settings(gp_settings *s)
@@ -253,7 +253,7 @@ static void drop_own_mapping(const UBYTE *guid, const char *path, const char *di
 }
 
 /* A mapping line in use (and kept, with OISMF_SAVE), as the only line for
- * its GUID in mappings.txt: openinput.library adds the line to the file,
+ * its GUID in mappings.txt: gfopeninput.library adds the line to the file,
  * so the old ones go first. */
 static LONG set_mapping_clean(const char *line, ULONG flags)
 {
@@ -292,7 +292,7 @@ static const char *source_name(ULONG s)
     switch (s) {
     case OISRC_AMIGAPORT: return "An Amiga port";
     case OISRC_POSEIDON: return "USB (Poseidon)";
-    case OISRC_AMIGACHROME: return "AmigaChrome";
+    case OISRC_AMIGACHROME: return "AmiCradle";
     case OISRC_PISTORMPORT: return "A1200 port (PiStorm)";
     }
     return "Unknown";
@@ -407,7 +407,7 @@ static void show_skip(int on)
     struct Gadget *k = gad[G_SKIP];
     if (!win || !k || on == skip_shown) return;
     if (on) { AddGList(win, k, ~0, 1, NULL); RefreshGList(k, win, NULL, 1); }
-    else {                                   /* k stands where it was made (OpenPrefs: right of the list): drawn there again */
+    else {                                   /* k stands where it was made (GFOpenPrefs: right of the list): drawn there again */
         RemoveGList(win, k, 1);
         EraseRect(win->RPort, k->LeftEdge - LT_DX, k->TopEdge, k->LeftEdge - LT_DX + k->Width - 1, k->TopEdge + k->Height - 1);
     }
@@ -489,7 +489,7 @@ static int pad_kind(void)
     return GP_PAD_MODERN;
 }
 
-/* The dead zone the sticks are drawn with: OpenInput's (ENV:OpenInput/DeadZone),
+/* The dead zone the sticks are drawn with: GFOpenInput's (ENV:OpenInput/DeadZone),
  * or a tenth of the travel, the rest zone a game usually takes, when none is set. */
 static int stick_dead_zone(void)
 {
@@ -511,7 +511,7 @@ static void draw_test(int force)
     if (!win || !box_w) return;
     rp = win->RPort;
     if (!sel_id || !view) {
-        const char *t = have_lib ? "No game controller is connected." : "OpenInput (LIBS:openinput.library 1.2) is not installed.";
+        const char *t = have_lib ? "No game controller is connected." : "GFOpenInput (LIBS:gfopeninput.library 1.2) is not installed.";
         SetAPen(rp, dri->dri_Pens[BACKGROUNDPEN]); RectFill(rp, x0, y0, x0 + w - 1, y0 + h - 1);
         SetAPen(rp, dri->dri_Pens[TEXTPEN]); SetDrMd(rp, JAM1);
         Move(rp, x0 + (w - TextLength(rp, (STRPTR)t, strlen(t))) / 2, y0 + h / 2); Text(rp, (STRPTR)t, strlen(t));
@@ -604,7 +604,7 @@ static int use_mapping(const char *line, int own)
     struct Change *c = change_for(sel.oci_GUID);
     if (!c) { status("Too many changes at once: Save or Use first."); return 0; }
     if (OIN_SetMapping((STRPTR)line, OISMF_TEST) != OIERR_OK) { status("That mapping line can't be read."); return 0; }
-    if (set_mapping_clean(line, OISMF_USE) != OIERR_OK) { status("OpenInput would not take the mapping."); return 0; }
+    if (set_mapping_clean(line, OISMF_USE) != OIERR_OK) { status("GFOpenInput would not take the mapping."); return 0; }
     strncpy(c->now, line, MAPLEN - 1);
     c->own_now = own;
     return 1;
@@ -695,7 +695,7 @@ static void put_back_mappings(void)
 }
 
 /* the library reads the settings once a second: wait until the patch is
- * as set, up to 3 s. 1: it is; 2: AmigaChrome's cores feed that port at
+ * as set, up to 3 s. 1: it is; 2: AmiCradle's cores feed that port at
  * the chips (they answer for it first); 0: not yet. */
 static int wait_for_patch(int on)
 {
@@ -768,7 +768,7 @@ static int gui_once(void)
     list_pads();
 
 #ifdef LT_ONE
-    lt_make(NULL, NULL, L, top, W - 20, lh, LT_GAMEPADS);     /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, L, top, W - 20, lh, LT_GAMEPADS);     /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 20, lh);
 #endif
     /* twice, if need be: the test view as big as the font asks, but the window no taller than the screen */
@@ -850,9 +850,9 @@ static int gui_once(void)
     if (!g) { rc = RETURN_FAIL; goto out; }
     menus[6].nm_Flags = CHECKIT | MENUTOGGLE | (advanced ? CHECKED : 0);
 #ifdef LT_ONE
-    win = lt_open(scr, 40, scr->BarHeight + 4, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | IDCMP_INTUITICKS | LISTVIEWIDCMP | BUTTONIDCMP | CYCLEIDCMP | STRINGIDCMP | CHECKBOXIDCMP, "OpenPrefs Gamepads 0.2");
+    win = lt_open(scr, 40, scr->BarHeight + 4, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | IDCMP_INTUITICKS | LISTVIEWIDCMP | BUTTONIDCMP | CYCLEIDCMP | STRINGIDCMP | CHECKBOXIDCMP, "GFOpenPrefs Gamepads 0.2");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Gamepads", WA_ScreenTitle, (ULONG)"OpenPrefs Gamepads 0.2", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Gamepads", WA_ScreenTitle, (ULONG)"GFOpenPrefs Gamepads 0.2", WA_PubScreen, (ULONG)scr,
                          WA_Left, 40, WA_Top, scr->BarHeight + 4, WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
                          WA_SmartRefresh, TRUE, WA_NewLookMenus, TRUE,
@@ -887,7 +887,7 @@ static int gui_once(void)
     while (!quit) {
         struct IntuiMessage *m;
 #ifdef IN_OPENBENCH
-        /* inside OpenBench: Ctrl-C (OpenBench is quitting) is Cancel; Ctrl-F (opened again) to the front */
+        /* inside GFOpenBench: Ctrl-C (GFOpenBench is quitting) is Cancel; Ctrl-F (opened again) to the front */
         ULONG got = Wait(sigs | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_C) { put_back(); quit = 1; continue; }
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -982,8 +982,8 @@ static int gui_once(void)
                     store_settings(&cur, 0); tested = 1;
                     switch (wait_for_patch(cur.patch)) {
                     case 1: status(cur.patch ? "Testing: older games see the pad now." : "Testing: the patch is out."); break;
-                    case 2: status("AmigaChrome feeds this port already, for every game (Cradle's Game pads)."); break;
-                    default: status("OpenInput hasn't changed the patch yet (is the library 1.2?)."); break;
+                    case 2: status("AmiCradle feeds this port already, for every game (Cradle's Game pads)."); break;
+                    default: status("GFOpenInput hasn't changed the patch yet (is the library 1.2?)."); break;
                     }
                     show_list();
                     break;
@@ -1019,7 +1019,7 @@ out:
 }
 
 #if defined(IN_OPENBENCH) || defined(LT_ONE)
-/* OpenBench's data stays from one start to the next: what a new start finds, not the last one's (the
+/* GFOpenBench's data stays from one start to the next: what a new start finds, not the last one's (the
  * port, the notifications and the pad were let go as the last one quit; a missing library this time
  * must not leave have_lib set) */
 static void fresh_start(void)
@@ -1072,22 +1072,22 @@ int main(int argc, char **argv)
     orig = cur;
     if (args[0] || args[1]) {                    /* from the Shell or at boot: no window */
         put_in_place(args[1] != 0);
-        if (have_lib && cur.patch && !wait_for_patch(1)) PutStr((STRPTR)"Gamepads: OpenInput didn't put its ReadJoyPort patch in.\n");
+        if (have_lib && cur.patch && !wait_for_patch(1)) PutStr((STRPTR)"Gamepads: GFOpenInput didn't put its ReadJoyPort patch in.\n");
     }
 #ifndef OP_APPLY
-    else {                                   /* OpenPrefs's C:OpenPrefs (OP_APPLY): USE and SAVE only */
+    else {                                   /* GFOpenPrefs's C:GFOpenPrefs (OP_APPLY): USE and SAVE only */
         advanced = args[2] ? 1 : read_view();
         if (have_lib && (oiport = CreateMsgPort())) {
             struct TagItem t[2] = { { OIT_Events, OIMC_ADDED | OIMC_REMOVED | OIMC_MAPPING }, { TAG_DONE, 0 } };
             notify_all = OIN_AddNotifyA(oiport, t);
         }
-        if (!OpenInputBase) strcpy(status_text, "OpenInput isn't installed (LIBS:openinput.library): pads can't be listed.");
-        else if (!have_lib) strcpy(status_text, "This openinput.library is the 1.1 skeleton: it lists no pads (1.2 does).");
+        if (!OpenInputBase) strcpy(status_text, "GFOpenInput isn't installed (LIBS:gfopeninput.library): pads can't be listed.");
+        else if (!have_lib) strcpy(status_text, "This gfopeninput.library is the 1.1 skeleton: it lists no pads (1.2 does).");
         else {
             int i, ac = 0;
             list_pads();
             for (i = 0; i < npads; i++) if (pads[i].oci_Source == OISRC_AMIGACHROME) ac = 1;
-            strcpy(status_text, ac ? "On AmigaChrome, Cradle's Game pads can give every game the pads."
+            strcpy(status_text, ac ? "On AmiCradle, Cradle's Game pads can give every game the pads."
                                    : "Pick a controller to test it.");
         }
         while ((rc = gui_once()) == 99) ;

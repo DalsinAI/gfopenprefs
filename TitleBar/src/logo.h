@@ -1,4 +1,4 @@
-/* AmigaChrome's logo, 16 x 16: 0xRRGGBB, or -1 where it is see-through (tools/mklogo.py) */
+/* AmiCradle's logo, 16 x 16: 0xRRGGBB, or -1 where it is see-through (tools/mklogo.py) */
 static const long logo16[16 * 16] = {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,

@@ -80,7 +80,7 @@ void gp_ports_from_text(gp_settings *s, const char *t)
 int gp_ports_to_text(const gp_settings *s, char *out, int size)
 {
     static const char *const modes[3] = { "none", "joystick", "cd32" };
-    int n = snprintf(out, size, "# OpenInput: which pad feeds which Amiga port through the ReadJoyPort patch\n");
+    int n = snprintf(out, size, "# GFOpenInput: which pad feeds which Amiga port through the ReadJoyPort patch\n");
     for (int i = 1; i >= 0; i--) {
         char g[33];
         const gp_port *p = &s->port[i];

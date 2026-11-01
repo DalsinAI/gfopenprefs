@@ -1,10 +1,10 @@
-/* OpenLook, the editor: Theme (Look), Windows, Title bar and Menus as the pages of one window, and since 1.1
+/* GFOpenLook, the editor: Theme (Look), Windows, Title bar and Menus as the pages of one window, and since 1.1
  * the Appearance tabs of the combined preferences: Pointer, Fonts, Colours, Backdrops, Workbench and File
  * requesters (Look/src/appearance.c), which edit the OS's own files in ENV:Sys.
  *
- *   OpenLook [LOOK | THEME | WINDOWS | TITLEBAR | MENUS | POINTER | FONTS | COLOURS | BACKDROPS | WORKBENCH |
+ *   GFOpenLook [LOOK | THEME | WINDOWS | TITLEBAR | MENUS | POINTER | FONTS | COLOURS | BACKDROPS | WORKBENCH |
  *             FILEREQUESTERS]                         the page to open first (Look)
- *   OpenLook FROM file USE | SAVE ...                   the Look editor's own arguments, as before
+ *   GFOpenLook FROM file USE | SAVE ...                   the Look editor's own arguments, as before
  *
  * Each of the first four pages is the editor it always was (Look/src/look.c, Windows/src/windows.c,
  * TitleBar/src/titlebar.c, Menus/src/menus.c), built with LT_ONE and its main renamed; a click on a tab returns
@@ -31,7 +31,7 @@ struct Window *lt_win;
 int lt_next = -1;
 int lt_win_w, lt_win_h;
 
-/* The window runs on 32 KB however OpenLook is started: from a Shell (Run, a script) it had the Shell's 4 KB,
+/* The window runs on 32 KB however GFOpenLook is started: from a Shell (Run, a script) it had the Shell's 4 KB,
  * and opening the window ended in a software failure (#8000000A) on the Team's desktop (12 October 2026).
  * libnix's start code swaps to a stack of this size when the one it was given is smaller. */
 unsigned long __stack = 32768;
@@ -42,7 +42,7 @@ int titlebar_main(int argc, char **argv);
 int menus_main(int argc, char **argv);
 int appearance_main(int tab);
 
-static const char version[] __attribute__((used)) = "$VER: OpenLook 1.3 (24.10.2026) OpenPrefs, AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenLook 1.3 (24.10.2026) GFOpenPrefs, AmiCradle Team";
 
 /* The pages, numbered as Common/looktabs.h numbers them (LT_LOOK ... LT_ASL): the first four are editors of
  * their own, the rest Appearance's tabs. Each page by name, and by a second name. */
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     (void)version;
     UtilityBase = OpenLibrary((STRPTR)"utility.library", 39);
     if (!UtilityBase) return 20;
-    if (argc == 2)                           /* OpenLook WINDOWS: that page first, nothing else to parse */
+    if (argc == 2)                           /* GFOpenLook WINDOWS: that page first, nothing else to parse */
         for (i = 0; i < sizeof names / sizeof names[0]; i++)
             if (!Stricmp((CONST_STRPTR)argv[1], (CONST_STRPTR)names[i].name)) { page = names[i].page; first = 0; }
     for (;;) {

@@ -1,4 +1,4 @@
-/* OpenWindows' action filter: the gesture table (gestures.h,
+/* GFOpenWindows' action filter: the gesture table (gestures.h,
  * docs/design/action-filter.md). Pure: Windows/tests/test_gestures.c.
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include "gestures.h"

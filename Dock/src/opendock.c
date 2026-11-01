@@ -1,13 +1,13 @@
-/* OpenDock 0.3: a dock on the Workbench screen (MIT). One row of icons
+/* GFOpenDock 0.3: a dock on the Workbench screen (MIT). One row of icons
  * along an edge of the screen: a click starts the program, or brings it to
  * the front when it is running already; a small mark shows which are
  * running. Icons dropped on the dock are added to it; the menu (the right
  * mouse button while the dock is active) removes one, opens the Dock prefs,
  * or quits.
  *
- * Its settings are ENV:OpenDock/Dock (od_dock.h); the Dock prefs editor
- * changes them and tells OpenDock with Ctrl-F, which reads them again.
- * Ctrl-C (or Quit) ends it. A second OpenDock tells the first to read its
+ * Its settings are ENV:GFOpenDock/Dock (od_dock.h); the Dock prefs editor
+ * changes them and tells GFOpenDock with Ctrl-F, which reads them again.
+ * Ctrl-C (or Quit) ends it. A second GFOpenDock tells the first to read its
  * settings again and ends.
  *
  * It looks like the Mac's dock: one rounded shelf, tinted to the look and
@@ -52,17 +52,17 @@
 #include "od_wake.h"
 #include "wbclose.h"
 #include "obmsg.h"
-#include "../../Common/prefsapp.h"           /* where OpenPrefs is (SYS:Preferences) */
+#include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: OpenDock 0.6.11 (25.10.2026) OpenPrefs, AmigaChrome Team";   /* 0.6.11: wakes once a second at rest, ten times only while the pointer is over it; 0.6.10: no look at the tasks while none start or end; 0.6.9: running programs after a line; 0.6.8: one look at the tasks per check; 0.6.7: its editor is OpenPrefs DOCK, never ROM: */
+const char version[] __attribute__((used)) = "$VER: GFOpenDock 0.6.11 (25.10.2026) GFOpenPrefs, AmiCradle Team";   /* 0.6.11: wakes once a second at rest, ten times only while the pointer is over it; 0.6.10: no look at the tasks while none start or end; 0.6.9: running programs after a line; 0.6.8: one look at the tasks per check; 0.6.7: its editor is GFOpenPrefs DOCK, never ROM: */
 
-#define PREFS_ENV "ENV:OpenDock/Dock"
-#define PREFS_ENVARC "ENVARC:OpenDock/Dock"
-#define DOCK_PREFS "SYS:Prefs/OpenDock"       /* 0.6.3: the editor is OpenDock in Prefs, as every editor of ours */
-#define PORT_NAME "OpenDock"
+#define PREFS_ENV "ENV:GFOpenDock/Dock"
+#define PREFS_ENVARC "ENVARC:GFOpenDock/Dock"
+#define DOCK_PREFS "SYS:Prefs/GFOpenDock"       /* 0.6.3: the editor is GFOpenDock in Prefs, as every editor of ours */
+#define PORT_NAME "GFOpenDock"
 
 #ifdef OPENDOCK_IN_OPENBENCH
-/* 0.7: built into OpenBench, which is the Workbench (its dock): OpenBench's libraries */
+/* 0.7: built into GFOpenBench, which is the Workbench (its dock): GFOpenBench's libraries */
 extern struct Library *IconBase, *WorkbenchBase;
 struct Library *CyberGfxBase;
 #else
@@ -406,7 +406,7 @@ static int same_name(const char *a, const char *b)
  *
  * 0.6.8: one look at exec's task lists and one walk of the Shells for every
  * check, however many buttons there are. Each button had a FindTask and, when
- * that found nothing, a walk of every Shell: Team 4's OpenMonitor counted
+ * that found nothing, a walk of every Shell: Team 4's GFOpenMonitor counted
  * twelve FindTasks every two seconds on a dock of twelve (24 Oct 2026). The
  * task lists change in interrupts (a Signal moves a task from waiting to
  * ready), so their tasks are copied with interrupts off, pointers only; the
@@ -563,7 +563,7 @@ static void start(const od_button *b)
 {
     char cmd[400];
     if (b->kind == OD_WB) {
-        /* 0.7: OpenBench, our Workbench, when it is there; else Workbench */
+        /* 0.7: GFOpenBench, our Workbench, when it is there; else Workbench */
         int r = ob_open(b->command);
         if (r > 0) return;
         if (r < 0 && WorkbenchBase && OpenWorkbenchObjectA((STRPTR)b->command, NULL)) return;
@@ -575,7 +575,7 @@ static void start(const od_button *b)
     {
         /* asynchronous: both handles are the new process's, which closes them when it
          * ends; closed here only if it could not start. Never a NULL output: a real
-         * NIL: handle, as OpenTitle and the editors' tabs give (12 Oct 2026) */
+         * NIL: handle, as GFOpenTitle and the editors' tabs give (12 Oct 2026) */
         BPTR in = Open((STRPTR)"NIL:", MODE_OLDFILE), out = Open((STRPTR)"NIL:", MODE_NEWFILE), old = 0;
         BPTR dir = b->dir[0] ? Lock((STRPTR)b->dir, ACCESS_READ) : 0;
         if (dir) old = CurrentDir(dir);
@@ -734,7 +734,7 @@ static void shelf(int W, int H, int *x0, int *y0, int *x1, int *y1)
 
 /* ---- the shelf's colours ------------------------------------------------------------------- */
 
-#define LOOK_ENV "ENV:OpenGadTools/Look"
+#define LOOK_ENV "ENV:GFOpenGadTools/Look"
 
 typedef struct { int r, g, b; } colour;
 static colour tint, rim, sep_c, dot_c, bg_c;
@@ -1472,7 +1472,7 @@ static int open_dock(struct Menu *menus)
     }
     win = OpenWindowTags(NULL, WA_PubScreen, (ULONG)scr, WA_Left, x, WA_Top, y, WA_Width, w, WA_Height, h,
                          WA_Borderless, TRUE, WA_SmartRefresh, TRUE, WA_NewLookMenus, TRUE,
-                         WA_ScreenTitle, (ULONG)"OpenDock 0.6",
+                         WA_ScreenTitle, (ULONG)"GFOpenDock 0.6",
                          WA_IDCMP, IDCMP_MOUSEBUTTONS | IDCMP_MENUPICK | IDCMP_REFRESHWINDOW | IDCMP_INACTIVEWINDOW |
                                    IDCMP_ACTIVEWINDOW, TAG_DONE);
     if (!win) { free_bitmaps(); return 0; }
@@ -1513,10 +1513,10 @@ static int relayout(struct Menu *menus)
 }
 
 /* 0.6.10: whether anything a check could find has changed since the last one, so the two-second check can
- * be skipped. Exec counts each task added and removed on taskclock.resource (lib_Version 2, OpenExec's;
+ * be skipped. Exec counts each task added and removed on taskclock.resource (lib_Version 2, GFOpenExec's;
  * amigachrome-guest common/include/taskclock.h), and a window opened or closed changes the window list's
  * print (each window and its task), one walk under LockIBase. The count is read before the check looks, so a
- * change during it is seen next time. Without the resource (OS 3.2.3's exec, or an older OpenExec) every
+ * change during it is seen next time. Without the resource (OS 3.2.3's exec, or an older GFOpenExec) every
  * check runs, as before. */
 struct tc_resource {                               /* taskclock.h's struct taskclock_resource, as far as needed */
     struct Library lib;
@@ -1655,7 +1655,7 @@ static void remove_button(int i)
 
 enum { M_PREFS = 1, M_REMOVE, M_QUIT };
 static struct NewMenu newmenus[] = {
-    { NM_TITLE, (STRPTR)"OpenDock", NULL, 0, 0, NULL },
+    { NM_TITLE, (STRPTR)"GFOpenDock", NULL, 0, 0, NULL },
     { NM_ITEM, (STRPTR)"Dock settings...", (STRPTR)"P", 0, 0, (APTR)M_PREFS },
     { NM_ITEM, (STRPTR)"Remove a button", (STRPTR)"R", 0, 0, (APTR)M_REMOVE },
     { NM_ITEM, NM_BARLABEL, NULL, 0, 0, NULL },
@@ -1689,7 +1689,7 @@ int main(void)
     ULONG sigs;
 
     /* 0.6.6: one dock. The port is looked for and added under one Forbid, so two starts at once
-     * (the ROM's start at Workbench's start and an old "Run >NIL: C:OpenDock" in User-Startup)
+     * (the ROM's start at Workbench's start and an old "Run >NIL: C:GFOpenDock" in User-Startup)
      * can't both pass; the second ends quietly and the first reads its settings again. */
     {
         struct MsgPort *mine = CreateMsgPort(), *other;
@@ -1703,7 +1703,7 @@ int main(void)
         if (other) { DeleteMsgPort(mine); return RETURN_OK; }
         port = mine;
     }
-    if (!(IconBase = OpenLibrary((STRPTR)"icon.library", 44))) { PutStr((STRPTR)"OpenDock needs icon.library 44 (AmigaOS 3.5 or later).\n"); rc = RETURN_FAIL; goto out; }
+    if (!(IconBase = OpenLibrary((STRPTR)"icon.library", 44))) { PutStr((STRPTR)"GFOpenDock needs icon.library 44 (AmigaOS 3.5 or later).\n"); rc = RETURN_FAIL; goto out; }
     WorkbenchBase = OpenLibrary((STRPTR)"workbench.library", 44);
     CyberGfxBase = OpenLibrary((STRPTR)"cybergraphics.library", 41);   /* small icons on a graphics card */
     wbc_start();
@@ -1800,8 +1800,8 @@ int main(void)
                     struct MenuItem *it = ItemAddress(menus, code);
                     if (!it) break;
                     switch ((ULONG)GTMENUITEM_USERDATA(it)) {
-                    case M_PREFS:                   /* through OpenBench first: its editor is built in there */
-                        /* 0.6.7: else OpenPrefs at its Dock page (SYS:Preferences; no ROM:) */
+                    case M_PREFS:                   /* through GFOpenBench first: its editor is built in there */
+                        /* 0.6.7: else GFOpenPrefs at its Dock page (SYS:Preferences; no ROM:) */
                         if (ob_open(DOCK_PREFS) <= 0) {
                             char cmd[80];
                             if (exists(DOCK_PREFS)) snprintf(cmd, sizeof cmd, "Run >NIL: " DOCK_PREFS);

@@ -1,8 +1,8 @@
-/* OpenWindows: the commodity behind OpenPrefs Windows. It watches the input
+/* GFOpenWindows: the commodity behind GFOpenPrefs Windows. It watches the input
  * stream and moves, sizes and activates windows with the OS's own calls. One
  * patch (0.7): OpenWindowTagList and OpenWindow, so a window whose place is
  * kept opens there instead of opening where it asked and jumping a second
- * later; stacked with OpenLook's patch of the same calls.
+ * later; stacked with GFOpenLook's patch of the same calls.
  *
  *   snapping      a window dropped near a screen edge or another window's
  *                 edge lines up with it; dropped with the pointer at the
@@ -29,7 +29,7 @@
  *                 Workbench's "Work  70% full, 453MB free, 62.0MB in use"
  *                 loses its usage part. On by default
  *   drag.solid    (0.8, off unless asked for) a window is dragged by its title
- *                 bar with its contents, not as an outline: OpenWindows takes
+ *                 bar with its contents, not as an outline: GFOpenWindows takes
  *                 the press and moves the window as the pointer moves
  *                 0.8.4: every grip inside the window, none outside (a near miss
  *                 no longer lands on the desktop): 3 pixels in from the sides
@@ -42,21 +42,21 @@
  *                 default one
  *
  *   gestures      (0.9, the action filter: docs/design/action-filter.md) every
- *                 left press goes through one table (ENV:OpenPrefs/Gestures,
+ *                 left press goes through one table (ENV:GFOpenPrefs/Gestures,
  *                 built in when there is none): where it was (title bar,
  *                 inside a window, a border gadget, an edge, the backdrop),
  *                 the qualifiers, and what the hand did (a click with no
  *                 move, a double-click, a press and a move past 4 pixels)
- *                 give the actions, decided once. A press OpenWindows does
+ *                 give the actions, decided once. A press GFOpenWindows does
  *                 not take goes on to Intuition at once, so a drag starts
  *                 on the first move; a click fronts the window at its
  *                 release, never at the press; the release ends a drag at
- *                 its own place. With OpenIntuition (which drags windows
+ *                 its own place. With GFOpenIntuition (which drags windows
  *                 with their contents itself) drag.solid leaves the drag to
- *                 Intuition; OpenWindows' own solid drag is for the others
+ *                 Intuition; GFOpenWindows' own solid drag is for the others
  *
- * Settings: ENV:OpenPrefs/Windows (OpenPrefs Windows writes it, then sends
- * Ctrl-F to the task of the public port "OpenWindows" to read it again). Places: ENV:OpenPrefs/WindowPlaces,
+ * Settings: ENV:GFOpenPrefs/Windows (GFOpenPrefs Windows writes it, then sends
+ * Ctrl-F to the task of the public port "GFOpenWindows" to read it again). Places: ENV:GFOpenPrefs/WindowPlaces,
  * kept in ENVARC: too. Exchange can disable, enable or quit it.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
@@ -92,11 +92,11 @@
 #include "gestures.h"
 #include "places.h"
 
-static const char version[] __attribute__((used)) = "$VER: OpenWindows 0.9.2 (24.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.9.2 (24.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
 
-#define PREFS_ENV "ENV:OpenPrefs/Windows"
-#define PLACES_ENV "ENV:OpenPrefs/WindowPlaces"
-#define PLACES_ENVARC "ENVARC:OpenPrefs/WindowPlaces"
+#define PREFS_ENV "ENV:GFOpenPrefs/Windows"
+#define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"
+#define PLACES_ENVARC "ENVARC:GFOpenPrefs/WindowPlaces"
 #define IECLASS_NEWMOUSE_ 0x16                  /* NewMouse drivers' class; OS 3.2 sends RAWKEY 0x7A-0x7D */
 #define MAX_SEEN 96
 #define MAX_NEVER 16
@@ -175,11 +175,11 @@ static void read_prefs(void)
 
 /* ---- the action filter's table (0.9; gestures.h, docs/design/action-filter.md) ---------- */
 
-#define GESTURES_ENV "ENV:OpenPrefs/Gestures"
+#define GESTURES_ENV "ENV:GFOpenPrefs/Gestures"
 static struct gesture_table gtab;               /* the handler reads it; changed under Forbid */
-static int intuition_drags;                     /* Intuition drags windows with their contents itself (OpenIntuition) */
+static int intuition_drags;                     /* Intuition drags windows with their contents itself (GFOpenIntuition) */
 
-/* The built-in table from the settings, or ENV:OpenPrefs/Gestures in its place
+/* The built-in table from the settings, or ENV:GFOpenPrefs/Gestures in its place
  * when there is one that reads (a line it can't read: the built-in one, and why). */
 static void read_gestures(void)
 {
@@ -190,7 +190,7 @@ static void read_gestures(void)
         int n = gestures_parse(&t, text);
         if (n < 0) {
             char msg[96];
-            snprintf(msg, sizeof msg, "OpenWindows: " GESTURES_ENV " line %d can't be read; the built-in table is used\n", -n);
+            snprintf(msg, sizeof msg, "GFOpenWindows: " GESTURES_ENV " line %d can't be read; the built-in table is used\n", -n);
             PutStr((STRPTR)msg);
         }
         FreeVec(text);
@@ -206,14 +206,14 @@ static void read_settings(void)
     read_prefs();
     read_gestures();
     if (GetVar((STRPTR)"OpenWindowsLog", (STRPTR)log_path, sizeof log_path, 0) <= 0) log_path[0] = 0;
-    intuition_drags = id && strstr(id, "OpenIntuition") != NULL;
+    intuition_drags = id && strstr(id, "GFOpenIntuition") != NULL;
 }
 
 /* ---- taller title bars (0.8.2) ---------------------------------------------------
  *
  * Intuition gives a window's title bar scr->WBorTop + the screen font's height + 1 rows,
  * reading WBorTop from the screen each time a window opens. So the Workbench screen's
- * WBorTop is raised by cfg.taller (4: 2 rows above the text, 2 below, once OpenLook
+ * WBorTop is raised by cfg.taller (4: 2 rows above the text, 2 below, once GFOpenLook
  * centres the title), and every window opened after that has a taller bar. The screen's
  * own bar was laid out when the screen opened and is not changed here. Put back on exit
  * if nothing else has changed it since. */
@@ -255,7 +255,7 @@ static volatile int pass_wheel;                 /* events we put back: let them 
 static volatile int on = 1;
 
 /* The action filter (0.9). The press being watched, the handler's own: where
- * it was and on what, whether OpenWindows took it, where the pointer is now
+ * it was and on what, whether GFOpenWindows took it, where the pointer is now
  * and whether it has gone past the threshold. At the release the gesture is
  * decided and its actions go to the main task through the done ring. */
 static struct {
@@ -323,7 +323,7 @@ static volatile ULONG grab_last;                /* the time stamp (seconds) of t
  * GimmeZeroZero window's inner layer and a requester's are inside it. The
  * title bar's height never resizes (it moves the window), nor does a window
  * that can't be resized, a backdrop or a borderless one. */
-/* 0.8.4: a window the user may size: Intuition's size gadget, or a sizing gadget of its own (OpenBench's
+/* 0.8.4: a window the user may size: Intuition's size gadget, or a sizing gadget of its own (GFOpenBench's
  * drawers have one in place of Intuition's, so their frame stays thin). */
 static int resizable(struct Window *w)
 {
@@ -434,7 +434,7 @@ static int over_active(void)
 }
 
 /* The action filter (0.9, docs/design/action-filter.md): a left press. What it is on and the table decide, once,
- * whether OpenWindows takes it (an edge to size, or a title bar to drag where Intuition's drag is an outline) or
+ * whether GFOpenWindows takes it (an edge to size, or a title bar to drag where Intuition's drag is an outline) or
  * it goes on to Intuition at once (Intuition's own drag then starts on the first move; a press is never held
  * back to see what it becomes). Answers 1 when it took it. */
 static int press_begin(struct InputEvent *ie, struct Screen *s)
@@ -453,8 +453,8 @@ static int press_begin(struct InputEvent *ie, struct Screen *s)
     press.on = 0;
     if (target < 0) return 0;                               /* the layers busy: Intuition has it, and no gesture */
     move = gestures_actions(&gtab, target, GB_SELECT, GK_MOVE, qual, &take);
-    if (target == GT_TITLE && (move & GA_DRAG) && cfg.solid && !intuition_drags) take = 1;   /* OpenWindows' own solid drag */
-    if (target != GT_EDGE && target != GT_TITLE) take = 0;  /* only an edge or a title bar is OpenWindows' to drag */
+    if (target == GT_TITLE && (move & GA_DRAG) && cfg.solid && !intuition_drags) take = 1;   /* GFOpenWindows' own solid drag */
+    if (target != GT_EDGE && target != GT_TITLE) take = 0;  /* only an edge or a title bar is GFOpenWindows' to drag */
     press.on = 1; press.target = target; press.take = take; press.moved = 0; press.menu = 0;
     press.top = s->LayerInfo.top_layer;                     /* 0.9.1: what the press brings up comes in front of it */
     press.w = w; press.s = s; press.x0 = press.x = x; press.y0 = press.y = y; press.qual = qual;
@@ -479,7 +479,7 @@ static void press_moved(WORD x, WORD y)
 
 /* The release: the gesture is decided and its actions go to the main task. A click (no move past the threshold)
  * is a double-click when the last click was on the same thing, close in place, within Input prefs' time. The drag
- * itself is over already: Intuition ended its own at this event, OpenWindows' ends at this place. */
+ * itself is over already: Intuition ended its own at this event, GFOpenWindows' ends at this place. */
 static void press_end(struct InputEvent *ie)
 {
     int kind;
@@ -503,7 +503,7 @@ static void press_end(struct InputEvent *ie)
      * by now: it stays in front. The main task looks again before it fronts (gestures_done). */
     a = gestures_release(a, press.menu, press.s && press.s->LayerInfo.top_layer != press.top);
     a &= ~(GA_DRAG | GA_RESIZE);                            /* done as the pointer moved */
-    if (press.take) a &= ~GA_SNAP;                          /* OpenWindows' own drag snaps at its end (resize) */
+    if (press.take) a &= ~GA_SNAP;                          /* GFOpenWindows' own drag snaps at its end (resize) */
     if (!a || !press.w || ((done_in + 1) & (DONE_RING - 1)) == done_out) return;
     {
         struct done *d = &done_ring[done_in];
@@ -518,7 +518,7 @@ static void press_end(struct InputEvent *ie)
 }
 
 /* The place an event puts the pointer at on screen s, when it is a placing (IECLASS_NEWPOINTERPOS, as
- * AmigaChrome's absolute pointer and tablets send) on that screen: 1 and (x, y) */
+ * AmiCradle's absolute pointer and tablets send) on that screen: 1 and (x, y) */
 static int placed_at(struct InputEvent *ie, struct Screen *s, WORD *x, WORD *y)
 {
     if (ie->ie_Class == IECLASS_NEWPOINTERPOS && ie->ie_SubClass == IESUBCLASS_PIXEL && ie->ie_EventAddress) {
@@ -541,7 +541,7 @@ static void custom(CxMsg *msg, CxObj *co)
         if (ie->ie_Class == IECLASS_RAWMOUSE) {
             WORD mx = s ? s->MouseX + ie->ie_X : 0, my = s ? s->MouseY + ie->ie_Y : 0;   /* a relative mouse's move, near enough */
             if (ie->ie_Code == IECODE_RBUTTON && press.on) press.menu = 1;   /* 0.9.1: the menus' now; it goes on untouched */
-            if (grab_on) {                         /* OpenWindows' own drag or edge: the button coming up ends it, here */
+            if (grab_on) {                         /* GFOpenWindows' own drag or edge: the button coming up ends it, here */
                 grab_px = mx; grab_py = my;
                 if (ie->ie_Code == (IECODE_LBUTTON | IECODE_UP_PREFIX)) {
                     grab_ex = mx; grab_ey = my;
@@ -566,7 +566,7 @@ static void custom(CxMsg *msg, CxObj *co)
                 press_end(ie);
             } else if (press.on && (ie->ie_X || ie->ie_Y)) press_moved(mx, my);
         } else if ((ie->ie_Class == IECLASS_POINTERPOS || ie->ie_Class == IECLASS_NEWPOINTERPOS) && s) {
-            /* a pointer put somewhere (not a mouse counting): the drag follows it too. 0.8.6: AmigaChrome's absolute
+            /* a pointer put somewhere (not a mouse counting): the drag follows it too. 0.8.6: AmiCradle's absolute
              * pointer comes through the open input.device as IECLASS_NEWPOINTERPOS (IESUBCLASS_PIXEL), one a move */
             if (!placed_at(ie, s, &px, &py)) { px = s->MouseX; py = s->MouseY; }
             if (press.on) press_moved(px, py);
@@ -700,7 +700,7 @@ static int in_front(struct Window *w)
 /* 0.9.1: 1 when w's program waits on another window of its own that is in front of w and overlaps it: a
  * requester (EasyRequest, ASL, its own dialog) whose loop isn't reading w's port, so w in front would hide
  * it and the program would look stuck (Dale, 18 October: "open files ... wont close"). A program that waits
- * on w's port too (OpenBench's drawers share one) or is running isn't held. */
+ * on w's port too (GFOpenBench's drawers share one) or is running isn't held. */
 static int own_requester_in_front(struct Window *w)
 {
     struct MsgPort *p = w->UserPort;
@@ -882,7 +882,7 @@ static void ol_show(struct Screen *sc, WORD l, WORD t, WORD w, WORD h)
 }
 
 /* A window this drags (drag.solid) is drawn at the look's drag opacity while it moves, as Intuition's own solid drag,
- * on a screen layers.library composites (OpenLayers 47.101 and up: SetLayerLook, -258, LAYERLOOK_DRAGGED;
+ * on a screen layers.library composites (GFOpenLayers 47.101 and up: SetLayerLook, -258, LAYERLOOK_DRAGGED;
  * openamigagfx include/graphics/openlayers.h). Nothing on a classic screen, or with an older layers.library. */
 static void drag_look(struct Window *w, ULONG on)
 {
@@ -1156,11 +1156,11 @@ static void write_places(const char *path)
     BPTR fh = Open((STRPTR)path, MODE_NEWFILE);
     int order[PLACES_MAX], i;
     if (!fh) {
-        BPTR d = CreateDir((STRPTR)(path[0] == 'E' && path[3] == ':' ? "ENV:OpenPrefs" : "ENVARC:OpenPrefs"));
+        BPTR d = CreateDir((STRPTR)(path[0] == 'E' && path[3] == ':' ? "ENV:GFOpenPrefs" : "ENVARC:GFOpenPrefs"));
         if (d) UnLock(d);
         if (!(fh = Open((STRPTR)path, MODE_NEWFILE))) return;
     }
-    FPuts(fh, (STRPTR)"; OpenWindows: where each program's windows were last left\n");
+    FPuts(fh, (STRPTR)"; GFOpenWindows: where each program's windows were last left\n");
     place_order(places, nplaces, order);        /* 0.9.2: the one used longest ago first */
     for (i = 0; i < nplaces; i++) {
         const struct place *pl = &places[order[i]];
@@ -1171,7 +1171,7 @@ static void write_places(const char *path)
 
 /* A window whose place is kept: a program's (not one never to be touched),
    or a Workbench drawer when "places.drawers" is on (Workbench's own windows
-   otherwise keep to its Snapshot; 0.9.2: OpenBench's are Workbench's too) */
+   otherwise keep to its Snapshot; 0.9.2: GFOpenBench's are Workbench's too) */
 static int placeable(int wb, int drawer, const char *prog)
 {
     if (!prog[0] || never(prog)) return 0;
@@ -1183,13 +1183,13 @@ static int placeable(int wb, int drawer, const char *prog)
 
 /* Up to 0.6 a new window was moved to its place at the next once-a-second
  * look, so it opened where it asked and then jumped. From 0.7 OpenWindowTagList
- * and OpenWindow are patched, as OpenLook patches them and stacked with it
+ * and OpenWindow are patched, as GFOpenLook patches them and stacked with it
  * whichever loads first: a window whose place is kept opens there.
  *
  * 0.9.2 (the user, 24 October 2026: "make sure it reads the saved position before it renders the window.
  * Right now it jumps from one location to another"): the program's own WA_Left and WA_Top came after ours,
- * and OpenIntuition reads a tag's last (the open ROM): every window that gave its corner in its tags (the
- * Shell, OpenBench's drawers, most programs) opened where it asked and the look moved it a second later.
+ * and GFOpenIntuition reads a tag's last (the open ROM): every window that gave its corner in its tags (the
+ * Shell, GFOpenBench's drawers, most programs) opened where it asked and the look moved it a second later.
  * Now the window gets a copy of the program's tags without its corner (and without its size when the size
  * is ours) behind ours, and a copy of its NewWindow and ExtNewWindow tags the same way: the program's own are
  * left as they are, and ours are the only ones, read first or last. A window asked for by its inner size
@@ -1197,7 +1197,7 @@ static int placeable(int wb, int drawer, const char *prog)
  * nothing any more: a window the patch didn't see open stays where it opened.
  *
  * The patch runs on the opening program's task. It never waits: the places are read under Forbid(). It
- * places nothing while the commodity is disabled, for OpenWindows' own windows, or once it has been told
+ * places nothing while the commodity is disabled, for GFOpenWindows' own windows, or once it has been told
  * to pass everything through (quitting while another program has patched on top of it). */
 
 static APTR old_owtl, old_ow;           /* what the patch replaced */
@@ -1492,7 +1492,7 @@ static void drive_titles(void)
 /* Once a second: every window's place is noted, and kept when it was moved or sized; a Workbench drawer
    is made at least the drawer size. 0.9.2: nothing is moved to its place here any more: the patch places a
    window before it opens, and a window it didn't see open (a system requester Intuition opens itself, one
-   opened before OpenWindows started) stays where it opened. ENV:OpenWindowsLog, when set, names a file
+   opened before GFOpenWindows started) stays where it opened. ENV:OpenWindowsLog, when set, names a file
    that gets a line for each new window and each place kept. */
 static void watch(void)
 {
@@ -1586,7 +1586,7 @@ static void watch(void)
                 int mine = cfg.places && placeable(now[i].wb, now[i].drawer, now[i].prog);
                 snprintf(line, sizeof line, "look %lu: new \"%s\" at %d %d %d %d, %s%s\n", (unsigned long)looks, now[i].key,
                          now[i].l, now[i].t, now[i].wd, now[i].ht,
-                         cogged ? "placed by the cog" : !mine ? (now[i].wb ? "a Workbench window: Workbench's" : "not one OpenWindows keeps") :
+                         cogged ? "placed by the cog" : !mine ? (now[i].wb ? "a Workbench window: Workbench's" : "not one GFOpenWindows keeps") :
                          rec < 0 ? "not seen opening, left where it opened" :
                          placed ? "placed before it opened" : p >= 0 ? "opened as asked" : "no place kept",
                          p >= 0 && (places[p].l != now[i].l || places[p].t != now[i].t) ? " (not at its kept place)" : "");
@@ -1628,7 +1628,7 @@ static void watch(void)
 /* ---- the commodity --------------------------------------------------------------------------- */
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"OpenWindows", (STRPTR)"OpenWindows 0.9.2", (STRPTR)"Snapping, edges, Amiga+Tab, wheel and window places",
+    NB_VERSION, (STRPTR)"GFOpenWindows", (STRPTR)"GFOpenWindows 0.9.2", (STRPTR)"Snapping, edges, Amiga+Tab, wheel and window places",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 static CxObj *broker, *hot_fwd, *hot_back;
@@ -1683,7 +1683,7 @@ int main(void)
     if (!(port = CreateMsgPort())) goto out;
     nb.nb_Port = port;
     if (!(broker = CxBroker(&nb, NULL))) goto out;    /* already running: NBU_UNIQUE */
-    port->mp_Node.ln_Name = (char *)"OpenWindows";    /* OpenPrefs Windows finds this task by it */
+    port->mp_Node.ln_Name = (char *)"GFOpenWindows";    /* GFOpenPrefs Windows finds this task by it */
     port->mp_Node.ln_Pri = 0;
     AddPort(port);
     read_settings();
@@ -1734,12 +1734,12 @@ int main(void)
         }
         if (quit && !places_patch_off()) {
             /* Another program patched OpenWindowTagList or OpenWindow after us: our
-               code must stay. Everything passes through it; the rest of OpenWindows stops. */
+               code must stay. Everything passes through it; the rest of GFOpenWindows stops. */
             quit = 0;
             on = 0;
             ActivateCxObj(broker, 0);
-            PutStr((STRPTR)"OpenWindows: another program has patched the same Intuition calls; "
-                           "OpenWindows stays loaded, passing every window through\n");
+            PutStr((STRPTR)"GFOpenWindows: another program has patched the same Intuition calls; "
+                           "GFOpenWindows stays loaded, passing every window through\n");
         }
         if (timer && CheckIO((struct IORequest *)tr)) {
             WaitIO((struct IORequest *)tr);

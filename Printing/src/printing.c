@@ -1,22 +1,22 @@
-/* Printing: the paper settings printer.device and OpenPrint's driver go by, as one section of OpenPrefs (the user,
- * 24 October 2026: the legacy printing retired in favour of OpenPrint, and the paper settings on an OpenPrefs
- * "Printing" page). The OS's Printer and PrinterGfx editors are archived by openamigaup's OpenPrinter part.
+/* Printing: the paper settings printer.device and GFOpenPrint's driver go by, as one section of GFOpenPrefs (the user,
+ * 24 October 2026: the legacy printing retired in favour of GFOpenPrint, and the paper settings on a GFOpenPrefs
+ * "Printing" page). The OS's Printer and PrinterGfx editors are archived by openamigaup's GFOpenPrinter part.
  *
- *   - Paper size (printer.prefs, pt_PaperSize): A4 first, then the other sizes the file can hold. OpenPrint's driver
+ *   - Paper size (printer.prefs, pt_PaperSize): A4 first, then the other sizes the file can hold. GFOpenPrint's driver
  *     makes A3, A4, A5, US Letter and US Legal pages; any other size it prints on A4, and the status line says so.
  *   - Lines a page (pt_PaperLength), and the left and right margins in columns (pt_LeftMargin, pt_RightMargin).
- *   - Pictures (printergfx.prefs, pg_Aspect): horizontal, across the paper (OpenPrint turns the page to landscape),
+ *   - Pictures (printergfx.prefs, pg_Aspect): horizontal, across the paper (GFOpenPrint turns the page to landscape),
  *     or vertical, turned onto an upright page.
- *   - Density, 1 to 7 (pg_PrintDensity): OpenPrint's driver prints pictures at 72 to 1200 dots to the inch.
+ *   - Density, 1 to 7 (pg_PrintDensity): GFOpenPrint's driver prints pictures at 72 to 1200 dots to the inch.
  *   - Which driver and port printer.prefs names: shown, not changed here.
  *
  *   Printing [PAPER A4|LETTER|LEGAL|A3|A5|...] [LINES n] [LEFT n] [RIGHT n] [PICTURES HORIZONTAL|VERTICAL]
  *            [DENSITY n] [USE] [SAVE]
- * (OpenPrefs PRINTING ...): the settings given over the ones in ENV:; with USE or SAVE written without a window.
+ * (GFOpenPrefs PRINTING ...): the settings given over the ones in ENV:; with USE or SAVE written without a window.
  *
  * Save writes ENV:Sys/printer.prefs and printergfx.prefs and ENVARC:'s, Use ENV:'s only, Cancel nothing. A file is
  * written only where its bytes change, and one that isn't there is made only when a setting in it changes: with
- * OpenPrint's driver in DEVS:Printers as openamigaup's OpenPrinter part makes it (OpenPrint's driver on
+ * GFOpenPrint's driver in DEVS:Printers as openamigaup's GFOpenPrinter part makes it (GFOpenPrint's driver on
  * oapspool.device), else as printer.device takes no file (the generic driver on the parallel port). Every chunk
  * and byte this section doesn't edit is kept (pr_prefs.c): the driver, the port, PUNT and PDEV, the pitch, the
  * spacing, the quality and the shading. A file that isn't one this can keep whole is never written. printer.device
@@ -36,7 +36,7 @@
 #include <string.h>
 #include <stdio.h>
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -47,13 +47,13 @@
 #include "pf_iff.h"
 #include "pr_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: PrintingPage 0.1 (24.10.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: PrintingPage 0.1 (24.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 
 #define TXT_ENV "ENV:Sys/printer.prefs"
 #define TXT_ENVARC "ENVARC:Sys/printer.prefs"
 #define GFX_ENV "ENV:Sys/printergfx.prefs"
 #define GFX_ENVARC "ENVARC:Sys/printergfx.prefs"
-#define OPENPRINT_DRIVER "DEVS:Printers/OpenPrint"
+#define OPENPRINT_DRIVER "DEVS:Printers/GFOpenPrint"
 
 static pf_file txt, gfx, txt_was, gfx_was;   /* the files, and as they were read (or made) */
 static int had_txt, had_gfx;                 /* read from a file */
@@ -146,10 +146,10 @@ static void density_for(int d)
     if (win && gad[G_DENSTEXT]) GT_SetGadgetAttrs(gad[G_DENSTEXT], win, NULL, GTTX_Text, (ULONG)dens_text, TAG_DONE);
 }
 
-/* The status line's first words: a paper size OpenPrint prints on A4, or what to do */
+/* The status line's first words: a paper size GFOpenPrint prints on A4, or what to do */
 static void paper_note(void)
 {
-    if (!pr_paper_openprint(pr.paper)) status("OpenPrint's driver prints this paper size on A4.");
+    if (!pr_paper_openprint(pr.paper)) status("GFOpenPrint's driver prints this paper size on A4.");
     else status("Change what you like, then Use or Save.");
 }
 
@@ -222,14 +222,14 @@ static int gui(void)
     W = X + cw + 12;
     i = X + TextLength(rp, (STRPTR)route_text, strlen(route_text)) + 24;
     if (W < i) W = i;
-    i = 12 + TextLength(rp, (STRPTR)"OpenPrint's driver prints this paper size on A4.", 48) + 24;
+    i = 12 + TextLength(rp, (STRPTR)"GFOpenPrint's driver prints this paper size on A4.", 50) + 24;
     if (W < i) W = i;
     i = X + 128 + TextLength(rp, (STRPTR)"7: 1200 dots to the inch", 24) + 12;
     if (W < i) W = i;
     density_for(pr.density);
     if (bad_txt || bad_gfx) snprintf(status_text, sizeof status_text, "%s isn't a prefs file this can keep whole.",
                                      bad_txt ? "printer.prefs" : "printergfx.prefs");
-    else if (!pr_paper_openprint(pr.paper)) snprintf(status_text, sizeof status_text, "%s", "OpenPrint's driver prints this paper size on A4.");
+    else if (!pr_paper_openprint(pr.paper)) snprintf(status_text, sizeof status_text, "%s", "GFOpenPrint's driver prints this paper size on A4.");
     else snprintf(status_text, sizeof status_text, "%s", "Change what you like, then Use or Save.");
 
     g = CreateContext(&glist);
@@ -240,7 +240,7 @@ static int gui(void)
     (ng.ng_LeftEdge = (x), ng.ng_TopEdge = (y), ng.ng_Width = (w), ng.ng_Height = (h), ng.ng_GadgetText = (STRPTR)(text), \
      ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
 #ifdef LT_ONE
-    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_PRINTING);   /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_PRINTING);   /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 24, lh);
 #endif
     row = top;
@@ -259,7 +259,7 @@ static int gui(void)
     G(CYCLE_KIND, G_ASPECT, X, row, cw, lh, "Pictures", PLACETEXT_LEFT, GTCY_Labels, (ULONG)aspect_labels,
       GTCY_Active, pr.aspect == PR_VERTICAL ? 1 : 0);
     row += lh + 4;
-    /* a slider's own label isn't drawn in OpenPrefs's window (Icons' Label gap): a text of its own */
+    /* a slider's own label isn't drawn in GFOpenPrefs's window (Icons' Label gap): a text of its own */
     G(TEXT_KIND, G_DENSLABEL, 12, row, X - 12 - 8, lh, NULL, 0, GTTX_Text, (ULONG)"Density", GTTX_Justification, GTJ_RIGHT);
     G(SLIDER_KIND, G_DENSITY, X, row, 120, lh, NULL, 0, GTSL_Min, 1, GTSL_Max, PR_DENSITY_MAX, GTSL_Level, pr.density,
       GA_RelVerify, TRUE, GA_Immediate, TRUE);
@@ -358,7 +358,7 @@ int main(int argc, char **argv)
     int rc, k;
     (void)argv;
     (void)version;
-    win = NULL;                             /* built into OpenPrefs, the statics outlive a run */
+    win = NULL;                             /* built into GFOpenPrefs, the statics outlive a run */
     if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"Printing"); return RETURN_FAIL; }
     if (!pf_open_lib()) { if (rd) FreeArgs(rd); return RETURN_FAIL; }
     pf_init(&txt);

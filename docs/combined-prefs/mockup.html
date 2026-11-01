@@ -1,7 +1,7 @@
 <title>Combined Prefs Mockup</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans:wght@400;600&family=IBM+Plex+Mono&display=swap">
 <style>
-/* Layout: brand page chrome (AmigaChrome document tokens) around an Amiga screen stage that keeps its own fixed Workbench colours */
+/* Layout: brand page chrome (AmiCradle document tokens) around an Amiga screen stage that keeps its own fixed Workbench colours */
 :root{
   --paper:#FFFFFF;--ink:#16191D;--steel:#3D4752;--steelmid:#6B7682;--silver:#D9DEE3;--wash:#F3F5F7;--red:#C8202B;--redtint:#FBE9EA;--ok:#1E7A46;--warn:#9A5F05;
   --display:'Sora','Helvetica Neue',Arial,sans-serif;--read:'Source Serif 4',Georgia,serif;--mono:'JetBrains Mono',Menlo,monospace;
@@ -95,7 +95,7 @@ footer{margin-top:30px;font-family:var(--mono);font-size:11px;color:var(--steelm
 
 <div class="wrap">
 <header>
-  <div><div class="brand"><b>Amiga</b>Chrome · OpenPrefs</div><div class="kind">Design for review · not built</div><h1>Combined preferences</h1></div>
+  <div><div class="brand"><b>Amiga</b>Chrome · GFOpenPrefs</div><div class="kind">Design for review · not built</div><h1>Combined preferences</h1></div>
   <div class="mono" style="color:var(--steelmid)">6 October 2026</div>
 </header>
 <p class="lede">We propose nine preferences editors in place of twenty-three. Each one gathers settings people think of together, writes the same files the OS's own editors write, and keeps the old editors in a Classic drawer. Pick an editor, switch between Simple and Advanced, and click the sections to see every page. The windows are drawn in the manner of AmigaOS 4.1, which is the look Dale asked the theme to follow.</p>
@@ -140,29 +140,29 @@ footer{margin-top:30px;font-family:var(--mono);font-size:11px;color:var(--steelm
 <script>
 const E=[
 {id:'appearance',name:'Appearance',rep:['Look','Palette','Font','Pointer','WBPattern'],
- files:['ENV:OpenGadTools/Look','ENV:Sys/palette.prefs','ENV:Sys/font.prefs','ENV:Sys/pointer.prefs','ENV:Sys/wbpattern.prefs'],
- eng:'OpenLook (Ctrl-F), and Intuition and Workbench read the Sys files as they do now',
+ files:['ENV:GFOpenGadTools/Look','ENV:Sys/palette.prefs','ENV:Sys/font.prefs','ENV:Sys/pointer.prefs','ENV:Sys/wbpattern.prefs'],
+ eng:'GFOpenLook (Ctrl-F), and Intuition and Workbench read the Sys files as they do now',
  simple:[
   ['box','Theme',[['sel','Theme',['Open','Clear','Graphite','Ember','Classic (the OS look)']],['radio','Mode',['Light','Dark','By the clock'],1],['sw','Accent'],['sel','Desktop profile',['Modern','Lite 68040','Classic 3.2','Choose by machine']]]],
   ['sel','Text size',['Normal (XEN 9)','Large (XEN 11)','Classic (Topaz 8)']],
   ['sel','Backdrop',['The theme\'s','A pattern','A picture...','Plain']],
   ['sel','Pointer',['The theme\'s','Classic','Large']],
-  ['note','Lite is automatic: on for a real 68040 or 68060 without OpenGPU.']],
+  ['note','Lite is automatic: on for a real 68040 or 68060 without GFOpenGPU.']],
  secs:{
   'Theme':[['sel','Theme',['Open','Clear','Graphite','Ember','Classic']],['radio','Mode',['Light','Dark','By the clock'],2],['two','Dark from','19:00','to','07:00'],['sw','Accent'],['radio','Lite',['Automatic','On','Off'],0],['checks','Under Lite, drop',['Shadows','Rounding','Gradients'],[1,1,1]],['radio','Theme these',['Workbench','Public screens','Game screens'],-1,[1,1,0]],['text','Never touch','PPaint, DPaint'],['checks','Focus',['Click to front','Focus follows pointer'],[1,0]]],
-  'Colours':[['list','Pen',['Background','Text','Important text','Bright edges','Dark edges','Title bars (active)','Title text','Selected fill','Menu background','Menu text'],5],['rng','Red',24],['rng','Green',40],['rng','Blue',66],['sel','Workbench colours',['8','16','256 (RTG)']],['note','Under a theme, OpenLook draws from the theme; these pens are what the OS and older programs use.']],
+  'Colours':[['list','Pen',['Background','Text','Important text','Bright edges','Dark edges','Title bars (active)','Title text','Selected fill','Menu background','Menu text'],5],['rng','Red',24],['rng','Green',40],['rng','Blue',66],['sel','Workbench colours',['8','16','256 (RTG)']],['note','Under a theme, GFOpenLook draws from the theme; these pens are what the OS and older programs use.']],
   'Fonts':[['fsel','Icons','XEN 9'],['fsel','Programs (system)','Topaz 8'],['fsel','Screen titles','XEN 9'],['radio','Icon labels',['Plain','Fields','Shadow','Outline'],2],['sw','Label colour']],
   'Backdrops':[['radio','For',['Workbench','Drawers','Screen'],0],['radio','Use',['The theme\'s','Pattern','Picture'],2],['text','Picture','SYS:Prefs/Presets/Backdrops/Ember.png'],['radio','Place',['Centred','Tiled','Scaled'],2],['checks','',['Remap colours'],[1]]],
   'Pointer':[['radio','Which',['Normal','Busy'],0],['sel','Style',['The theme\'s','Classic','Large','Draw my own...']],['rng','Size',30],['note','Draw my own opens the classic Pointer editor\'s drawing tools on this page.']]}},
 {id:'display',name:'Display',rep:['ScreenMode','Overscan'],files:['ENV:Sys/screenmode.prefs','ENV:Sys/overscan.prefs'],
  eng:'Workbench reopens its screen on Use or Save, as ScreenMode does now',
- simple:[['list','Screen',['1920x1080 (OpenRTG)','1280x720 (OpenRTG)','800x600 (OpenRTG)','640x512 (AGA)','640x480 (AGA)','640x256 (AGA)','320x256 (AGA)'],0],['sel','Colours',['16 million','65,536','256','16']],['checks','',['Autoscroll'],[0]],['note','Largest first, as width x height and where it comes from. The mode\'s full name (PAL: High Res Laced) shows below the list.']],
- secs:{'Screen mode':[['list','Mode',['1920x1080 (OpenRTG)','1280x720 (OpenRTG)','800x600 (OpenRTG)','640x512 (AGA)','640x256 (AGA)'],0],['two','Width','1920','Height','1080'],['checks','',['Default size','Autoscroll'],[1,0]],['sel','Colours',['16 million','65,536','256','16']],['note','Largest first. Below the list: the full mode name, max colours and scan rates, as ScreenMode shows them.']],
-  'Overscan':[['sel','Monitor',['PAL','NTSC','OpenRTG']],['two','Text size','704','x','283'],['two','Graphics size','724','x','283'],['b','Edit text size...'],['b','Edit graphics size...'],['note','Left out on RTG-only screens, which have no overscan.']],
-  'Monitors':[['list','Starts with the machine',['PAL','NTSC','DblPAL','OpenRTG'],-1],['note','Read only in the first release: which drivers DEVS:Monitors holds.']]}},
+ simple:[['list','Screen',['1920x1080 (GFOpenRTG)','1280x720 (GFOpenRTG)','800x600 (GFOpenRTG)','640x512 (AGA)','640x480 (AGA)','640x256 (AGA)','320x256 (AGA)'],0],['sel','Colours',['16 million','65,536','256','16']],['checks','',['Autoscroll'],[0]],['note','Largest first, as width x height and where it comes from. The mode\'s full name (PAL: High Res Laced) shows below the list.']],
+ secs:{'Screen mode':[['list','Mode',['1920x1080 (GFOpenRTG)','1280x720 (GFOpenRTG)','800x600 (GFOpenRTG)','640x512 (AGA)','640x256 (AGA)'],0],['two','Width','1920','Height','1080'],['checks','',['Default size','Autoscroll'],[1,0]],['sel','Colours',['16 million','65,536','256','16']],['note','Largest first. Below the list: the full mode name, max colours and scan rates, as ScreenMode shows them.']],
+  'Overscan':[['sel','Monitor',['PAL','NTSC','GFOpenRTG']],['two','Text size','704','x','283'],['two','Graphics size','724','x','283'],['b','Edit text size...'],['b','Edit graphics size...'],['note','Left out on RTG-only screens, which have no overscan.']],
+  'Monitors':[['list','Starts with the machine',['PAL','NTSC','DblPAL','GFOpenRTG'],-1],['note','Read only in the first release: which drivers DEVS:Monitors holds.']]}},
 {id:'desktop',name:'Desktop',rep:['Workbench','IControl','Windows','Menus','Dock'],
- files:['ENV:Sys/workbench.prefs','ENV:Sys/icontrol.prefs','ENV:OpenPrefs/Windows','ENV:OpenMenus/Menus','ENV:OpenDock/Dock'],
- eng:'OpenWindows, OpenMenus and OpenDock (Ctrl-F to each), Workbench and Intuition as now',
+ files:['ENV:Sys/workbench.prefs','ENV:Sys/icontrol.prefs','ENV:GFOpenPrefs/Windows','ENV:GFOpenMenus/Menus','ENV:GFOpenDock/Dock'],
+ eng:'GFOpenWindows, GFOpenMenus and GFOpenDock (Ctrl-F to each), Workbench and Intuition as now',
  simple:[
   ['box','Windows',[['checks','',['Snap to edges and windows','Amiga+Tab switches windows','Remember where windows go'],[1,1,1]]]],
   ['box','Menus',[['sel','Menus open',['From the bar','At the pointer','Bar or pointer']],['checks','',['Right-click menus on icons and the desktop'],[1]]]],
@@ -171,34 +171,34 @@ const E=[
  secs:{'Workbench':[['checks','',['Workbench as a backdrop','Disk gauge in drawers','Show all files in new drawers'],[1,1,0]],['radio','New drawers show',['Icons','Names'],0],['text','Title bar','Workbench  %fc graphics  %fo other'],['rng','Icon label length',60],['checks','',['Borders around icons'],[0]]],
   'Windows':[['checks','',['Snap to edges and windows'],[1]],['rng','Snap distance',25],['checks','',['Halves at the left and right edges','Amiga+Tab switches windows','Wheel goes to the window under the pointer','Remember where windows go','Workbench drawers too'],[1,1,1,1,0]],['two','Drawers at least','400','x','250'],['b','Forget all places']],
   'Screens':[['sel','Drag screens with',['Left Amiga','Right Amiga','Ctrl']],['checks','',['Avoid flicker','Mode promotion','Preserve colours','Text gadget filter','Menu snap'],[0,1,1,1,1]],['two','Screen to front','Amiga N','to back','Amiga M']],
-  'Menus':[['checks','',['OpenMenus (off: the OS\'s own menus)'],[1]],['sel','Open',['From the bar','At the pointer','Bar or pointer']],['radio','Act',['Hold','Sticky','Click'],1],['rng','Delay',10],['radio','Border',['Single','Double'],0],['checks','',['Shadow','See-through','Right-click menus on icons','Keyboard control (R.Amiga Space)'],[1,0,1,1]],['radio','Colours',['Theme','Screen','My own'],0]],
-  'Dock':[['checks','',['Show the dock'],[1]],['sel','Edge',['Bottom','Left','Right','Top']],['radio','Shelf',['Glass','See-through','Solid'],0],['checks','',['Names pop up','Icons hop on start'],[1,1]],['list','Buttons',['Shell','MultiView','OpenFiles','OpenBrowser','— separator —','Prefs'],2],['b','Take over ToolManager\'s...']]}},
+  'Menus':[['checks','',['GFOpenMenus (off: the OS\'s own menus)'],[1]],['sel','Open',['From the bar','At the pointer','Bar or pointer']],['radio','Act',['Hold','Sticky','Click'],1],['rng','Delay',10],['radio','Border',['Single','Double'],0],['checks','',['Shadow','See-through','Right-click menus on icons','Keyboard control (R.Amiga Space)'],[1,0,1,1]],['radio','Colours',['Theme','Screen','My own'],0]],
+  'Dock':[['checks','',['Show the dock'],[1]],['sel','Edge',['Bottom','Left','Right','Top']],['radio','Shelf',['Glass','See-through','Solid'],0],['checks','',['Names pop up','Icons hop on start'],[1,1]],['list','Buttons',['Shell','MultiView','GFOpenFiles','GFOpenBrowser','— separator —','Prefs'],2],['b','Take over ToolManager\'s...']]}},
 {id:'sound',name:'Sound',rep:['Sound','AHI'],files:['ENV:Sys/sound.prefs','ENV:Sys/ahi.prefs'],eng:'Designed and owned by the AHI story so far thread',
  simple:[['rng','Volume',70],['rng','Amiga sound (Paula)',100],['rng','AHI sound',85],['radio','Mix AHI sound on',['The PC','The Amiga'],0],['sel','When a program beeps',['Play a sound','Flash the screen','Both','Nothing']],['checks','',['Show the speaker on the menu bar'],[1]],['note','Already designed and approved today. Shown here so the family reads as one.']],
  secs:{'Levels':[['rng','Volume',70],['rng','Paula',100],['rng','AHI',85]],'AHI units':[['note','See the Sound mockup for the full page.']],'Paula':[['rng','Stereo separation',70]],'Beep':[['sel','Sound',['Beep','A sound file...']]],'Output':[['sel','Plays on (PC)',['The PC\'s default output']]]}},
 {id:'input',name:'Input',rep:['Input'],files:['ENV:Sys/input.prefs'],eng:'input.device reads it as now; the gamepad page talks to the Cradle',
- simple:[['rng','Pointer speed',50],['rng','Double-click speed',45],['rng','Key repeat delay',40],['rng','Key repeat rate',60],['sel','Keyboard',['British (gb)','USA (usa)','German (d)','French (f)']],['note','Gamepads appear here on AmigaChrome; a real Amiga leaves the row out.']],
+ simple:[['rng','Pointer speed',50],['rng','Double-click speed',45],['rng','Key repeat delay',40],['rng','Key repeat rate',60],['sel','Keyboard',['British (gb)','USA (usa)','German (d)','French (f)']],['note','Gamepads appear here on AmiCradle; a real Amiga leaves the row out.']],
  secs:{'Mouse':[['rng','Speed',50],['checks','',['Acceleration'],[1]],['rng','Double-click',45],['sel','Wheel scrolls',['3 lines','1 line','A page']],['b','Test area']],
   'Keyboard':[['sel','Layout',['British (gb)','USA (usa)','German (d)']],['rng','Repeat delay',40],['rng','Repeat rate',60],['text','Try it here','']],
-  'Gamepads':[['list','Pads seen',['Xbox Wireless Controller','8BitDo SN30 Pro'],0],['sel','Acts as',['Joystick in port 2','CD32 pad in port 2','Joystick in port 1']],['b','Map buttons...'],['note','AmigaChrome only: the Gamepad mapper\'s settings, kept by the Cradle.']]}},
+  'Gamepads':[['list','Pads seen',['Xbox Wireless Controller','8BitDo SN30 Pro'],0],['sel','Acts as',['Joystick in port 2','CD32 pad in port 2','Joystick in port 1']],['b','Map buttons...'],['note','AmiCradle only: the Gamepad mapper\'s settings, kept by the Cradle.']]}},
 {id:'region',name:'Region',rep:['Locale','Time'],files:['ENV:Sys/locale.prefs','the battery clock'],eng:'locale.library reads it at the next start, as now',
  simple:[['sel','Country',['United Kingdom','United States','Deutschland','France']],['list','Languages',['English','Deutsch','Français'],0],['sel','Time zone',['London (GMT, summer BST)','New York','Berlin']],['two','Date','06-Oct-26','Time','18:20'],['checks','',['Set the clock from the PC'],[1]]],
  secs:{'Country':[['sel','Country',['United Kingdom','United States']],['note','Dates 06/10/26 · Numbers 1,234.56 · Money £1,234.56 (shown, set by the country)']],
   'Languages':[['list','Preferred, in order',['English','Deutsch','Français'],0],['b','Up'],['b','Down']],
   'Time zone':[['sel','Zone',['London (GMT, summer BST)','New York']],['checks','',['Summer time automatically'],[1]]],
-  'Clock':[['two','Date','06-Oct-26','Time','18:20'],['checks','',['Set the clock from the PC','Save to the battery clock'],[1,1]],['note','On a real Amiga: from the network when OpenSocket is set up, else by hand.']]}},
-{id:'files',name:'Files',rep:['OpenTypes','Asl'],files:['ENVARC:OpenTypes/','ENVARC:Sys/def_*.info (default tools)','ENV:Sys/asl.prefs'],eng:'asl.library and Workbench read them as now',
- simple:[['list','Opens with',['Pictures → OpenView','Text → MultiView','Archives → OpenCompressor','Web pages → OpenBrowser','Music → OpenPlay'],0],['b','Change...'],['checks','',['Open with... in the Tools menu'],[1]],['checks','File requesters',['Show drawers first','Remember their size'],[1,1]]],
- secs:{'Open with':[['list','Kind of file',['Pictures (ILBM, PNG, JPEG)','Text','Archives (#?.lha, #?.lzx)','Disk images (#?.adf)','Web pages (#?.html)'],0],['sel','Opens with',['OpenView','MultiView','PPaint']],['checks','',['Also change icons that name the old program'],[1]],['b','Undo last change']],
+  'Clock':[['two','Date','06-Oct-26','Time','18:20'],['checks','',['Set the clock from the PC','Save to the battery clock'],[1,1]],['note','On a real Amiga: from the network when GFOpenSocket is set up, else by hand.']]}},
+{id:'files',name:'Files',rep:['GFOpenTypes','Asl'],files:['ENVARC:GFOpenTypes/','ENVARC:Sys/def_*.info (default tools)','ENV:Sys/asl.prefs'],eng:'asl.library and Workbench read them as now',
+ simple:[['list','Opens with',['Pictures → GFOpenView','Text → MultiView','Archives → GFOpenCompressor','Web pages → GFOpenBrowser','Music → GFOpenPlay'],0],['b','Change...'],['checks','',['Open with... in the Tools menu'],[1]],['checks','File requesters',['Show drawers first','Remember their size'],[1,1]]],
+ secs:{'Open with':[['list','Kind of file',['Pictures (ILBM, PNG, JPEG)','Text','Archives (#?.lha, #?.lzx)','Disk images (#?.adf)','Web pages (#?.html)'],0],['sel','Opens with',['GFOpenView','MultiView','PPaint']],['checks','',['Also change icons that name the old program'],[1]],['b','Undo last change']],
   'File requesters':[['sel','Sort by',['Name','Date','Size']],['checks','',['Drawers first','Remember size and place','Show hidden files'],[1,1,0]]]}},
 {id:'printing',name:'Printing',rep:['Printer','PrinterGfx','PrinterPS'],files:['ENV:Sys/printer.prefs','ENV:Sys/printergfx.prefs','ENV:Sys/printerps.prefs'],eng:'printer.device reads them as now',
- simple:[['sel','Printer',['OpenPrint: the PC\'s printer','PostScript','EpsonQ','Generic']],['sel','Paper',['A4','US Letter']],['radio','Print in',['Colour','Greys'],0],['radio','Quality',['Draft','Best'],1],['b','Print a test page']],
- secs:{'Printer':[['sel','Driver',['OpenPrint','PostScript','EpsonQ']],['sel','Port',['OpenPrint (PC)','Parallel','Serial','USB']],['sel','Unit',['0','1']],['sel','Paper',['A4','US Letter']],['two','Left margin','5','Right','75']],
+ simple:[['sel','Printer',['GFOpenPrint: the PC\'s printer','PostScript','EpsonQ','Generic']],['sel','Paper',['A4','US Letter']],['radio','Print in',['Colour','Greys'],0],['radio','Quality',['Draft','Best'],1],['b','Print a test page']],
+ secs:{'Printer':[['sel','Driver',['GFOpenPrint','PostScript','EpsonQ']],['sel','Port',['GFOpenPrint (PC)','Parallel','Serial','USB']],['sel','Unit',['0','1']],['sel','Paper',['A4','US Letter']],['two','Left margin','5','Right','75']],
   'Graphics':[['radio','Shade',['Black and white','Greys','Colour'],2],['sel','Dithering',['Ordered','Halftone','Floyd-Steinberg']],['radio','Scaling',['Fraction','Integer'],0],['rng','Threshold',50],['checks','',['Centre the picture','Smoothing'],[1,0]]],
   'PostScript':[['sel','Mode',['PostScript','Pass-through']],['two','Copies','1','Paper','A4'],['sel','Font',['Courier','Times']]]}},
-{id:'connections',name:'Connections',rep:['Serial'],files:['ENV:Sys/serial.prefs','OpenSocket\'s own files'],eng:'serial.device as now; OpenSocket reads its own files, and its line in OpenUp\'s startup block is switched on or off',
- simple:[['box','Network (OpenSocket)',[['note','Connected through the PC (AmigaChrome): 192.168.0.42'],['checks','',['Start the network when the machine starts'],[1]]]],['sel','Serial speed',['9600','19200','38400','115200']],['sel','Handshake',['RTS/CTS','XON/XOFF','None']]],
- secs:{'Network':[['checks','',['Start the network when the machine starts'],[1]],['radio','Connect',['Through the PC (AmigaChrome)','Ethernet card','Wi-Fi card'],0],['radio','Address',['From the network (DHCP)','Fixed'],0],['text','Name','amiga'],['two','DNS','192.168.0.1','then','1.1.1.1'],['b','Connect now'],['note','Shown only when OpenSocket is installed. Once it is set up, it starts at boot unless switched off here.']],
+{id:'connections',name:'Connections',rep:['Serial'],files:['ENV:Sys/serial.prefs','GFOpenSocket\'s own files'],eng:'serial.device as now; GFOpenSocket reads its own files, and its line in GFOpenUp\'s startup block is switched on or off',
+ simple:[['box','Network (GFOpenSocket)',[['note','Connected through the PC (AmiCradle): 192.168.0.42'],['checks','',['Start the network when the machine starts'],[1]]]],['sel','Serial speed',['9600','19200','38400','115200']],['sel','Handshake',['RTS/CTS','XON/XOFF','None']]],
+ secs:{'Network':[['checks','',['Start the network when the machine starts'],[1]],['radio','Connect',['Through the PC (AmiCradle)','Ethernet card','Wi-Fi card'],0],['radio','Address',['From the network (DHCP)','Fixed'],0],['text','Name','amiga'],['two','DNS','192.168.0.1','then','1.1.1.1'],['b','Connect now'],['note','Shown only when GFOpenSocket is installed. Once it is set up, it starts at boot unless switched off here.']],
   'Serial':[['sel','Speed',['9600','19200','38400','115200']],['sel','Buffer',['512','4096']],['sel','Handshake',['RTS/CTS','XON/XOFF','None']],['two','Bits','8','Stop','1'],['sel','Parity',['None','Even','Odd']]]}}
 ];
 let cur=0,adv=false,sec=0;
@@ -230,12 +230,12 @@ function render(){const e=E[cur];const names=Object.keys(e.secs);if(sec>=names.l
   <div class="status">${adv?'Section '+(sec+1)+' of '+names.length+'. ':''}Save keeps it after a reboot; Use lasts until the reboot; Test puts it back after 15 seconds.</div>
   <div class="buttons"><button>Save</button><button>Use</button><button>Test</button><button>Cancel</button></div></div>`;
  stage.querySelectorAll('.secs button').forEach(b=>b.onclick=()=>{sec=+b.dataset.s;render();stage.querySelector(`.secs button[data-s="${sec}"]`).focus()});
- side.innerHTML=`<div class="card"><h3>Replaces</h3><ul>${e.rep.map(x=>`<li>Prefs/${esc(x)}${['Look','Menus','Windows','Dock','OpenTypes'].includes(x)?' (OpenPrefs: becomes a page, keeps its Shell name)':' (moves to Prefs/Classic)'}</li>`).join('')}</ul></div>
+ side.innerHTML=`<div class="card"><h3>Replaces</h3><ul>${e.rep.map(x=>`<li>Prefs/${esc(x)}${['Look','Menus','Windows','Dock','GFOpenTypes'].includes(x)?' (GFOpenPrefs: becomes a page, keeps its Shell name)':' (moves to Prefs/Classic)'}</li>`).join('')}</ul></div>
  <div class="card"><h3>Writes the same files</h3><ul>${e.files.map(x=>`<li><code>${esc(x)}</code></li>`).join('')}</ul></div>
  <div class="card"><h3>Who reads them</h3><p style="margin:0;font-size:14.5px">${esc(e.eng)}.${e.link?` <a href="${e.link}" style="color:var(--red)">Open the Sound mockup</a>.`:''}</p></div>`;}
 eds.innerHTML=E.map((e,i)=>`<button data-i="${i}" aria-pressed="false">${esc(e.name)} <small>${e.rep.length} → 1</small></button>`).join('');
 eds.querySelectorAll('button').forEach(b=>b.onclick=()=>{cur=+b.dataset.i;sec=0;render()});
 vS.onclick=()=>{adv=false;render()};vA.onclick=()=>{adv=true;render()};
-drawer.innerHTML=[...E.map(e=>`<div class="ic new"><i></i><span>${e.name}</span></div>`),`<div class="ic"><i></i><span>OpenUp-Setup</span></div>`,`<div class="ic dr"><i></i><span>Classic</span></div>`,`<div class="ic"><i></i><span>Picasso96Mode</span></div>`,`<div class="ic"><i></i><span>DefIcons</span></div>`].join('');
+drawer.innerHTML=[...E.map(e=>`<div class="ic new"><i></i><span>${e.name}</span></div>`),`<div class="ic"><i></i><span>GFOpenUp-Setup</span></div>`,`<div class="ic dr"><i></i><span>Classic</span></div>`,`<div class="ic"><i></i><span>Picasso96Mode</span></div>`,`<div class="ic"><i></i><span>DefIcons</span></div>`].join('');
 render();
 </script>

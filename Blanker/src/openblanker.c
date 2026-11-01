@@ -1,22 +1,22 @@
-/* OpenBlanker: the screen blanker of the Open family. After the Amiga has
+/* GFOpenBlanker: the screen blanker of the GFOpen family. After the Amiga has
  * been left alone for a while it opens a screen of its own and plays a show;
- * a key or the mouse ends it. Its first show is "Gods and Angels", AmigaChrome's
+ * a key or the mouse ends it. Its first show is "Gods and Angels", AmiCradle's
  * homage to the people who made the Amiga and kept it alive: each card fades
  * in, holds and fades out, by the palette, as Amiga demos always have.
  *
- *   OpenBlanker [TIMEOUT=seconds] [NOW]
+ *   GFOpenBlanker [TIMEOUT=seconds] [NOW]
  *     TIMEOUT  seconds without a key or the mouse before the show (default 300;
- *              from Workbench, ENV:OpenPrefs/Blanker holds the number)
+ *              from Workbench, ENV:GFOpenPrefs/Blanker holds the number)
  *     NOW      play the show at once, then go on watching
  *
  * A commodity: Exchange can disable, enable or quit it. Started again, the
  * running one is left alone (1.1: it used to play the show at once, so a
- * startup that lists OpenBlanker twice blanked the screen at boot); started
+ * startup that lists GFOpenBlanker twice blanked the screen at boot); started
  * again with NOW, it plays the show at once.
  *
  * A program that wants the screen left alone (a game, a film, a demo) holds
  * the show off by signalling CTRL_E to the task of the public port named
- * "OpenBlanker", under Forbid, every few seconds while it runs (1.2): each
+ * "GFOpenBlanker", under Forbid, every few seconds while it runs (1.2): each
  * one counts as a key or the mouse. SDL2.module and SDL3.module do it while
  * SDL holds the screen saver off, which SDL does by default. A CTRL_E during
  * the show doesn't end it; only a key or the mouse does.
@@ -44,7 +44,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: OpenBlanker 1.2 (24.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.2 (24.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -54,8 +54,8 @@ static struct Task *me;
 static volatile ULONG idle_ticks;      /* seconds since the last key or mouse */
 static volatile int showing, woken, on = 1;
 #define SIG_WAKE SIGBREAKF_CTRL_E     /* the show: a key or the mouse; otherwise a program holding it off (1.2) */
-#define SIG_PLAY SIGBREAKF_CTRL_D     /* a second OpenBlanker NOW asks the running one to play the show */
-#define PORT_NAME "OpenBlanker"
+#define SIG_PLAY SIGBREAKF_CTRL_D     /* a second GFOpenBlanker NOW asks the running one to play the show */
+#define PORT_NAME "GFOpenBlanker"
 
 /* ---- the show: cards of styled lines --------------------------------------------------------- */
 
@@ -95,7 +95,7 @@ static const card show[] = {
     { 220, { { GROUP, "THE GAMES WE BROUGHT HOME" }, { LIST, "The Ur-Quan Masters  \xB7  Chocolate Doom  \xB7  SDLPoP" }, { LIST, "NXEngine-evo  \xB7  OpenJazz" } } },
     { 240, { { GROUP, "AND THE COMMUNITY" }, { LIST, "everyone who kept an Amiga running, recapped a board," }, { LIST, "archived a disk, or wrote the README nobody thanked them for" } } },
     { 160, { { THANKS, "Thank you." }, { RULE, "" } } },
-    { 170, { { WORDMARK, "" }, { SMALL, "The AmigaChrome team  \xB7  AmigaChrome Team" } } },
+    { 170, { { WORDMARK, "" }, { SMALL, "The AmiCradle team  \xB7  AmiCradle Team" } } },
 };
 #define NCARDS (int)(sizeof show / sizeof show[0])
 #define FADE 55      /* frames: about 1.1 s at 50 Hz */
@@ -327,7 +327,7 @@ static void custom(CxMsg *msg, CxObj *co)
 }
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"OpenBlanker", (STRPTR)"OpenBlanker 1.0", (STRPTR)"Blanks the screen with a show: Gods and Angels",
+    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.0", (STRPTR)"Blanks the screen with a show: Gods and Angels",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 
@@ -336,7 +336,7 @@ static ULONG timeout_setting(LONG from_cli)
     char buf[16];
     LONG n;
     if (from_cli > 0) return (ULONG)from_cli;
-    if (GetVar((STRPTR)"OpenPrefs/Blanker", (STRPTR)buf, sizeof buf, 0) > 0 && (n = atol(buf)) > 0) return (ULONG)n;
+    if (GetVar((STRPTR)"GFOpenPrefs/Blanker", (STRPTR)buf, sizeof buf, 0) > 0 && (n = atol(buf)) > 0) return (ULONG)n;
     return 300;
 }
 
@@ -360,7 +360,7 @@ int main(int argc, char **argv)
         timeout = timeout_setting(args[0] ? *(LONG *)args[0] : 0);
     } else timeout = timeout_setting(0);
     me = FindTask(NULL);
-    {   /* already running: only OpenBlanker NOW does anything, and by a signal */
+    {   /* already running: only GFOpenBlanker NOW does anything, and by a signal */
         struct MsgPort *other;
         Forbid();
         other = FindPort((STRPTR)PORT_NAME);
@@ -397,7 +397,7 @@ int main(int argc, char **argv)
             case CXCMD_DISABLE: ActivateCxObj(broker, 0); on = 0; break;
             case CXCMD_ENABLE: ActivateCxObj(broker, 1); on = 1; idle_ticks = 0; break;
             case CXCMD_KILL: quit = 1; break;
-            case CXCMD_UNIQUE: break;                      /* started again: nothing (OpenBlanker NOW asks by signal) */
+            case CXCMD_UNIQUE: break;                      /* started again: nothing (GFOpenBlanker NOW asks by signal) */
             }
         }
         if (timer && CheckIO((struct IORequest *)tr)) {

@@ -1,7 +1,7 @@
-/* OpenPrefs Dock 0.2: the editor for OpenDock (MIT). A GadTools prefs
+/* GFOpenPrefs Dock 0.2: the editor for GFOpenDock (MIT). A GadTools prefs
  * editor, as the OS's own: Save, Use, Test (put back after 15 seconds
- * unless kept) and Cancel. What it sets lives in ENV:OpenDock/Dock
- * (ENVARC: when saved), in the format of od_dock.h; OpenDock draws.
+ * unless kept) and Cancel. What it sets lives in ENV:GFOpenDock/Dock
+ * (ENVARC: when saved), in the format of od_dock.h; GFOpenDock draws.
  *
  *   - where the dock sits (bottom, top, left, right), its size, names under
  *     the icons, and its shelf: solid, clear or glass, and how see-through
@@ -15,15 +15,15 @@
  *   Dock [FROM file] [TOOLMANAGER file] [AMIDOCK file] [AMISTART file] [USE] [SAVE] [ADVANCED] [ADD program ...]
  *
  * From the Shell, TOOLMANAGER, AMIDOCK or AMISTART takes that file over and
- * USE or SAVE puts it in place with no window: OpenUp's part does this once.
+ * USE or SAVE puts it in place with no window: GFOpenUp's part does this once.
  * ADD puts a button at the end for each program that's on this machine and
- * not on the dock yet, so OpenUp can add OpenFiles and OpenView to a dock
+ * not on the dock yet, so GFOpenUp can add GFOpenFiles and GFOpenView to a dock
  * someone already has without touching the rest.
  *
- * Built into OpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open preferences in OpenBench natively)
- * as OpenDock, the name it is installed under in SYS:Prefs, it follows OpenBench's desktop/ob_builtin.h:
- * icon.library is OpenBench's, never opened or closed here, and asl.library its own under its own name; its
- * globals are static, and its version string is left out (OpenDock's, the dock built in beside it, is
+ * Built into GFOpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open preferences in GFOpenBench natively)
+ * as GFOpenDock, the name it is installed under in SYS:Prefs, it follows GFOpenBench's desktop/ob_builtin.h:
+ * icon.library is GFOpenBench's, never opened or closed here, and asl.library its own under its own name; its
+ * globals are static, and its version string is left out (GFOpenDock's, the dock built in beside it, is
  * global); it starts as ob_builtin.c starts it, argc 0 and no WBStartup message, so it reads no arguments and
  * writes nothing to Output(); Ctrl-C quits as Cancel does, a Test put back first, and Ctrl-F brings the
  * window to the front; and as its statics outlive a run, each run sets again the ones it counts on. Its
@@ -55,7 +55,7 @@
 
 #include "od_dock.h"
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -65,24 +65,24 @@
 #endif
 
 #ifndef IN_OPENBENCH
-const char version[] __attribute__((used)) = "$VER: OpenDock-Prefs 0.5.3 (17.10.2026) OpenPrefs, AmigaChrome Team";   /* 0.5.3: Use and Save start the dock if it isn't running */
+const char version[] __attribute__((used)) = "$VER: GFOpenDock-Prefs 0.5.3 (17.10.2026) GFOpenPrefs, AmiCradle Team";   /* 0.5.3: Use and Save start the dock if it isn't running */
 #endif
 
-#define PREFS_ENV "ENV:OpenDock/Dock"
-#define PREFS_ENVARC "ENVARC:OpenDock/Dock"
-#define VIEW_ENV "ENV:OpenAmiga/PrefsView"
-#define VIEW_ENVARC "ENVARC:OpenAmiga/PrefsView"
+#define PREFS_ENV "ENV:GFOpenDock/Dock"
+#define PREFS_ENVARC "ENVARC:GFOpenDock/Dock"
+#define VIEW_ENV "ENV:GFOpenAmiga/PrefsView"
+#define VIEW_ENVARC "ENVARC:GFOpenAmiga/PrefsView"
 #define TEST_SECONDS 15
 
 #ifdef IN_OPENBENCH
-extern struct Library *IconBase;                 /* OpenBench's (ob_builtin.h) */
+extern struct Library *IconBase;                 /* GFOpenBench's (ob_builtin.h) */
 #define AslBase dockprefs_AslBase                /* its own asl.library, under its own name */
 static struct Library *AslBase;
 #else
 struct Library *AslBase, *IconBase;
 #endif
 
-/* cur and orig (29 KB each) are made at the start of main(), not when the program loads: OpenPrefs holds every editor at once (W49) */
+/* cur and orig (29 KB each) are made at the start of main(), not when the program loads: GFOpenPrefs holds every editor at once (W49) */
 static od_dock *cur_made, *orig_made;
 #define cur (*cur_made)
 #define orig (*orig_made)                 /* orig: what is in ENV: now, which Test and Cancel put back */
@@ -145,18 +145,18 @@ static int tell_opendock(void)
 {
     struct MsgPort *p;
     Forbid();
-    if ((p = FindPort((STRPTR)"OpenDock"))) Signal(p->mp_SigTask, SIGBREAKF_CTRL_F);
+    if ((p = FindPort((STRPTR)"GFOpenDock"))) Signal(p->mp_SigTask, SIGBREAKF_CTRL_F);
     Permit();
     return p != NULL;
 }
 
 /* 0.5.3: the dock started when Use or Save puts settings in place and it isn't running (the dock in the
- * ROM starts at boot only when ENV:OpenDock/Dock is there). By name, so the Shell finds C:OpenDock
- * (OpenUp's) or the ROM's command of that name; a second start ends at once (OpenDock 0.6.6). */
+ * ROM starts at boot only when ENV:GFOpenDock/Dock is there). By name, so the Shell finds C:GFOpenDock
+ * (GFOpenUp's) or the ROM's command of that name; a second start ends at once (GFOpenDock 0.6.6). */
 static int start_opendock(void)
 {
     BPTR in = Open((STRPTR)"NIL:", MODE_OLDFILE), out = Open((STRPTR)"NIL:", MODE_NEWFILE);
-    if (in && out && SystemTags((STRPTR)"OpenDock", SYS_Input, (ULONG)in, SYS_Output, (ULONG)out,
+    if (in && out && SystemTags((STRPTR)"GFOpenDock", SYS_Input, (ULONG)in, SYS_Output, (ULONG)out,
                                 SYS_Asynch, TRUE, NP_StackSize, 16384, TAG_DONE) != -1)
         return 1;                              /* the handles are the new process's now */
     if (in) Close(in);
@@ -376,7 +376,7 @@ static int put_in_place(int save, int start)
         return 0;
     }
     if (!tell_opendock() && cur.n && !(start && start_opendock()))
-        status("OpenDock isn't running: it starts with the machine, or run C:OpenDock.");
+        status("GFOpenDock isn't running: it starts with the machine, or run C:GFOpenDock.");
     return 1;
 }
 
@@ -431,7 +431,7 @@ static int make_gadgets(struct Screen *scr, APTR vi, struct Gadget **glist, int 
      ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
 
 #ifdef LT_ONE
-    lt_make(NULL, NULL, L, top, W - 20, lh, LT_DOCK);     /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, L, top, W - 20, lh, LT_DOCK);     /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 20, lh);
 #endif
     build_list();
@@ -557,9 +557,9 @@ static int gui(void)
         if (wy + tall > scr->Height) wy = scr->Height - tall > 0 ? scr->Height - tall : 0;
     }
 #ifdef LT_ONE
-    win = lt_open(scr, wx, wy, W, inner, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_VANILLAKEY | IDCMP_MENUPICK | BUTTONIDCMP | CYCLEIDCMP | STRINGIDCMP | INTEGERIDCMP | CHECKBOXIDCMP | LISTVIEWIDCMP | SLIDERIDCMP, "OpenPrefs Dock 0.2");
+    win = lt_open(scr, wx, wy, W, inner, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_VANILLAKEY | IDCMP_MENUPICK | BUTTONIDCMP | CYCLEIDCMP | STRINGIDCMP | INTEGERIDCMP | CHECKBOXIDCMP | LISTVIEWIDCMP | SLIDERIDCMP, "GFOpenPrefs Dock 0.2");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Dock", WA_ScreenTitle, (ULONG)"OpenPrefs Dock 0.2", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Dock", WA_ScreenTitle, (ULONG)"GFOpenPrefs Dock 0.2", WA_PubScreen, (ULONG)scr,
                          WA_Left, wx, WA_Top, wy, WA_InnerWidth, W, WA_InnerHeight, inner,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
                          WA_SmartRefresh, TRUE, WA_NewLookMenus, TRUE,
@@ -585,7 +585,7 @@ static int gui(void)
             SendIO((struct IORequest *)tr);
         }
 #ifdef IN_OPENBENCH
-        /* OpenBench's Ctrl-C (it is quitting): as Cancel, below, once the timer is back; its Ctrl-F (opened
+        /* GFOpenBench's Ctrl-C (it is quitting): as Cancel, below, once the timer is back; its Ctrl-F (opened
          * again): the window to the front */
         got = Wait((1UL << win->UserPort->mp_SigBit) | tsig | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -739,7 +739,7 @@ int main(int argc, char **argv)
 #if defined(IN_OPENBENCH) || defined(LT_ONE)
     /* Built in, it starts as ob_builtin.c starts it: argc 0, argv NULL and no WBStartup message, so no
      * arguments and no tooltypes; the window opens, as from Workbench, and nothing below reads the Shell or
-     * writes to Output(). Its statics outlive a run inside OpenBench: what a run counts on starts again here. */
+     * writes to Output(). Its statics outlive a run inside GFOpenBench: what a run counts on starts again here. */
     advanced = 0;
     sel = -1;
     source = 0;

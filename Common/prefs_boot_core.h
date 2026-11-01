@@ -1,4 +1,4 @@
-/* OpenIntuition: what the prefs task applies at boot from three plain
+/* GFOpenIntuition: what the prefs task applies at boot from three plain
  * files the Preferences editors write (salvor/Design-No-ROM-Volume-20261024.md,
  * section 9.3; prefs_boot.c is the Amiga side). Each is read as the editor
  * that writes it reads it, in openamigaprefs: Sound (Sound/src/sp_core.c,
@@ -21,7 +21,7 @@
 
 typedef unsigned int pbc_u32;          /* 32 bits on the 68k and the hosts the tests run on */
 
-/* ENV:OpenAmiga/Sound, Sound's format 1: "key value" lines, a ';' line a
+/* ENV:GFOpenAmiga/Sound, Sound's format 1: "key value" lines, a ';' line a
  * comment, unknown keys skipped. The ACAHI board's LEVELS word:
  *   volume | paula << 8 | ahi << 16 | mute << 24
  * each level 0-100 (a number as atoi reads it, then clamped), mute "on",
@@ -29,7 +29,7 @@ typedef unsigned int pbc_u32;          /* 32 bits on the 68k and the hosts the t
  * keys: 100, 100, 100, unmuted, the board's own start. */
 pbc_u32 pbc_sound_levels(const char *text, pbc_u32 len);
 
-/* ENV:OpenAmiga/Stack: "CAP kb", then "PROGRAM name kb" lines. A kb is
+/* ENV:GFOpenAmiga/Stack: "CAP kb", then "PROGRAM name kb" lines. A kb is
  * rounded up to whole 64 KB and kept to 64-65536 (a PROGRAM line's must be
  * above 0); a name is 1-31 characters with no blank, ':' or '/', its case
  * ignored, the last line for a name counting; at most 32 programs (the
@@ -45,7 +45,7 @@ struct pbc_stack {
 };
 void pbc_stack_parse(struct pbc_stack *s, const char *text, pbc_u32 len);
 
-/* ENV:OpenGadTools/Look, as OpenPrefs Look writes it: its "scale <percent>"
+/* ENV:GFOpenGadTools/Look, as GFOpenPrefs Look writes it: its "scale <percent>"
  * line (not the first, which names the theme), kept to 50-400. No line: 100. */
 pbc_u32 pbc_look_scale(const char *text, pbc_u32 len);
 

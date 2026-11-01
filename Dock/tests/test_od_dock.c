@@ -44,14 +44,14 @@ static void test_drop_missing(void)
 {
     od_defaults(&d);
     od_starter(&d);
-    /* the starter's own length, whatever it holds now (the Open apps joined it on 10 October) */
+    /* the starter's own length, whatever it holds now (the GFOpen apps joined it on 10 October) */
     int n0 = d.n;
     /* three programs go, then the separator that was left at the end */
     CHECK(od_drop_missing(&d, fake_exists) == 3);
-    CHECK(d.n == n0 - 4 && d.b[0].kind == OD_CLI && !strcmp(d.b[2].label, "OpenView"));
+    CHECK(d.n == n0 - 4 && d.b[0].kind == OD_CLI && !strcmp(d.b[2].label, "GFOpenView"));
     CHECK(find(&d, "Clock") < 0 && find(&d, "Calculator") < 0 && find(&d, "Trashcan") < 0);
     CHECK(d.b[d.n - 1].kind != OD_SEPARATOR && !strcmp(d.b[d.n - 1].label, "Preferences")
-          && !strcmp(d.b[d.n - 1].command, "SYS:Preferences/OpenPrefs") && !strcmp(d.b[d.n - 2].label, "Prefs"));
+          && !strcmp(d.b[d.n - 1].command, "SYS:Preferences/GFOpenPrefs") && !strcmp(d.b[d.n - 2].label, "Prefs"));
     CHECK(od_drop_missing(&d, fake_exists) == 0 && d.n == n0 - 4);
 }
 
@@ -63,9 +63,9 @@ static void test_own_format(void)
     CHECK(n0 >= 9 && d.b[0].kind == OD_CLI && !strcmp(d.b[0].label, "Shell") && d.b[1].kind == OD_WB);
     CHECK(clock > 2 && !strcmp(d.b[clock].command, "SYS:Utilities/Clock") && !strcmp(d.b[clock + 1].command, "SYS:Tools/Calculator"));
     CHECK(d.b[n0 - 2].kind == OD_SEPARATOR && !strcmp(d.b[n0 - 1].label, "Trashcan") && !strcmp(d.b[n0 - 1].command, "SYS:Trashcan"));
-    CHECK(!strcmp(d.b[1].label, "OpenFiles") && !strcmp(d.b[2].command, "SYS:Utilities/OpenPrint/OpenView"));
+    CHECK(!strcmp(d.b[1].label, "GFOpenFiles") && !strcmp(d.b[2].command, "SYS:Utilities/GFOpenPrint/GFOpenView"));
     /* ADD: once only, whatever the case, at the end */
-    CHECK(od_ensure(&d, "sys:utilities/openfiles") == 0 && d.n == n0);
+    CHECK(od_ensure(&d, "sys:utilities/gfopenfiles") == 0 && d.n == n0);
     CHECK(od_ensure(&d, "SYS:Utilities/MultiView") == 1 && d.n == n0 + 1 && !strcmp(d.b[n0].label, "MultiView") && d.b[n0].kind == OD_WB);
     CHECK(od_ensure(&d, "SYS:Utilities/MultiView") == 0 && d.n == n0 + 1);
     CHECK(d.background == OD_BG_GLASS && d.hover == 1 && d.hop == 1);

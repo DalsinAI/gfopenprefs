@@ -1,10 +1,10 @@
-/* OpenWindows' action filter: the gesture table (docs/design/action-filter.md).
+/* GFOpenWindows' action filter: the gesture table (docs/design/action-filter.md).
  *
  * One row a gesture: where the press was (the target), the button, the
  * qualifiers held, what the hand did with it (a click, a double-click, a
  * press and a move past the threshold), and the actions that follow, in
- * order, with whether the press is OpenWindows' own (take) or goes on to
- * Intuition (pass). One table, one decision a gesture: OpenWindows' input
+ * order, with whether the press is GFOpenWindows' own (take) or goes on to
+ * Intuition (pass). One table, one decision a gesture: GFOpenWindows' input
  * handler decides at the press whether it takes it, and at the release, or
  * at the first move past the threshold, which gesture it was.
  *
@@ -20,7 +20,7 @@ enum { GK_CLICK, GK_DOUBLE, GK_MOVE, GK_COUNT };                                
 #define GA_FRONT    0x01u                   /* the window to the front (none in front of it covers it any more) */
 #define GA_BACK     0x02u                   /* the window to the back */
 #define GA_ACTIVATE 0x04u                   /* the window made active */
-#define GA_DRAG     0x08u                   /* the window follows the pointer (Intuition's drag, or OpenWindows' own) */
+#define GA_DRAG     0x08u                   /* the window follows the pointer (Intuition's drag, or GFOpenWindows' own) */
 #define GA_RESIZE   0x10u                   /* the edge or corner held follows the pointer */
 #define GA_SNAP     0x20u                   /* at the release, the window lines up with an edge near it */
 
@@ -45,7 +45,7 @@ struct gesture_table {
 };
 
 /* The built-in table: OS 3.2.3's own behaviour plus the extras the
- * settings turn on (ENV:OpenPrefs/Windows): a click with no move fronts the
+ * settings turn on (ENV:GFOpenPrefs/Windows): a click with no move fronts the
  * window (title bar or inside it), press-and-move on the title bar drags
  * at once (Intuition's drag) and snaps at the release, a double-click on
  * the title bar fronts it, and the edges resize. */
@@ -65,7 +65,7 @@ int gestures_moved(int x0, int y0, int x, int y);
 
 /* 0.9.1 (W67, Dale 18 October: "window jumps forward and menu winds up behind",
  * "open files ... wont close"): what a press inside a window is on. A gadget of
- * the program's own (a scroller, a button, OpenFiles' toolbar), a border gadget,
+ * the program's own (a scroller, a button, GFOpenFiles' toolbar), a border gadget,
  * or anything in a window with a requester up is GT_GADGET: its press is the
  * gadget's and nothing of ours follows it. The title bar is the drag bar with
  * no other gadget there. */

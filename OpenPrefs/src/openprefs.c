@@ -1,29 +1,29 @@
-/* OpenPrefs: every OpenPrefs editor as a section of one program with one window and one icon (Dale,
+/* GFOpenPrefs: every GFOpenPrefs editor as a section of one program with one window and one icon (Dale,
  * 17 October 2026, 08:18: "We should just combine them into a single app, prefs editors that is"). It
  * replaces the nine-editor plan of docs/combined-prefs/DESIGN.md (revision of 17 October 2026).
  *
- *   OpenPrefs [PUBSCREEN=name] [SECTION [arguments]]   the window, at SECTION (Theme when none); with
+ *   GFOpenPrefs [PUBSCREEN=name] [SECTION [arguments]]   the window, at SECTION (Theme when none); with
  *                                                       arguments, the section's editor takes them
- *                                                       (OpenPrefs SOUND USE is OpenSound USE)
- *   OpenPrefs APPLY                                     at boot: what OpenSound USE, OpenGamepads USE (when
- *                                                       openinput.library is there) and OpenSystem APPLY did
+ *                                                       (GFOpenPrefs SOUND USE is GFOpenSound USE)
+ *   GFOpenPrefs APPLY                                     at boot: what GFOpenSound USE, GFOpenGamepads USE (when
+ *                                                       gfopeninput.library is there) and GFOpenSystem APPLY did
  *
  * SECTION: THEME (LOOK), SCREENMODE (OVERSCAN), POINTER, FONTS, COLOURS, BACKDROPS (WBPATTERN), WORKBENCH, ICONS,
  * FILEREQUESTERS, WINDOWS, TITLEBAR, MENUS, ICONTROL, DOCK, SOUND, INPUT (MOUSE, KEYBOARD, KEYMAP), GAMEPADS,
  * DATETIME, SERIAL, PRINTING (PRINTER, PAPER), TYPES, SYSTEM, BLANKER; or the page's name as the list shows it ("Date & Time", "Title Bar").
- * From Workbench, a project icon whose default tool is OpenPrefs (SYS:Preferences' plain-named icons, 24 October
+ * From Workbench, a project icon whose default tool is GFOpenPrefs (SYS:Preferences' plain-named icons, 24 October
  * 2026) opens the page its SECTION tooltype names, else the page of its name.
  *
  * Mouse and keys (now Input), Screen mode with Overscan, and IControl joined on 21 October 2026 (Dale: "fold
  * mouse and keys into a single app", "overscan should be under screenmode", IControl "fold into openprefs").
  *
- * Its place is SYS:Preferences/OpenPrefs (SYS:Prefs/OpenPrefs on an older disk); the ROM has no copy.
+ * Its place is SYS:Preferences/GFOpenPrefs (SYS:Prefs/GFOpenPrefs on an older disk); the ROM has no copy.
  *
- * The old names work as they did, by the name OpenPrefs runs as (a copy under that name; the stubs OpenUp
+ * The old names work as they did, by the name GFOpenPrefs runs as (a copy under that name; the stubs GFOpenUp
  * put in SYS:Prefs are archived since 24 October 2026): Look,
- * OpenLook, Windows, TitleBar, Menus, OpenDock, OpenSound, OpenInput,
- * OpenGamepads, OpenDateTime, OpenSerial, OpenTypes and OpenSystem, from the Shell with their own arguments
- * (OpenSound USE applies Sound's settings with no window, as before) and from Workbench at their section.
+ * GFOpenLook, Windows, TitleBar, Menus, GFOpenDock, GFOpenSound, GFOpenInput,
+ * GFOpenGamepads, GFOpenDateTime, GFOpenSerial, GFOpenTypes and GFOpenSystem, from the Shell with their own arguments
+ * (GFOpenSound USE applies Sound's settings with no window, as before) and from Workbench at their section.
  *
  * Each page is the editor it was (its own source, built with LT_OP: Common/looktabs.h, opshift.h), its main
  * renamed; a click on another section returns from that editor with lt_next set, and the next page's gadgets
@@ -45,11 +45,11 @@
 #include "looktabs.h"
 #include "openprefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: OpenPrefs " OP_VERSION " (25.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (25.10.2026) MIT, Copyright (c) 2026 AmigaChrome Team";
 
 struct Library *UtilityBase;
 
-/* The window runs on 32 KB however OpenPrefs is started (OpenLook's measure, 12 October 2026: a Shell's
+/* The window runs on 32 KB however GFOpenPrefs is started (GFOpenLook's measure, 12 October 2026: a Shell's
  * 4 KB ended in #8000000A); libnix's start code swaps to a stack of this size when the one given is smaller. */
 unsigned long __stack = 32768;
 
@@ -57,7 +57,7 @@ extern const char *lt_args, *lt_pubname, *lt_prog;
 void lt_shutdown(void);
 void lt_report(void);
 
-/* The sections by name: OpenPrefs SECTION, OpenLook PAGE */
+/* The sections by name: GFOpenPrefs SECTION, GFOpenLook PAGE */
 static const struct { const char *name; int page; } sections[] = {
     { "THEME", LT_LOOK }, { "LOOK", LT_LOOK }, { "POINTER", LT_POINTER }, { "FONTS", LT_FONTS }, { "FONT", LT_FONTS },
     { "COLOURS", LT_COLOURS }, { "COLORS", LT_COLOURS }, { "PALETTE", LT_COLOURS }, { "BACKDROPS", LT_BACKDROPS },
@@ -65,7 +65,7 @@ static const struct { const char *name; int page; } sections[] = {
     { "WINDOWS", LT_WINDOWS }, { "TITLEBAR", LT_TITLEBAR }, { "MENUS", LT_MENUS }, { "DOCK", LT_DOCK },
     { "SOUND", LT_SOUND }, { "INPUT", LT_INPUT }, { "GAMEPADS", LT_GAMEPADS }, { "DATETIME", LT_DATETIME },
     { "TIME", LT_DATETIME }, { "DATE", LT_DATETIME }, { "SERIAL", LT_SERIAL }, { "TYPES", LT_TYPES },
-    { "FILETYPES", LT_TYPES }, { "OPENTYPES", LT_TYPES }, { "SYSTEM", LT_SYSTEM }, { "STACK", LT_SYSTEM },
+    { "FILETYPES", LT_TYPES }, { "GFOPENTYPES", LT_TYPES }, { "SYSTEM", LT_SYSTEM }, { "STACK", LT_SYSTEM },
     { "BLANKER", LT_BLANKER }, { "MOUSE", LT_INPUT }, { "KEYBOARD", LT_INPUT }, { "KEYS", LT_INPUT },
     { "KEYMAP", LT_INPUT }, { "SCREENMODE", LT_SCREENMODE }, { "OVERSCAN", LT_SCREENMODE }, { "DISPLAY", LT_SCREENMODE },
     { "ICONTROL", LT_ICONTROL }, { "ICONS", LT_ICONS }, { "ICONLAYOUT", LT_ICONS }, { "ICONLABELS", LT_ICONS },
@@ -75,15 +75,15 @@ static const struct { const char *name; int page; } sections[] = {
 /* The old editors' names, and a name for each other section: each opens its section, and takes its own arguments */
 enum { N_OPENPREFS = -1, N_OPENLOOK = -2 };
 static const struct { const char *name; int page; } old_names[] = {
-    { "OpenPrefs", N_OPENPREFS }, { "OpenLook", N_OPENLOOK }, { "Look", LT_LOOK }, { "Windows", LT_WINDOWS },
-    { "TitleBar", LT_TITLEBAR }, { "Menus", LT_MENUS }, { "OpenDock", LT_DOCK }, { "Dock", LT_DOCK },
-    { "OpenSound", LT_SOUND }, { "Sound", LT_SOUND }, { "OpenInput", LT_INPUT }, { "OpenGamepads", LT_GAMEPADS },
-    { "Gamepads", LT_GAMEPADS }, { "OpenDateTime", LT_DATETIME }, { "OpenSerial", LT_SERIAL },
-    { "OpenTypes", LT_TYPES }, { "OpenSystem", LT_SYSTEM },
+    { "GFOpenPrefs", N_OPENPREFS }, { "GFOpenLook", N_OPENLOOK }, { "Look", LT_LOOK }, { "Windows", LT_WINDOWS },
+    { "TitleBar", LT_TITLEBAR }, { "Menus", LT_MENUS }, { "GFOpenDock", LT_DOCK }, { "Dock", LT_DOCK },
+    { "GFOpenSound", LT_SOUND }, { "Sound", LT_SOUND }, { "GFOpenInput", LT_INPUT }, { "GFOpenGamepads", LT_GAMEPADS },
+    { "Gamepads", LT_GAMEPADS }, { "GFOpenDateTime", LT_DATETIME }, { "GFOpenSerial", LT_SERIAL },
+    { "GFOpenTypes", LT_TYPES }, { "GFOpenSystem", LT_SYSTEM },
     /* the sections no editor had a name for (Dale, 21 October 2026: an icon per section) */
-    { "OpenScreenMode", LT_SCREENMODE }, { "OpenPointer", LT_POINTER }, { "OpenFonts", LT_FONTS },
-    { "OpenColours", LT_COLOURS }, { "OpenBackdrops", LT_BACKDROPS }, { "OpenWorkbench", LT_WORKBENCH },
-    { "OpenFileRequesters", LT_ASL }, { "OpenBlanker", LT_BLANKER }, { "OpenIControl", LT_ICONTROL },
+    { "GFOpenScreenMode", LT_SCREENMODE }, { "GFOpenPointer", LT_POINTER }, { "GFOpenFonts", LT_FONTS },
+    { "GFOpenColours", LT_COLOURS }, { "GFOpenBackdrops", LT_BACKDROPS }, { "GFOpenWorkbench", LT_WORKBENCH },
+    { "GFOpenFileRequesters", LT_ASL }, { "GFOpenBlanker", LT_BLANKER }, { "GFOpenIControl", LT_ICONTROL },
 };
 
 /* A section by its word (SOUND, DATETIME) or its page's name ("Sound", "Date & Time") */
@@ -95,7 +95,7 @@ static int section_of(const char *s)
     return lt_page_named(s);
 }
 
-/* From Workbench with a project icon (sm_ArgList[1], whose default tool is OpenPrefs: the plain-named icons in
+/* From Workbench with a project icon (sm_ArgList[1], whose default tool is GFOpenPrefs: the plain-named icons in
  * SYS:Preferences): its SECTION tooltype, else its name, picks the page; -1 for none */
 static int project_page(struct WBStartup *wb)
 {
@@ -161,18 +161,18 @@ static int run_window(int page, int argc, char **argv)
     return rc;
 }
 
-/* OpenPrefs's own arguments */
+/* GFOpenPrefs's own arguments */
 static int as_openprefs(void)
 {
     static char line[512];
     LONG a[4] = { 0, 0, 0, 0 };
     struct RDArgs *rd = ReadArgs((STRPTR)"PUBSCREEN/K,APPLY/S,SECTION,ARGS/F", a, NULL);
     int rc, page = LT_LOOK;
-    if (!rd) { PrintFault(IoErr(), (STRPTR)"OpenPrefs"); return RETURN_FAIL; }
+    if (!rd) { PrintFault(IoErr(), (STRPTR)"GFOpenPrefs"); return RETURN_FAIL; }
     if (a[0]) { static char pub[140]; strncpy(pub, (const char *)a[0], sizeof pub - 1); lt_pubname = pub; }
     if (a[1]) { FreeArgs(rd); return op_apply(); }
     if (a[2] && (page = section_of((const char *)a[2])) < 0) {
-        Printf((STRPTR)"OpenPrefs: no section %s; the sections are THEME, SCREENMODE, POINTER, FONTS, COLOURS, BACKDROPS,\n"
+        Printf((STRPTR)"GFOpenPrefs: no section %s; the sections are THEME, SCREENMODE, POINTER, FONTS, COLOURS, BACKDROPS,\n"
                "WORKBENCH, ICONS, FILEREQUESTERS, WINDOWS, TITLEBAR, MENUS, ICONTROL, DOCK, SOUND, INPUT, GAMEPADS, DATETIME,\n"
                "SERIAL, PRINTING, TYPES, SYSTEM, BLANKER\n", a[2]);
         FreeArgs(rd);
@@ -192,7 +192,7 @@ static int as_openprefs(void)
     return run_window(page, 0, NULL);
 }
 
-/* OpenLook [PAGE] or Look's own arguments, as OpenLook 1.2 took them */
+/* GFOpenLook [PAGE] or Look's own arguments, as GFOpenLook 1.2 took them */
 static int as_openlook(int argc, char **argv)
 {
     int page;
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
     (void)version;
     if (!(UtilityBase = OpenLibrary((STRPTR)"utility.library", 39))) return RETURN_FAIL;
     if (argc > 0) name = argv[0];
-    else if (argv) {                           /* from Workbench: the icon's name (OpenPrefs, or an old name) */
+    else if (argv) {                           /* from Workbench: the icon's name (GFOpenPrefs, or an old name) */
         struct WBStartup *wb = (struct WBStartup *)argv;
         if (wb->sm_NumArgs > 0) name = (const char *)wb->sm_ArgList[0].wa_Name;
     }

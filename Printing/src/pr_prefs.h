@@ -1,5 +1,5 @@
 /* pr_prefs: the paper settings the Printing section edits, in printer.prefs (PTXT) and printergfx.prefs (PGFX), the
- * files printer.device reads for unit 0 (OpenNDK prefs/printertxt.h and prefs/printergfx.h, NDK 3.2's layouts).
+ * files printer.device reads for unit 0 (GFOpenNDK prefs/printertxt.h and prefs/printergfx.h, NDK 3.2's layouts).
  *
  *   printer.prefs, PTXT:    pt_PaperSize, pt_PaperLength (lines a page), pt_LeftMargin, pt_RightMargin (columns)
  *   printergfx.prefs, PGFX: pg_Aspect (a picture across the paper or turned), pg_PrintDensity (1 to 7)
@@ -9,10 +9,10 @@
  * every other chunk (PUNT, PDEV, any the section doesn't know), so settings put back unchanged give the file's own
  * bytes. A file with no PTXT or PGFX gets one as printer.device takes a missing one (its no-file state).
  *
- * With no file at all, pr_new_txt and pr_new_gfx make one: with OpenPrint, the bytes openamigaup's OpenPrinter part
- * writes (tools/build_pack.py printer_prefs and printergfx_prefs: OpenPrint's driver on oapspool.device unit 0, A4,
+ * With no file at all, pr_new_txt and pr_new_gfx make one: with GFOpenPrint, the bytes openamigaup's GFOpenPrinter part
+ * writes (tools/build_pack.py printer_prefs and printergfx_prefs: GFOpenPrint's driver on oapspool.device unit 0, A4,
  * 66 lines, margins 5 to 75, density 2); without it, printer.device's no-file state (amigachrome-guest
- * devices/openprinter.device, opr_default_prefs: the generic driver on the parallel port), so a save changes
+ * devices/gfopenprinter.device, opr_default_prefs: the generic driver on the parallel port), so a save changes
  * nothing but the fields the page shows. Plain C: tested on the host by Printing/tests/run.sh.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
@@ -54,9 +54,9 @@ typedef struct pr_prefs {
 extern const unsigned char pr_paper_order[PR_PAPERS];
 const char *pr_paper_name(int paper);                       /* "A4", "US Letter"...; "A4" for an unknown one */
 int pr_paper_named(const char *word);                       /* A4, LETTER, LEGAL... in either case; -1 for none */
-int pr_paper_openprint(int paper);                          /* 1 when OpenPrint's driver makes a page that size */
+int pr_paper_openprint(int paper);                          /* 1 when GFOpenPrint's driver makes a page that size */
 int pr_aspect_named(const char *word);                      /* HORIZONTAL or VERTICAL, in either case; -1 for none */
-int pr_density_dpi(int density);                            /* OpenPrint's driver's dots to the inch at a density */
+int pr_density_dpi(int density);                            /* GFOpenPrint's driver's dots to the inch at a density */
 
 void pr_fix(pr_prefs *p);                                   /* every field in its range */
 int pr_get(const pf_file *txt, const pf_file *gfx, pr_prefs *out);   /* 1 PTXT found, 2 PGFX found (both 3) */
@@ -65,7 +65,7 @@ int pr_put(pf_file *txt, pf_file *gfx, const pr_prefs *in);          /* 1, or 0 
 int pr_new_txt(pf_file *f, int openprint);                  /* a new printer.prefs (above); 1, or 0 with no memory */
 int pr_new_gfx(pf_file *f, int openprint);                  /* a new printergfx.prefs */
 
-/* Where printer.prefs sends what is printed, in words: "OpenPrint's driver, oapspool.device unit 0" */
+/* Where printer.prefs sends what is printed, in words: "GFOpenPrint's driver, oapspool.device unit 0" */
 void pr_route(const pf_file *txt, char *buf, int size);
 
 #endif /* PR_PREFS_H */

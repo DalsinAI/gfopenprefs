@@ -1,40 +1,40 @@
-/* OpenUp Setup 0.1: the first-start wizard (openamigaup DESIGN.md section 6).
- * It runs once, from WBStartup, the first time Workbench starts after OpenUp
+/* GFOpenUp Setup 0.1: the first-start wizard (openamigaup DESIGN.md section 6).
+ * It runs once, from WBStartup, the first time Workbench starts after GFOpenUp
  * is installed, and stays in SYS:Prefs to run again.
  *
- *   1. Welcome: what this machine is (OpenUpTool DETECT's summary).
+ *   1. Welcome: what this machine is (GFOpenUpTool DETECT's summary).
  *   2. Desktop: a desktop profile, or "choose by machine at every start",
- *      put in place through Look; and the OpenPrefs editors, one button each.
+ *      put in place through Look; and the GFOpenPrefs editors, one button each.
  *   3. Screen, printer and network: the OS's and the Open parts' own editors.
- *   4. Startup: every line OpenUp put in its marked block in S:User-Startup,
+ *   4. Startup: every line GFOpenUp put in its marked block in S:User-Startup,
  *      in plain words, each with a switch that takes it out cleanly.
  *   5. Done.
  *
  * Simple (the default) is a theme and done: Welcome, Desktop's profiles, Done.
  * Advanced shows every page and the editors' buttons. The choice is also the
- * view every OpenPrefs editor opens in (ENVARC:OpenAmiga/PrefsView, "simple"
+ * view every GFOpenPrefs editor opens in (ENVARC:GFOpenAmiga/PrefsView, "simple"
  * or "advanced"; DESIGN.md).
  *
  * Nothing is changed until Finish. Settings stay with the editors that own
  * them: Setup writes no settings of its own but its startup switches
- * (ENVARC:OpenAmiga/Startup.off) and that it has run (ENVARC:OpenAmiga/Setup.done).
+ * (ENVARC:GFOpenAmiga/Startup.off) and that it has run (ENVARC:GFOpenAmiga/Setup.done).
  *
- *   OpenUp-Setup [FIRSTSTART] [ADVANCED]
+ *   GFOpenUp-Setup [FIRSTSTART] [ADVANCED]
  *
  * FIRSTSTART (or being started from SYS:WBStartup) does nothing once Setup
  * has been finished or told not to come back.
  *
- * Built into OpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open
- * preferences in OpenBench natively) as OpenUp-Setup, it follows OpenBench's
- * desktop/ob_builtin.h: dos, intuition, graphics and gadtools are OpenBench's;
- * its globals are static, and its version string is left out (OpenDock's,
+ * Built into GFOpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open
+ * preferences in GFOpenBench natively) as GFOpenUp-Setup, it follows GFOpenBench's
+ * desktop/ob_builtin.h: dos, intuition, graphics and gadtools are GFOpenBench's;
+ * its globals are static, and its version string is left out (GFOpenDock's,
  * built in too, is global); it starts as ob_builtin.c starts it, argc 0 and no
  * WBStartup message, so it reads no arguments and writes nothing to Output(),
  * and tells its first start without that message (from_wbstartup, below);
  * Ctrl-C quits as Later does and Ctrl-F brings the window to the front; as its
  * statics outlive a run, each run sets again the ones it counts on; and an
- * editor's button starts that editor in OpenBench when it is built in too.
- * The stand-alone OpenUp-Setup builds as before.
+ * editor's button starts that editor in GFOpenBench when it is built in too.
+ * The stand-alone GFOpenUp-Setup builds as before.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #include <exec/types.h>
@@ -54,26 +54,26 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "../../Common/prefsapp.h"           /* where OpenPrefs is (SYS:Preferences) */
+#include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
 #ifndef IN_OPENBENCH
-const char version[] __attribute__((used)) = "$VER: OpenUp-Setup 0.1.7 (1.11.2026) OpenPrefs, AmigaChrome Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenUp-Setup 0.1.7 (1.11.2026) GFOpenPrefs, AmiCradle Team";
 #endif
 
 #define USER_STARTUP "S:User-Startup"
-#define BLOCK_BEGIN ";BEGIN OpenUp"
-#define BLOCK_END ";END OpenUp"
+#define BLOCK_BEGIN ";BEGIN GFOpenUp"
+#define BLOCK_END ";END GFOpenUp"
 #define OFF_MARK ";OFF "
-#define OFF_LIST "ENVARC:OpenAmiga/Startup.off"
-#define DONE_FILE "ENVARC:OpenAmiga/Setup.done"
-#define PROFILE_DIR "SYS:Prefs/Presets/OpenPrefs"
-#define OPENPREFS "SYS:Preferences/OpenPrefs"   /* 0.1.5: OpenPrefs's place (found() falls back to SYS:Prefs) */
-#define LOOK_TEMP "T:OpenUp-Setup.profile"
-#define VIEW_ENV "ENV:OpenAmiga/PrefsView"
-#define VIEW_ENVARC "ENVARC:OpenAmiga/PrefsView"
+#define OFF_LIST "ENVARC:GFOpenAmiga/Startup.off"
+#define DONE_FILE "ENVARC:GFOpenAmiga/Setup.done"
+#define PROFILE_DIR "SYS:Prefs/Presets/GFOpenPrefs"
+#define OPENPREFS "SYS:Preferences/GFOpenPrefs"   /* 0.1.5: GFOpenPrefs's place (found() falls back to SYS:Prefs) */
+#define LOOK_TEMP "T:GFOpenUp-Setup.profile"
+#define VIEW_ENV "ENV:GFOpenAmiga/PrefsView"
+#define VIEW_ENVARC "ENVARC:GFOpenAmiga/PrefsView"
 
 #ifdef IN_OPENBENCH
-int ob_builtin_open(const char *path);           /* OpenBench's: 1 when path names a built-in (started, or sent Ctrl-F) */
+int ob_builtin_open(const char *path);           /* GFOpenBench's: 1 when path names a built-in (started, or sent Ctrl-F) */
 #else
 extern struct WBStartup *_WBenchMsg;
 #endif
@@ -101,7 +101,7 @@ static char *read_file(const char *path, LONG *lenp)
  * a full or write-protected SYS:, or a reset, left S:User-Startup empty or cut short, and the next boot missed
  * the user's own lines. Now the bytes go to a short name in the same drawer, every Write and the Close are
  * checked, and only then the old file steps aside (.bak), the new one takes its name and the .bak goes; if the
- * new one can't take the name, the old one gets it back. As OpenUpTool does since openamigaup #179. On the RAM
+ * new one can't take the name, the old one gets it back. As GFOpenUpTool does since openamigaup #179. On the RAM
  * disk (ENV:, T:) the file is written in place as before: OS 3.2's ENV: shows ENVARC:'s files through a link,
  * where a name stays taken after Rename (openamigaup #179), and the RAM disk is gone at a reboot anyway. */
 
@@ -227,7 +227,7 @@ static int exists(const char *path)
     return l != 0;
 }
 
-/* An OS editor that OpenUp's RECONCILE moved to SYS:Prefs/Classic is still found there; OpenPrefs is in
+/* An OS editor that GFOpenUp's RECONCILE moved to SYS:Prefs/Classic is still found there; GFOpenPrefs is in
  * SYS:Preferences, else (an older disk) in SYS:Prefs. */
 static const char *found(const char *path)
 {
@@ -242,13 +242,13 @@ static void run_tool(const char *path, const char *args)
 {
     char cmd[160];
 #ifdef IN_OPENBENCH
-    if (!args && ob_builtin_open(found(path))) return;   /* built into OpenBench too: started there */
+    if (!args && ob_builtin_open(found(path))) return;   /* built into GFOpenBench too: started there */
 #endif
     snprintf(cmd, sizeof cmd, "Run >NIL: <NIL: \"%s\" %s", found(path), args ? args : "");
     SystemTags((STRPTR)cmd, TAG_DONE);
 }
 
-/* ---- the view: simple or advanced, shared by every OpenPrefs editor ------------------------ */
+/* ---- the view: simple or advanced, shared by every GFOpenPrefs editor ------------------------ */
 
 static int advanced;
 
@@ -272,7 +272,7 @@ static char summary[600];
 
 static void read_summary(void)
 {
-    if (GetVar((STRPTR)"OpenUp/Summary", (STRPTR)summary, sizeof summary, GVF_GLOBAL_ONLY) <= 0) {
+    if (GetVar((STRPTR)"GFOpenUp/Summary", (STRPTR)summary, sizeof summary, GVF_GLOBAL_ONLY) <= 0) {
         UWORD attn = ((struct ExecBase *)SysBase)->AttnFlags;
         snprintf(summary, sizeof summary, "This is an Amiga with a %s and %s.\n",
                  attn & AFF_68060 ? "68060" : attn & AFF_68040 ? "68040" : attn & AFF_68030 ? "68030" : attn & AFF_68020 ? "68020" : "68000",
@@ -303,7 +303,7 @@ static void read_profiles(void)
                 snprintf(path, sizeof path, PROFILE_DIR "/%s", (char *)fib->fib_FileName);
                 profile_about[nprofiles][0] = 0;
                 if ((text = read_file(path, NULL))) {
-                    if ((c = strstr(text, "; OpenPrefs desktop profile")) && (c = strchr(c, ':'))) {
+                    if ((c = strstr(text, "; GFOpenPrefs desktop profile")) && (c = strchr(c, ':'))) {
                         int n = 0;
                         for (c++; *c == ' '; c++) ;
                         while (c[n] && c[n] != '\n' && n < 99) n++;
@@ -337,9 +337,9 @@ static int apply_profile(void)
     if (profile_sel >= 0) {
         snprintf(path, sizeof path, PROFILE_DIR "/%s.profile", profile_names[profile_sel]);
         text = read_file(path, NULL);
-    } else if (!(text = read_file("ENV:OpenGadTools/Look", NULL)))
-        text = read_file("ENVARC:OpenGadTools/Look", NULL);
-    if (!text) return profile_sel < 0;              /* no Look settings yet: OpenLook chooses as it starts */
+    } else if (!(text = read_file("ENV:GFOpenGadTools/Look", NULL)))
+        text = read_file("ENVARC:GFOpenGadTools/Look", NULL);
+    if (!text) return profile_sel < 0;              /* no Look settings yet: GFOpenLook chooses as it starts */
     if (!(both = AllocVec(strlen(text) + 32, MEMF_ANY))) { FreeVec(text); return 0; }
     /* the text without its own profile lines, then ours */
     for (o = both, p = text; *p; ) {
@@ -376,22 +376,22 @@ typedef struct sline {
 static sline lines[MAX_LINES];
 static int nlines, line_sel = -1;
 
-/* Plain words for the lines OpenUp's parts put there. */
+/* Plain words for the lines GFOpenUp's parts put there. */
 static const char *about_line(const char *t)
 {
     static const struct { const char *word, *about; } known[] = {
-        { "OpenLook", "The theme on windows and gadgets (OpenLook)" },
-        { "OpenMenus", "Our menus (OpenMenus)" },
-        { "OpenDock", "The dock (OpenDock)" },
-        { "OpenRTG", "Graphics card screens (OpenRTG)" },
-        { "OpenSocket", "The network (OpenSocket)" },
+        { "GFOpenLook", "The theme on windows and gadgets (GFOpenLook)" },
+        { "GFOpenMenus", "Our menus (GFOpenMenus)" },
+        { "GFOpenDock", "The dock (GFOpenDock)" },
+        { "GFOpenRTG", "Graphics card screens (GFOpenRTG)" },
+        { "GFOpenSocket", "The network (GFOpenSocket)" },
         { "AddNetInterface", "The network connection" },
         { "Nursery", "The Cradle's services (Nursery)" },
         { "openservice", "The Cradle's services (Nursery)" },
-        { "accontrol", "AmigaChrome's shared clipboard and files" },
-        { "OpenTypes", "Open with... in the Tools menu (OpenTypes)" },
-        { "OpenPrint", "Printing (OpenPrint)" },
-        { "Windows", "Window snapping and the switcher (OpenPrefs Windows)" },
+        { "accontrol", "AmiCradle's shared clipboard and files" },
+        { "GFOpenTypes", "Open with... in the Tools menu (GFOpenTypes)" },
+        { "GFOpenPrint", "Printing (GFOpenPrint)" },
+        { "Windows", "Window snapping and the switcher (GFOpenPrefs Windows)" },
     };
     for (unsigned i = 0; i < sizeof known / sizeof known[0]; i++)
         if (strstr(t, known[i].word)) return known[i].about;
@@ -435,7 +435,7 @@ static void read_startup(void)
 }
 
 /* Rewrites the block's lines with the switches, and lists what is off so
- * OpenUpTool STARTUP keeps them off when it writes the block again. */
+ * GFOpenUpTool STARTUP keeps them off when it writes the block again. */
 static int write_startup(void)
 {
     char *text, *out, *o, *p;
@@ -479,11 +479,11 @@ static int write_startup(void)
         static char list[MAX_LINES * 260];
         char *l = list;
         *l = 0;
-        strcpy(l, "; Lines of OpenUp's startup block switched off in OpenUp Setup. OpenUpTool STARTUP keeps them off.\n");
+        strcpy(l, "; Lines of GFOpenUp's startup block switched off in GFOpenUp Setup. GFOpenUpTool STARTUP keeps them off.\n");
         l += strlen(l);
         for (int i = 0; i < nlines; i++)
             if (!lines[i].on) { strcpy(l, lines[i].text); l += strlen(l); *l++ = '\n'; *l = 0; }
-        /* without the list, OpenUpTool STARTUP would put the lines back on */
+        /* without the list, GFOpenUpTool STARTUP would put the lines back on */
         if (!write_file(OFF_LIST, list, strlen(list))) return 0;
     }
     return 1;
@@ -502,20 +502,20 @@ enum {
 };
 
 static const char *const page_titles[P_COUNT] = {
-    "Welcome to the Open family", "Your desktop", "Screen, printer and network", "What starts with the machine", "All set"
+    "Welcome to the GFOpen family", "Your desktop", "Screen, printer and network", "What starts with the machine", "All set"
 };
 
-static const struct { int id; const char *label, *path, *args; } editors[] = {     /* 0.1.2: OpenLook's pages; every editor of ours is Open... */
-    /* 0.1.5: OpenPrefs at its section, from SYS:Preferences (else an older disk's SYS:Prefs; never ROM:) */
+static const struct { int id; const char *label, *path, *args; } editors[] = {     /* 0.1.2: GFOpenLook's pages; every editor of ours is Open... */
+    /* 0.1.5: GFOpenPrefs at its section, from SYS:Preferences (else an older disk's SYS:Prefs; never ROM:) */
     { G_ED_LOOK, "Look...", OPENPREFS, "THEME" },
     { G_ED_MENUS, "Menus...", OPENPREFS, "MENUS" },
     { G_ED_WINDOWS, "Windows...", OPENPREFS, "WINDOWS" },
     { G_ED_DOCK, "Dock...", OPENPREFS, "DOCK" },
     { G_ED_TYPES, "File types...", OPENPREFS, "TYPES" },
     { G_SCREENMODE, "Screen mode...", "SYS:Prefs/ScreenMode" },
-    /* 0.1.6: no Printer...: printing is OpenPrint's (the OpenPrinter part archives the OS's Printer editor) */
-    { G_ED_OPENPRINT, "OpenPrint...", "SYS:Utilities/OpenPrint/Printers and Queue" },  /* 0.1.3: OpenPrint's printers, as the cog's */
-    { G_NETWORK, "Network...", "SYS:Tools/Commodities/OpenSocketControl" },  /* 0.1.3: OpenSocket's settings, as the cog's */
+    /* 0.1.6: no Printer...: printing is GFOpenPrint's (the GFOpenPrinter part archives the OS's Printer editor) */
+    { G_ED_OPENPRINT, "GFOpenPrint...", "SYS:Utilities/GFOpenPrint/Printers and Queue" },  /* 0.1.3: GFOpenPrint's printers, as the cog's */
+    { G_NETWORK, "Network...", "SYS:Tools/Commodities/GFOpenSocketControl" },  /* 0.1.3: GFOpenSocket's settings, as the cog's */
     { G_FONTS, "Fonts...", "SYS:Prefs/Font" },
 };
 
@@ -598,8 +598,8 @@ static void draw_page(void)
         /* a long summary is cut short above the Simple and Advanced choice */
         say_limit = cy + ch - (rp->TxHeight + 6) - 2 * (rp->TxHeight + 6) - 14;
         y = say(rp, cx, y, cw, summary, text) + 6;
-        y = say(rp, cx, y, cw, "OpenUp Setup takes you through the few choices that make this Amiga yours. Nothing changes until you choose Finish, and you can run it again from Prefs at any time.", text) + 6;
-        say(rp, cx, y, cw, "How much would you like to see? You can change this later in any OpenPrefs editor's View menu.", text);
+        y = say(rp, cx, y, cw, "GFOpenUp Setup takes you through the few choices that make this Amiga yours. Nothing changes until you choose Finish, and you can run it again from Prefs at any time.", text) + 6;
+        say(rp, cx, y, cw, "How much would you like to see? You can change this later in any GFOpenPrefs editor's View menu.", text);
         say_limit = 0;
         break;
     case P_DESKTOP:
@@ -615,7 +615,7 @@ static void draw_page(void)
         say(rp, cx, y, cw, "These start with the machine. Switch one off to take it out cleanly; switch it on again to put it back. The change takes effect at the next start.", text);
         break;
     case P_DONE:
-        say(rp, cx, y, cw, "Choose Finish to put your choices in place. OpenUp Setup stays in SYS:Prefs if you want to change them later.", text);
+        say(rp, cx, y, cw, "Choose Finish to put your choices in place. GFOpenUp Setup stays in SYS:Prefs if you want to change them later.", text);
         break;
     }
     if (dri) FreeScreenDrawInfo(win->WScreen, dri);
@@ -657,7 +657,7 @@ static int finish(void)
     write_view();
     ok = write_startup() && ok;
     /* only when everything is in place, so the next start offers it again otherwise */
-    if (ok) ok = write_file(DONE_FILE, "OpenUp Setup finished\n", 22);
+    if (ok) ok = write_file(DONE_FILE, "GFOpenUp Setup finished\n", 24);
     return ok;
 }
 
@@ -741,7 +741,7 @@ static int gui(void)
         wtop = scr->BarHeight + 20;
         if (wtop + tall > scr->Height) wtop = scr->Height - tall > 0 ? scr->Height - tall : 0;
     }
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"OpenUp Setup", WA_ScreenTitle, (ULONG)"OpenUp Setup 0.1", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"GFOpenUp Setup", WA_ScreenTitle, (ULONG)"GFOpenUp Setup 0.1", WA_PubScreen, (ULONG)scr,
                          WA_Left, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, WA_Top, wtop,
                          WA_InnerWidth, W, WA_InnerHeight, H - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)nav_glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE,
@@ -758,10 +758,10 @@ static int gui(void)
     while (!quit) {
         struct IntuiMessage *m;
 #ifdef IN_OPENBENCH
-        /* OpenBench's Ctrl-C (it is quitting): as Later; its Ctrl-F (opened again): the window to the front */
+        /* GFOpenBench's Ctrl-C (it is quitting): as Later; its Ctrl-F (opened again): the window to the front */
         ULONG got = Wait((1UL << win->UserPort->mp_SigBit) | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F);
         if (got & SIGBREAKF_CTRL_C) {
-            if (noshow) write_file(DONE_FILE, "OpenUp Setup: not shown at start\n", 33);
+            if (noshow) write_file(DONE_FILE, "GFOpenUp Setup: not shown at start\n", 35);
             quit = 1;
         }
         if (got & SIGBREAKF_CTRL_F) { ScreenToFront(win->WScreen); WindowToFront(win); ActivateWindow(win); }
@@ -807,7 +807,7 @@ static int gui(void)
                 quit = 1;
                 break;
             case G_CANCEL:
-                if (noshow) write_file(DONE_FILE, "OpenUp Setup: not shown at start\n", 33);
+                if (noshow) write_file(DONE_FILE, "GFOpenUp Setup: not shown at start\n", 35);
                 quit = 1;
                 break;
             default:
@@ -829,22 +829,22 @@ out:
 }
 
 #ifdef IN_OPENBENCH
-/* Built into OpenBench there is no WBStartup message to look at (ob_builtin.c starts a built-in with argc 0),
- * and SYS:WBStartup/OpenUp-Setup starts this built-in by its name, as SYS:Prefs/OpenUp-Setup does. But
- * OpenBench opens what is in SYS:WBStartup as it starts, before it answers anything else (a drawer, the dock,
- * the cog): so the first start in an OpenBench's run, with that icon in SYS:WBStartup, is the first start.
- * Unlike the others, this static is meant to outlive a run: it starts again only with OpenBench. */
+/* Built into GFOpenBench there is no WBStartup message to look at (ob_builtin.c starts a built-in with argc 0),
+ * and SYS:WBStartup/GFOpenUp-Setup starts this built-in by its name, as SYS:Prefs/GFOpenUp-Setup does. But
+ * GFOpenBench opens what is in SYS:WBStartup as it starts, before it answers anything else (a drawer, the dock,
+ * the cog): so the first start in a GFOpenBench's run, with that icon in SYS:WBStartup, is the first start.
+ * Unlike the others, this static is meant to outlive a run: it starts again only with GFOpenBench. */
 static int started_before;
 
 static int from_wbstartup(void)
 {
-    int first = !started_before && exists("SYS:WBStartup/OpenUp-Setup.info");
+    int first = !started_before && exists("SYS:WBStartup/GFOpenUp-Setup.info");
     started_before = 1;
     return first;
 }
 #else
 /* Started from SYS:WBStartup: the first start. The tool itself there, or a
- * project icon there whose default tool is SYS:Prefs/OpenUp-Setup. */
+ * project icon there whose default tool is SYS:Prefs/GFOpenUp-Setup. */
 static int from_wbstartup(void)
 {
     char path[256];
@@ -864,7 +864,7 @@ int main(int argc, char **argv)
 #ifdef IN_OPENBENCH
     /* Built in, it starts as ob_builtin.c starts it: argc 0, argv NULL and no WBStartup message, so the
      * window, as from Workbench, with nothing read from the Shell or written to Output(). Its statics outlive
-     * a run inside OpenBench: what a run counts on starts again here (but from_wbstartup's own). */
+     * a run inside GFOpenBench: what a run counts on starts again here (but from_wbstartup's own). */
     advanced = 0;
     nprofiles = 0;
     profile_sel = -1;
@@ -885,7 +885,7 @@ int main(int argc, char **argv)
     if (argc > 0) {                              /* from the Shell */
         LONG args[2] = { 0, 0 };
         struct RDArgs *rd = ReadArgs((STRPTR)"FIRSTSTART/S,ADVANCED/S", args, NULL);
-        if (!rd) { PrintFault(IoErr(), (STRPTR)"OpenUp-Setup"); return RETURN_FAIL; }
+        if (!rd) { PrintFault(IoErr(), (STRPTR)"GFOpenUp-Setup"); return RETURN_FAIL; }
         first = args[0] != 0;
         read_view();
         if (args[1]) advanced = 1;

@@ -1,10 +1,10 @@
-/* od_dock: OpenDock's settings (DESIGN.md section 2, format 1), and taking
+/* od_dock: GFOpenDock's settings (DESIGN.md section 2, format 1), and taking
  * over other docks' settings: ToolManager 2, AmiDock (OS4's XML) and
  * AmiStart's taskbar.
  *
  * Plain C with no Amiga calls, so the same code is tested on the host
  * (tests/test_od_dock.c) and runs on the Amiga, in the Dock editor and in
- * OpenDock alike. Each reader is written from its file's layout, with no
+ * GFOpenDock alike. Each reader is written from its file's layout, with no
  * code from the program that wrote it.
  *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */

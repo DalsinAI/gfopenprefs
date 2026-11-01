@@ -1,4 +1,4 @@
-/* Common/deskicons.h: ENV:Sys/DesktopIcons's words, as the Icons page writes them and OpenBench reads them, and the
+/* Common/deskicons.h: ENV:Sys/DesktopIcons's words, as the Icons page writes them and GFOpenBench reads them, and the
  * ones a person or an older file might leave there. Prints "ok"/"FAIL" lines, then PASS or FAIL.
  * Copyright (c) 2026 AmigaChrome Team. MIT. */
 #include <stdio.h>
@@ -17,7 +17,7 @@ int main(void)
 {
     char buf[16];
 
-    /* what the page and OpenBench write, read back */
+    /* what the page and GFOpenBench write, read back */
     check("parse: \"none\" is no icons", deskicons_parse("none", -1) == DESKICONS_NONE);
     check("parse: \"show\" is the icons", deskicons_parse("show", -1) == DESKICONS_SHOW);
     check("text: each setting's word reads back as itself",
@@ -43,7 +43,7 @@ int main(void)
     check("parse: the length given, not the NUL (GetVar's count)", deskicons_parse("nonexyz", 4) == DESKICONS_NONE &&
           deskicons_parse("none", 3) == DESKICONS_SHOW);
 
-    /* the other words the Shell takes (OpenPrefs ICONS DESKTOP ...) */
+    /* the other words the Shell takes (GFOpenPrefs ICONS DESKTOP ...) */
     check("word: show, icons, on, yes are the icons", deskicons_word("show", -1) == DESKICONS_SHOW &&
           deskicons_word("icons", -1) == DESKICONS_SHOW && deskicons_word("ON", -1) == DESKICONS_SHOW &&
           deskicons_word("yes", -1) == DESKICONS_SHOW);

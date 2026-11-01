@@ -1,8 +1,8 @@
-/* OpenScreenMode: the Workbench's screen mode, with the overscan under it, as one section of OpenPrefs
- * (Dale, 21 October 2026: "overscan should be under screenmode", folded into OpenPrefs). It takes over the
- * OS's ScreenMode and Overscan editors (OpenUp's RECONCILE puts those in SYS:Prefs/Classic).
+/* GFOpenScreenMode: the Workbench's screen mode, with the overscan under it, as one section of GFOpenPrefs
+ * (Dale, 21 October 2026: "overscan should be under screenmode", folded into GFOpenPrefs). It takes over the
+ * OS's ScreenMode and Overscan editors (GFOpenUp's RECONCILE puts those in SYS:Prefs/Classic).
  *
- *   OpenScreenMode [FROM file] [USE] [SAVE]
+ *   GFOpenScreenMode [FROM file] [USE] [SAVE]
  *
  *   - the mode, from graphics.library's display database (the modes that can show the Workbench), with its
  *     sizes and colours shown under the list
@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef LT_ONE
-#include "looktabs.h"                       /* a page of OpenPrefs (LT_OP): its frame and sections */
+#include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
 #else
 #define LT_REFRESH(w) ((void)0)
@@ -49,7 +49,7 @@
 #include "pf_iff.h"
 #include "dp_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: OpenScreenMode 0.1 (21.10.2026) OpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenScreenMode 0.1 (21.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmigaChrome Team";
 
 #define MODE_ENV "ENV:Sys/screenmode.prefs"
 #define MODE_ENVARC "ENVARC:Sys/screenmode.prefs"
@@ -180,7 +180,7 @@ static int write_files(int save, void (*say)(const char *))
     return 1;
 }
 
-static void say_shell(const char *s) { Printf((STRPTR)"OpenScreenMode: %s\n", (ULONG)s); }
+static void say_shell(const char *s) { Printf((STRPTR)"GFOpenScreenMode: %s\n", (ULONG)s); }
 
 /* ---- the window ------------------------------------------------------------------------------------ */
 
@@ -391,7 +391,7 @@ static int gui(void)
     (ng.ng_LeftEdge = (x), ng.ng_TopEdge = (y), ng.ng_Width = (w), ng.ng_Height = (h), ng.ng_GadgetText = (STRPTR)(text), \
      ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
 #ifdef LT_ONE
-    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_SCREENMODE);  /* the frame's sections (OpenPrefs) */
+    lt_make(NULL, NULL, 10, top, W - 24, lh, LT_SCREENMODE);  /* the frame's sections (GFOpenPrefs) */
     top += lt_space(scr->Font, W - 24, lh);
 #endif
     row = top;
@@ -455,9 +455,9 @@ static int gui(void)
                    SLIDERIDCMP | LISTVIEWIDCMP | TEXTIDCMP)
 #ifdef LT_ONE
     win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1,
-                  glist, IDCMP_ALL, "OpenScreenMode 0.1");
+                  glist, IDCMP_ALL, "GFOpenScreenMode 0.1");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Screen mode", WA_ScreenTitle, (ULONG)"OpenScreenMode 0.1", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Screen mode", WA_ScreenTitle, (ULONG)"GFOpenScreenMode 0.1", WA_PubScreen, (ULONG)scr,
                          WA_Left, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, WA_Top, scr->BarHeight + 20,
                          WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
@@ -557,8 +557,8 @@ int main(int argc, char **argv)
     int rc;
     (void)argv;
     (void)version;
-    win = NULL;                             /* built into OpenPrefs, the statics outlive a run */
-    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"OpenScreenMode"); return RETURN_FAIL; }
+    win = NULL;                             /* built into GFOpenPrefs, the statics outlive a run */
+    if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"GFOpenScreenMode"); return RETURN_FAIL; }
     if (!pf_open_lib()) { if (rd) FreeArgs(rd); return RETURN_FAIL; }
     pf_init(&mode_file);
     pf_init(&oscan_file);

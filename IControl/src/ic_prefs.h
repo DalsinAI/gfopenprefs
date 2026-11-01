@@ -1,4 +1,4 @@
-/* ic_prefs: the fields of icontrol.prefs (ICTL, OpenNDK prefs/icontrol.h) that the IControl section edits.
+/* ic_prefs: the fields of icontrol.prefs (ICTL, GFOpenNDK prefs/icontrol.h) that the IControl section edits.
  *
  * As pf_prefs does for the Appearance tabs: a put writes the fields it knows and leaves every other byte of
  * the chunk as the file had it (the reserved longs, OS 3.2's version and hover fields after the first 28

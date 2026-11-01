@@ -1,26 +1,26 @@
-Short:        Game controllers prefs, through OpenInput
+Short:        Game controllers prefs, through GFOpenInput
 Uploader:     (filled in at upload time)
-Author:       AmigaChrome Team
+Author:       AmiCradle Team
 Type:         util/wb
 Version:      0.2
 Architecture: m68k-amigaos >= 3.2.0
 Distribution: Aminet
 
-OpenPrefs Gamepads shows every game controller OpenInput (openinput.library)
-sees: Amiga joysticks and CD32 pads, USB pads, and pads on AmigaChrome.
+GFOpenPrefs Gamepads shows every game controller GFOpenInput (gfopeninput.library)
+sees: Amiga joysticks and CD32 pads, USB pads, and pads on AmiCradle.
 
 - The list, live: name, maker, connected or not, and where each comes from.
 - Test: every button lights as it is pressed, labelled with the pad's own
   names; the sticks and triggers move; Rumble for pads that have it.
 - Map...: press each button as asked (Skip what the pad lacks), and the
-  pad works in every OpenInput program and SDL game.
+  pad works in every GFOpenInput program and SDL game.
 - Let older games see modern pads: an opt-in patch (off by default) so
   games that read the joystick port through lowlevel.library see a modern
   pad as a CD32 pad or a joystick.
 
-GadTools. Needs openinput.library 1.2.
+GadTools. Needs gfopeninput.library 1.2.
 
 Free software under the MIT licence, Copyright (c) 2026 AmigaChrome Team. Use
 it, change it, fork it and ship it; keep the copyright notice and the licence
-with every copy. If you build on it, please say it is based on OpenPrefs by
-the AmigaChrome Team.
+with every copy. If you build on it, please say it is based on GFOpenPrefs by
+the AmiCradle Team.
