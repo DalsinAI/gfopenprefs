@@ -115,6 +115,54 @@ static void london(void)
     CHECK("London 2026: autumn is 25 October", last_sunday(2026, 10) == 25);
 }
 
+/* The background part on a real Amiga in London over the spring change, as keep_once does it: the system clock
+ * moved by tz_keep_step and ENV: written; ENVARC: written when it can be, and the battery clock set from the
+ * system clock when tz_battery_follows says so. Then a restart: the system clock from the battery clock, ENV: from
+ * ENVARC:. The clock must read local time on the offset ENV: holds. envarc_fails: looks whose ENVARC: write fails. */
+struct amiga { tz_t utc, sys, bat; long env_west, arc_west; };
+
+static void amiga_look(struct amiga *a, const struct tz_zone *z, int envarc_ok)
+{
+    long want, move = tz_keep_step(z, a->sys, -a->env_west * 60L, &want), want_west = -want / 60, arc_was = a->arc_west;
+    a->sys += move;
+    a->env_west = want_west;
+    if (envarc_ok) a->arc_west = want_west;
+    if (tz_battery_follows(0, envarc_ok, arc_was, want_west)) a->bat = a->sys;
+}
+
+static void amiga_tick(struct amiga *a, tz_t s) { a->utc += s; a->sys += s; a->bat += s; }
+static void amiga_restart(struct amiga *a) { a->sys = a->bat; a->env_west = a->arc_west; }
+static int amiga_right(const struct amiga *a) { return a->sys == a->utc - a->env_west * 60L; }
+
+static void battery(void)
+{
+    struct tz_zone z = zone("Europe/London");
+    tz_t spring = utc(2026, 3, 29, 1, 0, 0);
+    struct amiga a;
+    /* both written at the change: as before */
+    a.utc = spring - 60; a.sys = a.bat = a.utc; a.env_west = a.arc_west = 0;
+    amiga_look(&a, &z, 1); amiga_tick(&a, 120); amiga_look(&a, &z, 1);
+    CHECK("battery: spring, ENVARC: written: an hour on", a.env_west == -60 && a.arc_west == -60 && a.bat == a.sys && amiga_right(&a));
+    amiga_restart(&a); amiga_look(&a, &z, 1);
+    CHECK("battery: spring, ENVARC: written: right after a restart", amiga_right(&a) && a.sys == a.utc + 3600);
+    /* ENVARC: not written at the change (full or protected), written an hour later */
+    a.utc = spring - 60; a.sys = a.bat = a.utc; a.env_west = a.arc_west = 0;
+    amiga_look(&a, &z, 1); amiga_tick(&a, 120); amiga_look(&a, &z, 0);
+    CHECK("battery: ENVARC: failed: the battery clock stays with ENVARC:'s GMT", a.arc_west == 0 && a.bat == a.utc && amiga_right(&a));
+    amiga_tick(&a, 3600); amiga_look(&a, &z, 1);
+    CHECK("battery: ENVARC: written a look later: the battery clock goes with it", a.arc_west == -60 && a.bat == a.sys);
+    amiga_restart(&a); amiga_look(&a, &z, 1);
+    CHECK("battery: ENVARC: written a look later: right after a restart", amiga_right(&a) && a.sys == a.utc + 3600);
+    /* ENVARC: never written: a restart starts on GMT and the change is made again */
+    a.utc = spring - 60; a.sys = a.bat = a.utc; a.env_west = a.arc_west = 0;
+    amiga_look(&a, &z, 1); amiga_tick(&a, 120); amiga_look(&a, &z, 0); amiga_tick(&a, 3600); amiga_look(&a, &z, 0);
+    amiga_restart(&a);
+    CHECK("battery: ENVARC: never written: a restart on GMT, consistent", amiga_right(&a) && a.env_west == 0);
+    amiga_look(&a, &z, 1);
+    CHECK("battery: ENVARC: never written: the next look moves it, battery too", amiga_right(&a) && a.sys == a.utc + 3600 && a.bat == a.sys);
+    CHECK("battery: never on AmigaChrome", !tz_battery_follows(1, 1, 0, -60));
+}
+
 static void tokyo(void)
 {
     struct tz_zone z = zone("Asia/Tokyo");
@@ -236,6 +284,7 @@ int main(void)
 {
     london();
     tokyo();
+    battery();
     others();
     civil();
     every_place();
