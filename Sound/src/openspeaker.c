@@ -25,6 +25,10 @@
  *                    to show it; Ctrl-C quits, Ctrl-F reads the settings
  *                    again and quits when the speaker is switched off)
  *
+ * 0.1.7 (Dale, 1 November 2026: "yes" to the review's idle ticks): after 2 s with no input the tick is 1 s, not
+ * 200 ms, and the first input brings it back at once (Common/idlepace.h); the 2 s checks and the save 2 s after
+ * the wheel count time, not ticks, so they keep their times at either pace.
+ *
  * 0.1.6 (the user, 24 October 2026, 21:39: "remove the percentage from volume and improve spacing on the
  * sys icon tray"): the speaker alone on the bar, its level only in the levels it opens (and the cross when
  * muted), with the same room each side as GFOpenTitle 0.7.3's tray icons (TRAY_PAD); on the screen's title bar
@@ -73,8 +77,9 @@
 #include "popuptheme.h"
 #include "barpaint.h"
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
+#include "../../Common/idlepace.h"           /* the tick slowed when nobody is there */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.1.6 (24.10.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.1.7 (01.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct Library *CyberGfxBase;
@@ -112,7 +117,9 @@ static struct Window *before;                /* the window that was active when 
 
 /* from the input handler to the task */
 static struct Task *me;
-static ULONG sig_input;
+static ULONG sig_input, sig_wake;
+/* The tick: 200 ms, and 1 s after 2 s with no input; sig_wake brings it back at the first input */
+static struct idle_pace pace;
 static volatile WORD wheel_steps;            /* up is positive */
 static volatile UBYTE want_mute, want_toggle, want_close;
 static volatile WORD hx0, hy0, hx1, hy1;     /* the speaker on the screen, for the handler */
@@ -504,9 +511,14 @@ static int over(WORD x0, WORD y0, WORD x1, WORD y1, struct Screen *s)
 
 static void custom(CxMsg *msg, CxObj *co)
 {
-    struct InputEvent *ie = (struct InputEvent *)CxMsgData(msg);
+    struct InputEvent *ie = (struct InputEvent *)CxMsgData(msg), *e;
     struct Screen *s = IntuitionBase->FirstScreen;
     (void)co;
+    for (e = ie; e; e = e->ie_NextEvent)
+        if (idle_pace_is_input(e->ie_Class)) {
+            if (idle_pace_input(&pace)) Signal(me, sig_wake);   /* ticking slowly: back to full speed now */
+            break;
+        }
     if (!hscr || s != hscr) return;
     for (; ie; ie = ie->ie_NextEvent) {
         int on_spk = over(hx0, hy0, hx1, hy1, s), on_pop = over(px0, py0, px1, py1, s);
@@ -542,8 +554,10 @@ int main(void)
     struct MsgPort *port = NULL, *tport = NULL;
     struct timerequest *tr = NULL;
     CxObj *broker = NULL, *cust;
-    LONG s1 = -1;
-    int quit = 0, timer = 0, ticks = 0, save_in = 0;
+    LONG s1 = -1, s2 = -1;
+    int quit = 0, timer = 0, due;
+    ULONG asked = 200000, save_in = 0;      /* save_in: us until the levels are saved (0: nothing to save) */
+    ULONG clock_us = 0;                     /* time ticked, in a 4 s round: the 2 s checks follow it at either pace */
     struct MsgPort *other;
     Forbid();
     other = FindPort((STRPTR)SP_SPEAKER_PORT);
@@ -559,8 +573,9 @@ int main(void)
     if (!IntuitionBase || !GfxBase || !GadToolsBase || !LayersBase || !CxBase) goto out;
     wbc_start();
     me = FindTask(NULL);
-    if ((s1 = AllocSignal(-1)) < 0) goto out;
-    sig_input = 1UL << s1;
+    if ((s1 = AllocSignal(-1)) < 0 || (s2 = AllocSignal(-1)) < 0) goto out;
+    sig_input = 1UL << s1; sig_wake = 1UL << s2;
+    idle_pace_init(&pace, 200000, 1000000);
     sp_load(&cur, NULL);
     if (!cur.speaker) goto out;
     board = sp_board();
@@ -579,7 +594,7 @@ int main(void)
     SendIO((struct IORequest *)tr);
     ActivateCxObj(broker, 1);
     while (!quit) {
-        ULONG got = Wait((1UL << port->mp_SigBit) | (1UL << tport->mp_SigBit) | sig_input | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F |
+        ULONG got = Wait((1UL << port->mp_SigBit) | (1UL << tport->mp_SigBit) | sig_input | sig_wake | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F |
                          (spk ? 1UL << spk->UserPort->mp_SigBit : 0) | (pop ? 1UL << pop->UserPort->mp_SigBit : 0) | wbc_sigmask());
         CxMsg *cm;
         if (got & SIGBREAKF_CTRL_C) quit = 1;
@@ -613,21 +628,26 @@ int main(void)
         if (got & sig_input) {
             WORD steps;
             Disable(); steps = wheel_steps; wheel_steps = 0; Enable();
-            if (want_mute) { want_mute = 0; cur.muted = !cur.muted; levels_out(1); save_in = 10; }
+            if (want_mute) { want_mute = 0; cur.muted = !cur.muted; levels_out(1); save_in = 2000000; }
             if (steps) {
                 int v = cur.volume + steps * cur.wheel;
                 cur.volume = v < 0 ? 0 : v > 100 ? 100 : v;
                 if (steps > 0) cur.muted = 0;               /* turning it up unmutes, as a knob does */
                 levels_out(!board);
-                save_in = 10;                               /* kept when the wheel has been still for 2 s */
+                save_in = 2000000;                          /* kept when the wheel has been still for 2 s */
             }
             if (want_close) { want_close = 0; if (pop) pop_close(0); }
             if (want_toggle) { want_toggle = 0; if (pop) pop_close(1); else pop_open(); }
             if (pop) pop_show();
             draw_speaker();
         }
-        if (CheckIO((struct IORequest *)tr)) {
+        /* the timer; input while it is out for the idle 1 s: cut short, and ticking at full speed from now */
+        due = CheckIO((struct IORequest *)tr) != NULL;
+        if (!due && (got & sig_wake) && pace.slow) { AbortIO((struct IORequest *)tr); due = 2; }
+        if (due) {
+            ULONG elapsed = due == 2 ? 0 : asked, before_us = clock_us;
             WaitIO((struct IORequest *)tr);
+            clock_us = (clock_us + elapsed) % 4000000;          /* elapsed is at most 1 s */
             /* 0.1.3: the bar changed height (GFOpenLook makes it taller as it starts): the speaker made again for it */
             if (spk && !wb_down && scr->BarHeight != made_bh) {
                 if (pop) pop_close(0);
@@ -635,8 +655,8 @@ int main(void)
                 if (!open_speaker()) wb_down = 2;    /* tried again as Workbench's return is */
             }
             if (levels_in()) { draw_speaker(); if (pop) pop_show(); }
-            if (save_in && !--save_in) sp_save_levels(&cur, 1);
-            if (++ticks % 10 == 0 && !pop && !wb_down) {                 /* every 2 s: GFOpenMenus' bar moved? */
+            if (save_in) { save_in = elapsed < save_in ? save_in - elapsed : 0; if (!save_in) sp_save_levels(&cur, 1); }
+            if (clock_us / 2000000 != before_us / 2000000 && !pop && !wb_down) {   /* every 2 s: GFOpenMenus' bar moved? */
                 int e = read_bar_edge();
                 if (e != bar_edge) { close_speaker(); open_speaker(); }
                 else if (spk) {                     /* the clock came or went, or changed its width */
@@ -645,8 +665,13 @@ int main(void)
                     if (ox != sx || oy != sy) { ChangeWindowBox(spk, sx, sy, sw, sh); draw_speaker(); }
                 }
             }
-            if (spk && ticks % 10 == 5 && bp_sample(scr, bar_edge == OM_BAR_TITLE, speaker_ours)) draw_speaker();   /* the theme changed the bar */
-            tr->tr_node.io_Command = TR_ADDREQUEST; tr->tr_time.tv_secs = 0; tr->tr_time.tv_micro = 200000;
+            /* the theme changed the bar (every 2 s, a second after the bar's check) */
+            if (spk && (clock_us + 1000000) % 4000000 / 2000000 != (before_us + 1000000) % 4000000 / 2000000 &&
+                bp_sample(scr, bar_edge == OM_BAR_TITLE, speaker_ours)) draw_speaker();
+            Forbid();                                 /* the input handler marks input between our reads otherwise */
+            asked = idle_pace_tick(&pace, elapsed);
+            Permit();
+            tr->tr_node.io_Command = TR_ADDREQUEST; tr->tr_time.tv_secs = 0; tr->tr_time.tv_micro = asked;
             SendIO((struct IORequest *)tr);
         }
     }
@@ -665,6 +690,7 @@ out:
         while ((m = GetMsg(port))) ReplyMsg(m);
         DeleteMsgPort(port);
     }
+    if (s2 >= 0) FreeSignal(s2);
     if (s1 >= 0) FreeSignal(s1);
     if (CyberGfxBase) CloseLibrary(CyberGfxBase);
     if (CxBase) CloseLibrary(CxBase);
