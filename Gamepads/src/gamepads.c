@@ -46,7 +46,7 @@
 #include <proto/intuition.h>
 #include <proto/gadtools.h>
 #include <proto/graphics.h>
-#include <proto/openinput.h>
+#include <proto/gfopeninput.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -82,8 +82,8 @@ struct Library *OpenInputBase;
 #define PATCH_ENVARC "ENVARC:" OPENINPUT_LOWLEVELPATCH
 #define PORTS_ENV "ENV:" OPENINPUT_PORTS
 #define PORTS_ENVARC "ENVARC:" OPENINPUT_PORTS
-#define MOUSEPORT_ENV "ENV:OpenInput/MousePort"
-#define MOUSEPORT_ENVARC "ENVARC:OpenInput/MousePort"
+#define MOUSEPORT_ENV "ENV:GFOpenInput/MousePort"
+#define MOUSEPORT_ENVARC "ENVARC:GFOpenInput/MousePort"
 #define MAPS_ENV "ENV:" OPENINPUT_MAPPINGS
 #define MAPS_ENVARC "ENVARC:" OPENINPUT_MAPPINGS
 #define MAXPADS 16
@@ -292,7 +292,7 @@ static const char *source_name(ULONG s)
     switch (s) {
     case OISRC_AMIGAPORT: return "An Amiga port";
     case OISRC_POSEIDON: return "USB (Poseidon)";
-    case OISRC_AMIGACHROME: return "AmiCradle";
+    case OISRC_AMICRADLE: return "AmiCradle";
     case OISRC_PISTORMPORT: return "A1200 port (PiStorm)";
     }
     return "Unknown";
@@ -474,7 +474,7 @@ static void show_list(void)
 
 static struct gpv_view *view;
 static int view_dirty = 1;                            /* draw it all at the next draw_test */
-static LONG dead_zone = -1;                           /* ENV:OpenInput/DeadZone, read once */
+static LONG dead_zone = -1;                           /* ENV:GFOpenInput/DeadZone, read once */
 
 static const char *label_of(ULONG b)
 {
@@ -489,14 +489,14 @@ static int pad_kind(void)
     return GP_PAD_MODERN;
 }
 
-/* The dead zone the sticks are drawn with: GFOpenInput's (ENV:OpenInput/DeadZone),
+/* The dead zone the sticks are drawn with: GFOpenInput's (ENV:GFOpenInput/DeadZone),
  * or a tenth of the travel, the rest zone a game usually takes, when none is set. */
 static int stick_dead_zone(void)
 {
     if (dead_zone < 0) {
         char t[16];
         LONG v = 0, i;
-        if (read_file("ENV:OpenInput/DeadZone", t, sizeof t) > 0)
+        if (read_file("ENV:GFOpenInput/DeadZone", t, sizeof t) > 0)
             for (i = 0; t[i] >= '0' && t[i] <= '9'; i++) v = v * 10 + (t[i] - '0');
         dead_zone = v > 0 ? (v > 32767 ? 32767 : v) : 3277;
     }
@@ -1086,7 +1086,7 @@ int main(int argc, char **argv)
         else {
             int i, ac = 0;
             list_pads();
-            for (i = 0; i < npads; i++) if (pads[i].oci_Source == OISRC_AMIGACHROME) ac = 1;
+            for (i = 0; i < npads; i++) if (pads[i].oci_Source == OISRC_AMICRADLE) ac = 1;
             strcpy(status_text, ac ? "On AmiCradle, Cradle's Game pads can give every game the pads."
                                    : "Pick a controller to test it.");
         }

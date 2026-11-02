@@ -1,7 +1,7 @@
 Open auto
 ; GFOpenPrefs desktop profile (GFOpenLook 0.4's prefs format, with "target" lines).
 ; Modern: the Open theme, dark in the evening, everything drawn.
-target amigachrome
+target amicradle
 mode auto 19 7
 lite off
 screen workbench themed

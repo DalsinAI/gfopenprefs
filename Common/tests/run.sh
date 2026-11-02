@@ -1,6 +1,6 @@
 #!/bin/sh
 # Host tests for Common/prefs_boot_core.c (what intuition's prefs task applies at boot from ENV:GFOpenAmiga/Sound,
-# ENV:GFOpenAmiga/Stack and ENV:OpenInput/LowLevelPatch): its vectors, and its Sound reader against the Sound
+# ENV:GFOpenAmiga/Stack and ENV:GFOpenInput/LowLevelPatch): its vectors, and its Sound reader against the Sound
 # editor's own (sp_core.c) on the same files; and Common/deskicons.h's words (ENV:Sys/DesktopIcons, the Icons
 # page's No icons, which GFOpenBench follows); and Common/idlepace.h, GFOpenMenus' and GFOpenSpeaker's tick slowed when idle.
 #   sh Common/tests/run.sh

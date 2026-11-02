@@ -28,7 +28,7 @@ moves here from GFOpenUSB Prefs. MIT, Copyright (c) 2026 AmiCradle Team.
     X left, B right, A bottom), each with its letter (a PlayStation pad's
     cross, circle, square and triangle; on a CD32 pad red, blue, green and
     yellow in their places, dim at rest and bright when pressed);
-  - **the sticks** show their dead zone (GFOpenInput's, `ENV:OpenInput/DeadZone`,
+  - **the sticks** show their dead zone (GFOpenInput's, `ENV:GFOpenInput/DeadZone`,
     or a tenth of the travel when none is set) and a thumb dot that takes
     the accent colour once it leaves it; pressing a stick down lights its
     ring;
@@ -83,10 +83,10 @@ patch in when it is switched on; nothing else does.
 
 | File | What |
 | --- | --- |
-| `ENV:OpenInput/LowLevelPatch` | `1`: the `ReadJoyPort` patch is on. No file, or anything else: off |
-| `ENV:OpenInput/ports.prefs` | Which pad feeds which port through the patch, a line per port: `port 1 cd32 any`, `port 0 none`, or a GUID (32 hex digits) in place of `any`. gfopeninput.library reads the same lines, once a second |
-| `ENV:OpenInput/MousePort` | `joystick`: a joystick is in the mouse port, and GFOpenInput lists it. Anything else: the mouse |
-| `ENV:OpenInput/mappings.txt` | The user's own mappings, SDL's format; written by gfopeninput.library (`OIN_SetMapping`) |
+| `ENV:GFOpenInput/LowLevelPatch` | `1`: the `ReadJoyPort` patch is on. No file, or anything else: off |
+| `ENV:GFOpenInput/ports.prefs` | Which pad feeds which port through the patch, a line per port: `port 1 cd32 any`, `port 0 none`, or a GUID (32 hex digits) in place of `any`. gfopeninput.library reads the same lines, once a second |
+| `ENV:GFOpenInput/MousePort` | `joystick`: a joystick is in the mouse port, and GFOpenInput lists it. Anything else: the mouse |
+| `ENV:GFOpenInput/mappings.txt` | The user's own mappings, SDL's format; written by gfopeninput.library (`OIN_SetMapping`) |
 | `ENV:GFOpenAmiga/PrefsView` | Simple or Advanced, shared by every GFOpenPrefs editor |
 
 `src/gp_pad.c` (where the Test view's parts go) and `src/gp_core.c` (the settings, the files' formats, building mapping lines

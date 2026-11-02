@@ -87,7 +87,7 @@ int main(void)
     stk(&s, "CAP 512\r\nPROGRAM\tx\t192\r\n");
     check("Stack: CR LF and tabs", s.cap_kb == 512 && s.nprogs == 1 && s.prog[0].kb == 192);
 
-    /* ---- ENV:OpenInput/LowLevelPatch ---- */
+    /* ---- ENV:GFOpenInput/LowLevelPatch ---- */
     check("LowLevelPatch: \"1\" is on", pbc_lowlevel_on("1", 1) && pbc_lowlevel_on("1\n", 2));
     check("LowLevelPatch: \"0\", empty, none: off", !pbc_lowlevel_on("0", 1) && !pbc_lowlevel_on("", 0) && !pbc_lowlevel_on(0, 0)
           && !pbc_lowlevel_on(" 1", 2));

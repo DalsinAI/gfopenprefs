@@ -140,7 +140,7 @@ void pbc_stack_parse(struct pbc_stack *s, const char *text, pbc_u32 len)
     }
 }
 
-/* ---- ENV:OpenInput/LowLevelPatch ---- */
+/* ---- ENV:GFOpenInput/LowLevelPatch ---- */
 
 int pbc_lowlevel_on(const char *text, pbc_u32 len)
 {
@@ -170,4 +170,43 @@ pbc_u32 pbc_look_scale(const char *text, pbc_u32 len)
         if (p < end) p++;
     }
     return (pbc_u32)scale;
+}
+
+int pbc_look_oldapps(struct pbc_oldapp *out, const char *text, pbc_u32 len)
+{
+    const char *p = text, *end = text + len;
+    char w[8];
+    int n = 0, first = 1;
+    if (!text)
+        return 0;
+    while (p < end) {
+        const char *q = p;
+        if (!first && pbc_word(&q, end, w, sizeof w) == 6 && pbc_is(w, "oldapp")) {
+            char name[PBC_NAMELEN];
+            int k = 0, i, ok;
+            long f;
+            while (q < end && pbc_blank(*q)) q++;
+            if (q < end && *q == '"') {
+                for (q++; q < end && *q != '"' && !pbc_eol(*q); q++)
+                    if (k < PBC_NAMELEN) name[k++] = *q;
+                if (q < end && *q == '"') q++;
+            } else
+                for (; q < end && !pbc_blank(*q) && !pbc_eol(*q); q++)
+                    if (k < PBC_NAMELEN) name[k++] = *q;
+            f = pbc_num(&q, end, &ok);
+            if (k && k < PBC_NAMELEN) {
+                name[k] = 0;
+                for (i = 0; i < n && !pbc_same(out[i].name, name); i++) {}
+                if (i == n && n < PBC_MAXOLD) n++;
+                if (i < n) {
+                    for (k = 0; (out[i].name[k] = name[k]) != 0; k++) {}
+                    out[i].factor = ok && f >= 2 && f <= 4 ? (pbc_u32)f : 2;
+                }
+            }
+        }
+        first = 0;
+        while (p < end && *p != '\n') p++;
+        if (p < end) p++;
+    }
+    return n;
 }

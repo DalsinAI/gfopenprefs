@@ -1,10 +1,10 @@
-/* Copyright (c) 2026 AmigaChrome Team. OpenInput, MIT licence (LICENSE). */
+/* Copyright (c) 2026 AmiCradle Team. GFOpenInput, MIT licence (LICENSE). */
 #ifndef _PROTO_OPENINPUT_H
 #define _PROTO_OPENINPUT_H
 #include <exec/types.h>
 #include <exec/ports.h>
 #include <utility/tagitem.h>
-#include <libraries/openinput.h>
+#include <libraries/gfopeninput.h>
 extern struct Library *OpenInputBase;
-#include <inline/openinput.h>
+#include <inline/gfopeninput.h>
 #endif

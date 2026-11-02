@@ -5,13 +5,13 @@
  * sp_parse and sp_levels_word), System (System/src/opensystem.c,
  * load_settings and clamp_kb) and Gamepads (gfopeninput's library: the
  * patch is on when the file's first byte is '1').
- * Copyright (c) 2026 AmigaChrome Team. MIT.
+ * Copyright (c) 2026 AmiCradle Team. MIT.
  *
  * Plain C: no Amiga call, no library, no globals. Text in (its length
  * given: the files have no NUL), register values out.
  *
  * A copy of amicradle-guest's libraries/openintuition/prefs_boot_core.c
- * and .h (commit 7d956c8, 24 October 2026), where intuition's prefs task
+ * and .h (commit f842038, 2 November 2026), where intuition's prefs task
  * runs it at boot (prefs_boot.c): keep the two the same. One set of
  * vectors checks both (here Common/tests/prefs_boot_core_test.c; there
  * tests/m68k/prefs_boot_core_test.c), and Common/tests/run.sh checks the
@@ -49,7 +49,15 @@ void pbc_stack_parse(struct pbc_stack *s, const char *text, pbc_u32 len);
  * line (not the first, which names the theme), kept to 50-400. No line: 100. */
 pbc_u32 pbc_look_scale(const char *text, pbc_u32 len);
 
-/* ENV:OpenInput/LowLevelPatch: 1 when the patch is on (the first byte '1') */
+/* Its "oldapp <program> <2-4>" lines (docs/design/old-apps-scale.md): the
+ * programs Intuition scales whole. A name is 1-31 characters, quoted or one
+ * word, its case ignored, the last line for a name counting; a factor that
+ * isn't 2, 3 or 4 (or none) is 2; at most PBC_MAXOLD. Returns how many. */
+#define PBC_MAXOLD 32
+struct pbc_oldapp { char name[PBC_NAMELEN]; pbc_u32 factor; };
+int pbc_look_oldapps(struct pbc_oldapp *out, const char *text, pbc_u32 len);
+
+/* ENV:GFOpenInput/LowLevelPatch: 1 when the patch is on (the first byte '1') */
 int pbc_lowlevel_on(const char *text, pbc_u32 len);
 
 #endif
