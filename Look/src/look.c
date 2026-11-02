@@ -93,7 +93,7 @@ struct look {
     int wb_themed, pub_themed, custom_themed;
     char never[160];              /* program names, comma between */
     int scale;                    /* 0-3: 100, 125, 150, 200% (Dale, 30 October 2026: "a scale setting" all apps respond to) */
-    char oldapps[160];            /* "ShowConfig 2, Ed 3": old programs scaled whole, 2x to 4x (amigachrome-guest docs/design/old-apps-scale.md) */
+    char oldapps[160];            /* "ShowConfig 2, Ed 3": old programs scaled whole, 2x to 4x (amicradle-guest docs/design/old-apps-scale.md) */
     int profile_auto;
     char desktop[112];            /* kept as read: the editor has no gadget for it yet */
     int no_zoom, no_size, auto_scrollers;   /* GFOpenLook 0.5: zoom off, sizegadget off, scrollers auto */

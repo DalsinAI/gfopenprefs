@@ -1,7 +1,7 @@
 /* Host tests for the Printing section's fields (pr_prefs.c), on pf_iff's list.
  *   Printing/tests/run.sh
- * The two samples are the files openamigaup's GFOpenPrinter part writes where there are none (tools/build_pack.py
- * printer_prefs() and printergfx_prefs(), openamigaup main 350d03a, with #161 merged).
+ * The two samples are the files gfopenup's GFOpenPrinter part writes where there are none (tools/build_pack.py
+ * printer_prefs() and printergfx_prefs(), gfopenup main 350d03a, with #161 merged).
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "pf_iff.h"
 #include "pr_prefs.h"

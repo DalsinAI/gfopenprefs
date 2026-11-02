@@ -1,4 +1,4 @@
-/* Common/prefs_boot_core.c: the vectors (a copy of amigachrome-guest's
+/* Common/prefs_boot_core.c: the vectors (a copy of amicradle-guest's
  * tests/m68k/prefs_boot_core_test.c, for its libraries/openintuition copy).
  * Each case is a file as the editor writes it, or one it might meet, and
  * what the boot must apply. Prints "ok"/"FAIL" lines, then PASS or FAIL.

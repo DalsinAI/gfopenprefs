@@ -44,8 +44,8 @@ print(f'ok   {len(labels)} page names, the user\'s, each one')
 EOF
 STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32-gcc16}
 if [ ! -x "$STOVE/prefix/bin/m68k-amigaos-gcc" ]; then echo "skipped the build: no stove at $STOVE"; exit $fail; fi
-OGT=${OGT:-$P/../opengadtools}
-[ -f "$OGT/lib/ogt_theme.c" ] || { echo "skipped the build: no opengadtools at $OGT (OGT=)"; exit $fail; }
+OGT=${OGT:-$P/../gfopengadtools}
+[ -f "$OGT/lib/ogt_theme.c" ] || { echo "skipped the build: no gfopengadtools at $OGT (OGT=)"; exit $fail; }
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 STOVE=$STOVE OGT=$OGT CPU=-m68040 OPT=-Os sh "$HERE/build.sh" "$T/out" > "$T/build.log" 2>&1 || { tail -20 "$T/build.log"; echo "FAIL the build"; exit 1; }
 python3 - "$T/out" "$P" <<'EOF' || fail=1

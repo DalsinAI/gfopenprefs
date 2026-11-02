@@ -1,6 +1,6 @@
 #!/bin/sh
 # GFOpenPrefs Menus with the os32 stove (m68k-amigaos-gcc, NDK 3.2), and the
-# theme reader of an opengadtools checkout beside this one (OGT=dir).
+# theme reader of a gfopengadtools checkout beside this one (OGT=dir).
 #   Menus/build.sh [OUT_DIR]       (default build/os3)
 # MIT, Copyright (c) 2026 AmiCradle Team.
 # CPU= and OPT= change -m68040 and -O2 (the ROM's build: OPT=-Os).
@@ -11,11 +11,11 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 SPECS="-specs=$HERE/../specs/m68k-soft-m68040.specs"
 STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32}
 CC=${CC:-"$STOVE/prefix/bin/m68k-amigaos-gcc"}
-OGT=${OGT:-$HERE/../../opengadtools}
+OGT=${OGT:-$HERE/../../gfopengadtools}
 OUT=${1:-$HERE/build/os3}
 mkdir -p "$OUT"
 # GFOpenAmigaGCC 16.2.0-open3's late-combine pass can store a copy one place late (GCC PR 123853; Common/wbclose.h's
-# strcpy of "OpenWBNotify" came out so): off until open4 (openamigagcc #29), on a compiler that knows the option.
+# strcpy of "OpenWBNotify" came out so): off until open4 (gfopengcc #29), on a compiler that knows the option.
 LATE=""
 if "$CC" -fno-late-combine-instructions -S -o /dev/null -x c /dev/null 2>/dev/null; then LATE="-fno-late-combine-instructions"; fi
 "$CC" -noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common $LATE -I"$OGT/lib" -I"$HERE/src" -o "$OUT/Menus" \

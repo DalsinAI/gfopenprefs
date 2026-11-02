@@ -18,7 +18,7 @@ The team was asked to design new preferences editors that combine similar settin
 **Status:** the user's decisions of 24 October 2026 (15:02 and 15:3x: retire the legacy printing in favour of GFOpenPrint, and put the paper settings on a GFOpenPrefs "Printing" page), written (`Printing/src/printing.c` and `pr_prefs.c`, `PRINTING`, GFOpenPrefs 2.4; host tests in `Printing/tests/`). Not built yet. Where this section and the older ones disagree, this one wins.
 
 - A **Printing** section in the last group, after Serial: the paper size (A4 first, then the other sizes printer.prefs can hold), lines a page, the left and right margins in columns, pictures horizontal (GFOpenPrint turns the page to landscape) or vertical (turned onto an upright page), and the density (1 to 7; GFOpenPrint's driver prints pictures at 72 to 1200 dots to the inch). It shows which driver and port printer.prefs names, and doesn't change them. Save, Use and Cancel; no Test, as a test would print.
-- It replaces the paper parts of the OS's Printer and PrinterGfx editors, which openamigaup's GFOpenPrinter part archives. Unit 0's `ENV:Sys/printer.prefs` (PTXT) and `printergfx.prefs` (PGFX) are read and written with Look's PREF reader (`pf_iff.c`); every other chunk and byte (the driver, the port, PUNT, PDEV, pitch, spacing, quality, shading) is kept as the file has it. A file is written only where its bytes change.
+- It replaces the paper parts of the OS's Printer and PrinterGfx editors, which gfopenup's GFOpenPrinter part archives. Unit 0's `ENV:Sys/printer.prefs` (PTXT) and `printergfx.prefs` (PGFX) are read and written with Look's PREF reader (`pf_iff.c`); every other chunk and byte (the driver, the port, PUNT, PDEV, pitch, spacing, quality, shading) is kept as the file has it. A file is written only where its bytes change.
 - With no file, it makes the one the GFOpenPrinter part makes (GFOpenPrint's driver on `oapspool.device`) when GFOpenPrint's driver is in `DEVS:Printers`, else printer.device's no-file state (the generic driver on the parallel port); and only when a setting in that file changes. The GFOpenPrinter part writes the files only where there are none, so the page's settings survive an update.
 - `GFOpenPrefs PRINTING PAPER A4 LINES 66 LEFT 5 RIGHT 75 PICTURES HORIZONTAL DENSITY 2 USE` sets them from the Shell.
 
@@ -30,8 +30,8 @@ The sections are now 23.
 
 - A new **Icons** section in the look group, after Workbench: where labels go (close to the picture, the default, or below the picture's whole box as OS 3.2.3), the label gap (0 to 8 pixels, 2 by default), the column grid's standard cell (Auto, from the icons, or a size), whether icons let go of on the desktop snap to the grid (on), the desktop's Clean Up order (name, kind, size or date), whether the desktop's columns fill down the left (the default) or the right, and a button to the Fonts page, whose Workbench icon text font the labels are in. Save, Use, Test and Cancel as on the other pages.
 - A page of its own rather than a tab of Workbench's: GFOpenPrefs's sections are one list of pages, each with its own Save, Use, Test and Cancel and no tabs inside them, and Workbench's page is full. The Workbench page's "Labels close" box goes; GFOpenLook built alone keeps it.
-- Two variables: `ENV:Sys/IconLabels` (icon.library's: `close`, `close 3`, `below`; no variable is `close`) and `ENV:Sys/IconLayout` (`cell=auto snap=on order=name columns=left`), read and written with opengadtools' `workbench/wb_grid.c`. GFOpenBench reads the desktop and its drawers again when either changes.
-- **No icons on the desktop** (GFOpenPrefs 2.5, 25 October 2026; Salvor's OS list, item 59; the user, 24 October 2026, 21:08: "offer a no-icons mode too... for workbench itself"): a box on this page. On, GFOpenBench's desktop shows no icons at all (disks, icons left out, AppIcons); the backdrop, the bar, the dock and the meters stay, disks still mount, and drawers still open from the dock, the bar or a Shell. Off, the icons come back where they were. A third variable beside the other two, `ENV:Sys/DesktopIcons` (`show` or `none`; no variable is `show`), its words in `Common/deskicons.h`, which GFOpenBench shares. Use, Save, Test and Cancel as for the others; `GFOpenPrefs ICONS DESKTOP NONE USE` from the Shell. GFOpenBench's Window > No icons sets the same variable (ENV: and ENVARC:), and its Icons > Clean Up turns it off and lays the icons out. A variable of its own rather than a word in IconLayout, whose words opengadtools' `wb_grid.c` reads and writes for the drawers too.
+- Two variables: `ENV:Sys/IconLabels` (icon.library's: `close`, `close 3`, `below`; no variable is `close`) and `ENV:Sys/IconLayout` (`cell=auto snap=on order=name columns=left`), read and written with gfopengadtools' `workbench/wb_grid.c`. GFOpenBench reads the desktop and its drawers again when either changes.
+- **No icons on the desktop** (GFOpenPrefs 2.5, 25 October 2026; Salvor's OS list, item 59; the user, 24 October 2026, 21:08: "offer a no-icons mode too... for workbench itself"): a box on this page. On, GFOpenBench's desktop shows no icons at all (disks, icons left out, AppIcons); the backdrop, the bar, the dock and the meters stay, disks still mount, and drawers still open from the dock, the bar or a Shell. Off, the icons come back where they were. A third variable beside the other two, `ENV:Sys/DesktopIcons` (`show` or `none`; no variable is `show`), its words in `Common/deskicons.h`, which GFOpenBench shares. Use, Save, Test and Cancel as for the others; `GFOpenPrefs ICONS DESKTOP NONE USE` from the Shell. GFOpenBench's Window > No icons sets the same variable (ENV: and ENVARC:), and its Icons > Clean Up turns it off and lays the icons out. A variable of its own rather than a word in IconLayout, whose words gfopengadtools' `wb_grid.c` reads and writes for the drawers too.
 
 The sections are now 22.
 
@@ -73,7 +73,7 @@ The user, 10 October 2026: the Pointer editor "crashes on our desktop" and "shou
 
 | OS editor(s) | 6 October design | 10 October direction |
 | --- | --- | --- |
-| Pointer | Appearance, Pointer section | **A tab in GFOpenLook**, rewritten: the pointer image and the velocity-aware acceleration of GFOpenInput's design goal (openamigainput `Design-Pointer-Acceleration.md`; GFOpenMouseAccel source in openamigaup `src/openmouseaccel/`) |
+| Pointer | Appearance, Pointer section | **A tab in GFOpenLook**, rewritten: the pointer image and the velocity-aware acceleration of GFOpenInput's design goal (gfopeninput `Design-Pointer-Acceleration.md`; GFOpenMouseAccel source in gfopenup `src/openmouseaccel/`) |
 | Font | Appearance | **GFOpenLook** |
 | Palette | Appearance | **GFOpenLook** |
 | WBPattern | Appearance | **GFOpenLook**, inside the GFOpenLook framework |
@@ -102,7 +102,7 @@ The user, 10 October 2026: the Pointer editor "crashes on our desktop" and "shou
 
 ## What we found
 
-OS 3.2's Prefs drawer holds seventeen editors, one per settings file, which is how the OS grew rather than how people look for a setting. AHI adds one more. Since 4 October we have added five of our own in DalsinAI/openamigaprefs: Look, Menus, Windows, Dock and GFOpenTypes, plus GFOpenUp Setup, which is a first-start wizard rather than an editor. Each new one made the drawer longer.
+OS 3.2's Prefs drawer holds seventeen editors, one per settings file, which is how the OS grew rather than how people look for a setting. AHI adds one more. Since 4 October we have added five of our own in DalsinAI/gfopenprefs: Look, Menus, Windows, Dock and GFOpenTypes, plus GFOpenUp Setup, which is a first-start wizard rather than an editor. Each new one made the drawer longer.
 
 Several of these edit one subject from different sides. The colours of Workbench live in Palette, its font in Font, its backdrop in WBPattern, its pointer in Pointer and its theme in Look. How windows and menus behave is split between IControl, Workbench, Windows and Menus. Printer, PrinterGfx and PrinterPS are three windows for one printer. Locale and Time both answer "where and when am I".
 
@@ -179,7 +179,7 @@ Dale asked on 6 October that, theme-wise, we replicate how AmigaOS 4.1 looks. Th
 - **The editors follow OS 4.1's prefs layout:** a page list with small icons down the left, titled groups on the page, and Save, Use, Test and Cancel along the foot. The editors are GadTools, and GFOpenLook draws the theme over GadTools, so they need nothing special to look this way.
 - **Open 4 becomes the Modern profile's theme.** The Lite 68040 profile keeps the same shapes but drawn flat, with no gradients or shadows, as the Lite rules say. Classic 3.2 is untouched.
 - **We draw every image ourselves.** The look is matched; no file, image or icon from OS 4.1 is copied, since those belong to Hyperion.
-- Taller, shaded title bars need the frame and title sizes that Look's notes list as theme format 2. That work belongs to GFOpenLook (opengadtools), and Appearance's Theme page simply offers the new theme.
+- Taller, shaded title bars need the frame and title sizes that Look's notes list as theme format 2. That work belongs to GFOpenLook (gfopengadtools), and Appearance's Theme page simply offers the new theme.
 
 ## Keeping old programs working
 
@@ -272,4 +272,4 @@ Dale answered all five on 6 October 2026, each with our recommendation.
 
 **5. Build Appearance first, or Desktop?** **Decided: Appearance first** We recommended Appearance: Look already exists, so it proves the shared frame with the least new code.
 
-**Next:** build P1, the shared frame and Appearance, in DalsinAI/openamigaprefs once Dale says go. Nothing hooks Workbench until then.
+**Next:** build P1, the shared frame and Appearance, in DalsinAI/gfopenprefs once Dale says go. Nothing hooks Workbench until then.

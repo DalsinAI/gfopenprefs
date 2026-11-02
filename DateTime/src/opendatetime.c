@@ -24,7 +24,7 @@
  * the changes; INFO says what the place, the offset and the next change are.
  *
  * Built into GFOpenBench (the Team, 11 October 2026: the Open preferences in GFOpenBench natively) with
- * -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: GFOpenBench starts it as a process of its
+ * -DIN_OPENBENCH, as gfopenbench desktop/ob_builtin.h says: GFOpenBench starts it as a process of its
  * own with no arguments, as Workbench starts a tool, so it is the window; Ctrl-C is Cancel, Ctrl-F
  * brings the window to the front; utility.library is opened under this editor's own name.
  *
@@ -162,7 +162,7 @@ static void offset_text(char *out, int size, long east)
 
 /* ---- the host's clock (AmiCradle) -------------------------------------------------- */
 
-/* accontrol.device (amigachrome-guest): ACCMD_BOARD asks the host; the status (query 7) starts with
+/* accontrol.device (amicradle-guest): ACCMD_BOARD asks the host; the status (query 7) starts with
  * "clock": {"zone": "Europe/London", "offset": 60, "dst": true, "abbr": "BST", "utc": ...}. */
 #define ACCONTROL_NAME "accontrol.device"
 #define ACCMD_BOARD (CMD_NONSTD + 2)

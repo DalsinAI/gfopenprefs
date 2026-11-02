@@ -17,7 +17,7 @@ GFOpenWindows 0.8 took every title-bar press from Intuition (drag.solid) and mov
 
 On GFOpenIntuition, Intuition already drags windows with their contents, at the drag opacity, inside the input task, in the events' order.
 
-The press and the release also came late and out of order from the runtime and input.device. That part is fixed there: amigachrome's pointer window VERSION 2 and openamigainput's input.device 50.3 (Design-Open-Input-Library.md section 3).
+The press and the release also came late and out of order from the runtime and input.device. That part is fixed there: amicradle's pointer window VERSION 2 and gfopeninput's input.device 50.3 (Design-Open-Input-Library.md section 3).
 
 ## The rules
 

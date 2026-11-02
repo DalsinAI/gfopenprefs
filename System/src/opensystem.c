@@ -1,5 +1,5 @@
 /* GFOpenSystem: the Team's System preferences. Its first page is Stack: the
- * adaptive stack's default cap and each program's own cap (amigachrome
+ * adaptive stack's default cap and each program's own cap (amicradle
  * docs/design/Design-Adaptive-Stack.md; decided 13 October 2026: a Stack page in
  * the System prefs owns the cap, one voice).
  *

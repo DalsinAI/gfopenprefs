@@ -12,7 +12,7 @@
  * icons out. GFOpenBench follows a change at once (a DOS notify on ENV:Sys/DesktopIcons, as on the other two): the
  * icons go, and come back where they were.
  *
- * A variable of its own rather than a word in IconLayout: IconLayout's words are read and written by opengadtools'
+ * A variable of its own rather than a word in IconLayout: IconLayout's words are read and written by gfopengadtools'
  * workbench/wb_grid.c, which the drawers share and which this setting has nothing to say to.
  *
  * Plain C with no Amiga headers, so Common/tests builds it on the host as it is.

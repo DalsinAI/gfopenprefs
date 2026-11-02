@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 AmiCradle Team. GFOpenPrefs, MIT licence.
 # Writes TitleBar/src/logo.h: AmiCradle's logo as 16 x 16 RGB with a mask,
-# from the web page's logo (web/amigachrome-logo-192.png in amigachrome).
+# from the web page's logo (web/amicradle-logo-192.png in amicradle).
 #   tools/mklogo.py LOGO.png > src/logo.h
 #   tools/mklogo.py --big LOGO.png > src/logo_big.h   (0.6.11: 44 rows, ARGB with its alpha, cropped to the logo)
 import sys

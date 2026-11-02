@@ -5,7 +5,7 @@
  *   GFOpenInput [FROM file] [USE] [SAVE]
  *
  *   - the mouse: its speed, acceleration, the buttons swapped, the double-click
- *     time. Acceleration is the Team's input.device's (amigachrome
+ *     time. Acceleration is the Team's input.device's (amicradle
  *     docs/design/Design-Open-Input-Library.md, section 4): it is kept in the
  *     Team's OIAC chunk, beside ICTL, and works on relative mice only (a real
  *     port, the PiStorm, Poseidon, the appliance), never on AmiCradle's
@@ -21,7 +21,7 @@
  * kept as it was.
  *
  * Built into GFOpenBench (the Team, 11 October 2026: the Open preferences in GFOpenBench natively) with
- * -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: GFOpenBench starts it as a process of its
+ * -DIN_OPENBENCH, as gfopenbench desktop/ob_builtin.h says: GFOpenBench starts it as a process of its
  * own with no arguments, as Workbench starts a tool, so it is the window; Ctrl-C is Cancel, Ctrl-F
  * brings the window to the front; utility.library is opened under this editor's own name; Gamepads...
  * asks GFOpenBench to open SYS:Prefs/GFOpenGamepads (Common/obmsg.h), its built-in too.
@@ -96,7 +96,7 @@ struct ip_prefs {
 };
 static struct ip_prefs ip;
 
-/* The Team's chunk, OIAC (openamigainput device/teamprefs.h): ten big-endian words, version, flags, enabled,
+/* The Team's chunk, OIAC (gfopeninput device/teamprefs.h): ten big-endian words, version, flags, enabled,
  * precision speed, full speed, maximum multiplier (hundredths), maximum pointer speed, exponent (hundredths),
  * smoothing (hundredths), reset angle. This editor sets "enabled" and keeps the rest as the file has them,
  * or the input library's defaults ("Balanced"). No chunk: acceleration off. */

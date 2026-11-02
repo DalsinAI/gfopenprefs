@@ -3,7 +3,7 @@
  * TextFont diskfont's OpenDiskFont would for the same TextAttr (bitmap fonts
  * from FONTS:, scaled, and outline fonts drawn by openfont itself); close it
  * with graphics' CloseFont. The one call, by its LVO in its register
- * (openamigafont sdk/SFD/openfont_lib.sfd, revision 2): no SDK headers
+ * (gfopenfont sdk/SFD/openfont_lib.sfd, revision 2): no SDK headers
  * needed. The same as GFOpenGadTools' lib/ogt_openfont.h.
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef OPENFONT_TEXT_H

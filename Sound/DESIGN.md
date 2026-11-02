@@ -23,7 +23,7 @@ The sliders move the sound as they are dragged. The PC's mixer page has the
 same numbers under each instance ("Amiga's own volume") and moves them too:
 the board's `LEVEL_SEQ` changes on every change from either side, and the
 open editor's sliders follow it (Save keeps what the PC set). The
-register is in amigachrome #206 (`ACAHI_CAP_LEVELS`); an older runtime
+register is in amicradle #206 (`ACAHI_CAP_LEVELS`); an older runtime
 without it reads as no board.
 
 ### The rest
@@ -97,7 +97,7 @@ places itself after the widths of those with a lower order (on a side bar,
 one row above each), looks again every two seconds, and deletes its file
 when it quits. GFOpenSpeaker writes `Speaker` and sends GFOpenMenus Ctrl-F.
 GFOpenMenus' own bar keeps room for the sum of the widths (a row each on a
-side bar), since openamigaprefs #19. In the title bar, the default, the
+side bar), since gfopenprefs #19. In the title bar, the default, the
 programs only keep clear of each other.
 
 Ctrl-C or Exchange quits it. Ctrl-F (sent by Sound prefs on Save or Use)

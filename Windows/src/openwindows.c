@@ -883,7 +883,7 @@ static void ol_show(struct Screen *sc, WORD l, WORD t, WORD w, WORD h)
 
 /* A window this drags (drag.solid) is drawn at the look's drag opacity while it moves, as Intuition's own solid drag,
  * on a screen layers.library composites (GFOpenLayers 47.101 and up: SetLayerLook, -258, LAYERLOOK_DRAGGED;
- * openamigagfx include/graphics/openlayers.h). Nothing on a classic screen, or with an older layers.library. */
+ * gfopengfx include/graphics/openlayers.h). Nothing on a classic screen, or with an older layers.library. */
 static void drag_look(struct Window *w, ULONG on)
 {
     struct Layer *ly[2];

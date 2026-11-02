@@ -88,7 +88,7 @@ four are checked when its windows open; the last also every 2 s.
 - The screen has 32 bits a pixel.
 - Intuition answers the query.
 - A layer behind the bar covers it all, so there's something to see. **GFOpenBench's backdrop window starts under the bar**
-  (`WA_Top` BarHeight + 1, openamigabench `desktop/openbench.c`), so today only the compositor's black (its backfill,
+  (`WA_Top` BarHeight + 1, gfopenbench `desktop/openbench.c`), so today only the compositor's black (its backfill,
   colour 0) is behind the bar. GFOpenBench needs a backdrop strip there (below).
 
 While see-through:
@@ -144,7 +144,7 @@ backdrop (its `.tone` says light) would want about 60%. That is a follow-up once
 - Intuition's call (Team 4).
 - GFOpenBench's backdrop under the bar: a backdrop strip window over the bar's rows with the same backfill hook (its
   `bf_fill` already draws in screen coordinates), then `ShowTitle(screen, TRUE)` so the bar stays in front.
-- GFOpenSpeaker's speaker (openamigaup) keyed the same way. Until then it is a solid box on the clear bar.
+- GFOpenSpeaker's speaker (gfopenup) keyed the same way. Until then it is a solid box on the clear bar.
 - Lab proof on a copy of Instance-32 (full12, RTG 1920 x 1200), once the call is there: screenshots at rest, while
   hovering and with a menu open; a PAL/AGA screen staying solid; the Shell run's cost.
 
@@ -165,7 +165,7 @@ the time."
   of its own and closed when it has none, so the screen's owner can close the screen. Its list opens GFOpenPrefs
   on that screen (`PUBSCREEN=`). Checked every second. Never on a custom screen that isn't public (a game's),
   nor on one without a title bar.
-- The ROM's bar (amigachrome-guest common/openbar) does the same while GFOpenTitle isn't running.
+- The ROM's bar (amicradle-guest common/openbar) does the same while GFOpenTitle isn't running.
 
 ## The cog (GFOpenTitle 0.5, 8 October 2026)
 
@@ -185,7 +185,7 @@ costs one small window and no new process.
   an entry, or Return on a lit one, starts it; Esc, a click elsewhere or a
   click on the cog closes the list; the cursor keys move the light.
 - **The entries**, the same as GFOpenUpMenu's Tools > Preferences
-  (openamigaup `src/openupmenu.c`): Look, Windows, Dock, Menus, Title bar,
+  (gfopenup `src/openupmenu.c`): Look, Windows, Dock, Menus, Title bar,
   Sound, GFOpenTypes, GFOpenUp Setup, each shown only when `SYS:Prefs/<name>`
   is there (Sound only with GFOpenUp's `SYS:C/GFOpenSpeaker`, since
   `SYS:Prefs/Sound` is OS 3.2's own until GFOpenUp's replaces it), then
@@ -204,7 +204,7 @@ costs one small window and no new process.
 ## The taskspace (GFOpenTitle 0.6, 8 October 2026)
 
 The user named the icon row at the bar's right end, beside the depth gadget,
-the **taskspace**, when designing Tata (openamigatata `Design-Tata.md`):
+the **taskspace**, when designing Tata (gfopentata `Design-Tata.md`):
 Tata's icon goes "in what we will call the taskspace next to the screen
 depth gadget, network and sound". GFOpenTitle already drew the row's own icons
 and kept their places in GFOpenMenus' tray; 0.6 opens the row to other
@@ -259,7 +259,7 @@ Not tested: GFOpenMenus' bar at an edge, an AGA screen (the drawing uses only
 DrawInfo pens), and a Workbench older than 44.
 
 0.6, on a scratch copy of a GFOpenUp 0.6.17 instance (GFOpenRTG 800x600, the
-Open light theme) with Tata 0.1 (openamigatata):
+Open light theme) with Tata 0.1 (gfopentata):
 
 - Tata's shield came up between the network icons and the speaker once
   Tata's start-up was over, and the row closed up around it: clock,
@@ -298,7 +298,7 @@ waited, and the timer's signal is cleared after `WaitIO()`. The Look,
 Menus and Dock editors had the same pattern while their "Test" counts
 down, and clear it too.
 
-**Tested** on a lab copy of Instance-11 (amigachrome's
+**Tested** on a lab copy of Instance-11 (amicradle's
 `scripts/lab_instance.py`) with GFOpenUp 0.7.0's Tata, GFOpenFTP 0.1 and
 Tata's `TataLowPri` test:
 

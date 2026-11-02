@@ -1,16 +1,16 @@
 /* GFOpenIntuition: what the prefs task applies at boot from three plain
  * files the Preferences editors write (salvor/Design-No-ROM-Volume-20261024.md,
  * section 9.3; prefs_boot.c is the Amiga side). Each is read as the editor
- * that writes it reads it, in openamigaprefs: Sound (Sound/src/sp_core.c,
+ * that writes it reads it, in gfopenprefs: Sound (Sound/src/sp_core.c,
  * sp_parse and sp_levels_word), System (System/src/opensystem.c,
- * load_settings and clamp_kb) and Gamepads (openamigainput's library: the
+ * load_settings and clamp_kb) and Gamepads (gfopeninput's library: the
  * patch is on when the file's first byte is '1').
  * Copyright (c) 2026 AmigaChrome Team. MIT.
  *
  * Plain C: no Amiga call, no library, no globals. Text in (its length
  * given: the files have no NUL), register values out.
  *
- * A copy of amigachrome-guest's libraries/openintuition/prefs_boot_core.c
+ * A copy of amicradle-guest's libraries/openintuition/prefs_boot_core.c
  * and .h (commit 7d956c8, 24 October 2026), where intuition's prefs task
  * runs it at boot (prefs_boot.c): keep the two the same. One set of
  * vectors checks both (here Common/tests/prefs_boot_core_test.c; there

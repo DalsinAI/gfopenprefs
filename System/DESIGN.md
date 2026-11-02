@@ -7,7 +7,7 @@ stack's default cap, and the programs with a cap of their own. MIT, Copyright
 Decided 13 October 2026: a new Stack page in the Team's System prefs owns the
 cap and the per-program overrides (one voice). The `STACKCAP` tooltype is
 honoured as the program's own request. The adaptive stack itself is in
-amigachrome `docs/design/Design-Adaptive-Stack.md`.
+amicradle `docs/design/Design-Adaptive-Stack.md`.
 
 ## Where it lives
 
@@ -34,7 +34,7 @@ amigachrome `docs/design/Design-Adaptive-Stack.md`.
   each program.
 - **To the runtime.** On AmiCradle the editor writes the memory controller's
   stack registers (AmiCradle Team product 12, or 14 on the AA+ board, at `$900` on the
-  board: amigachrome `stackwatch.c`). Where there is no such board, the
+  board: amicradle `stackwatch.c`). Where there is no such board, the
   settings are kept for when there is.
 - **At boot**, `GFOpenSystem APPLY` in User-startup hands `ENV:GFOpenAmiga/Stack`
   to the runtime. Until GFOpenUp puts that line in, the runtime starts with its
@@ -51,7 +51,7 @@ GFOpenSystem [APPLY] [INFO] [CAP kb] [PROGRAM name] [PCAP kb] [USE] [SAVE]
 - `CAP`, and `PROGRAM` with `PCAP` (0 removes it), with `USE` or `SAVE`.
 
 Tested 13 October 2026 in a lab copied from Instance-32 (OS 3.2, runtime from
-amigachrome `runtime/adaptive-stack-20261013`): `GFOpenSystem CAP 512 PROGRAM
+amicradle `runtime/adaptive-stack-20261013`): `GFOpenSystem CAP 512 PROGRAM
 StackGrow PCAP 2048 SAVE`, then a recursion 1500 KB deep completed on a growing
 stack and one 3000 KB deep stopped alone with the stack alert; `INFO` showed
 the runtime's cap and counts; the window opened on Workbench with the list.

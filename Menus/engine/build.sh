@@ -1,6 +1,6 @@
 #!/bin/sh
 # GFOpenMenus (the engine) with the os32-gcc16 stove (m68k-amigaos-gcc 16, NDK 3.2),
-# the editor's om_prefs.c and the theme reader of an opengadtools checkout (OGT=dir).
+# the editor's om_prefs.c and the theme reader of a gfopengadtools checkout (OGT=dir).
 #   Menus/engine/build.sh [OUT_DIR]      (default Menus/build/os3)
 # The compiler: CC, else OS32_GCC16 (as GFOpenFTP's build-os3.sh), else STOVE,
 # else ~/AmiCradle/stoves/os32-gcc16. Not the os32 stove's GCC 6.5.0b: at -O2
@@ -21,11 +21,11 @@ STOVE=${OS32_GCC16:-${STOVE:-$HOME/AmiCradle/stoves/os32-gcc16}}
 CC=${CC:-"$STOVE/prefix/bin/m68k-amigaos-gcc"}
 GCCV=$("$CC" -dumpversion 2>/dev/null || echo 0)
 [ "${GCCV%%.*}" -ge 16 ] 2>/dev/null || { echo "$CC is GCC $GCCV: GFOpenMenus needs GCC 16 (the os32-gcc16 stove; set OS32_GCC16)"; exit 2; }
-OGT=${OGT:-$HERE/../../../opengadtools}
+OGT=${OGT:-$HERE/../../../gfopengadtools}
 OUT=${1:-$HERE/../build/os3}
 mkdir -p "$OUT"
 # GFOpenAmigaGCC 16.2.0-open3's late-combine pass can store a copy one place late (GCC PR 123853; Common/wbclose.h's
-# strcpy of "OpenWBNotify" came out so): off until open4 (openamigagcc #29), on a compiler that knows the option.
+# strcpy of "OpenWBNotify" came out so): off until open4 (gfopengcc #29), on a compiler that knows the option.
 LATE=""
 if "$CC" -fno-late-combine-instructions -S -o /dev/null -x c /dev/null 2>/dev/null; then LATE="-fno-late-combine-instructions"; fi
 "$CC" -noixemul -m68040 $SPECS -std=gnu99 -Wall -Werror -O2 -fno-tree-loop-distribute-patterns -fno-delete-null-pointer-checks -fno-common $LATE -I"$OGT/lib" -I"$HERE/../src" -I"$HERE/../../Common" -o "$OUT/GFOpenMenus" \

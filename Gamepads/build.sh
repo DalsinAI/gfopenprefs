@@ -1,6 +1,6 @@
 #!/bin/sh
 # GFOpenPrefs Gamepads, with the os32 stove (m68k-amigaos-gcc, NDK 3.2) and
-# gfopeninput.library's headers (include/, copied from openamigainput).
+# gfopeninput.library's headers (include/, copied from gfopeninput).
 #   Gamepads/build.sh [OUT_DIR]     (default build/os3)
 #   STOVE=~/AmiCradle/stoves/os32-gcc16 Gamepads/build.sh build/os3-gcc16
 # MIT, Copyright (c) 2026 AmiCradle Team.
@@ -17,7 +17,7 @@ OUT=${1:-$HERE/build/os3}
 # No -lamiga: its 16-bit sprintf would replace C's.
 CFLAGS="-noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common -I$HERE/src -I$HERE/include"
 # GFOpenAmigaGCC 16.2.0-open3's late-combine pass can store a copy one place late (GCC PR 123853; Common/wbclose.h's
-# strcpy of "OpenWBNotify" came out so): off until open4 (openamigagcc #29), on a compiler that knows the option.
+# strcpy of "OpenWBNotify" came out so): off until open4 (gfopengcc #29), on a compiler that knows the option.
 if "$CC" -fno-late-combine-instructions -S -o /dev/null -x c /dev/null 2>/dev/null; then CFLAGS="$CFLAGS -fno-late-combine-instructions"; fi
 mkdir -p "$OUT"
 S="$HERE/src"
