@@ -1,4 +1,4 @@
-openinput.library's headers, copied from DalsinAI/gfopeninput at efc932c
-(frozen for 0.1: they change only by adding), so OpenPrefs builds on its own.
+gfopeninput.library's headers, copied from DalsinAI/gfopeninput at 6fc2d8b
+(frozen for 0.1: they change only by adding), so GFOpenPrefs builds on its own.
 Copy them again when gfopeninput adds to them. MIT, Copyright (c) 2026
 AmiCradle Team.

@@ -28,7 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <libraries/openinput.h>
+#include <libraries/gfopeninput.h>
 #include "gp_draw.h"
 
 #define NO_PEN (-1)

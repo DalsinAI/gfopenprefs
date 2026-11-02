@@ -2,18 +2,18 @@
  * them in, with no Amiga calls, so the same code is tested on the host
  * (tests/test_gp_core.c) and runs in the editor.
  *
- *   ENV:OpenInput/LowLevelPatch  "1": gfopeninput.library patches
+ *   ENV:GFOpenInput/LowLevelPatch  "1": gfopeninput.library patches
  *                                lowlevel.library's ReadJoyPort, so older
  *                                games see a modern pad; anything else, or
  *                                no file: nothing is patched (the default)
- *   ENV:OpenInput/ports.prefs    which pad feeds which Amiga port through
+ *   ENV:GFOpenInput/ports.prefs    which pad feeds which Amiga port through
  *                                that patch: "port N none|joystick|cd32
  *                                any|GUID" a line per port (gfopeninput.library
  *                                reads the same lines)
- *   ENV:OpenInput/MousePort      "joystick": a joystick is in the mouse port
+ *   ENV:GFOpenInput/MousePort      "joystick": a joystick is in the mouse port
  *                                (lowlevel.library reads a mouse there as a
  *                                stick too); anything else: the mouse
- *   ENV:OpenInput/mappings.txt   the user's own mappings, in SDL's
+ *   ENV:GFOpenInput/mappings.txt   the user's own mappings, in SDL's
  *                                GameControllerDB format; written by
  *                                gfopeninput.library (OIN_SetMapping)
  *
@@ -23,7 +23,7 @@
 
 #include <stdint.h>
 
-/* OILEG_* from libraries/openinput.h, which the host tests don't include */
+/* OILEG_* from libraries/gfopeninput.h, which the host tests don't include */
 enum { GP_MODE_NONE = 0, GP_MODE_JOYSTICK = 1, GP_MODE_CD32 = 2 };
 
 typedef struct gp_port {
