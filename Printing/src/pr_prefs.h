@@ -9,9 +9,9 @@
  * every other chunk (PUNT, PDEV, any the section doesn't know), so settings put back unchanged give the file's own
  * bytes. A file with no PTXT or PGFX gets one as printer.device takes a missing one (its no-file state).
  *
- * With no file at all, pr_new_txt and pr_new_gfx make one: with GFOpenPrint, the bytes openamigaup's GFOpenPrinter part
+ * With no file at all, pr_new_txt and pr_new_gfx make one: with GFOpenPrint, the bytes gfopenup's GFOpenPrinter part
  * writes (tools/build_pack.py printer_prefs and printergfx_prefs: GFOpenPrint's driver on oapspool.device unit 0, A4,
- * 66 lines, margins 5 to 75, density 2); without it, printer.device's no-file state (amigachrome-guest
+ * 66 lines, margins 5 to 75, density 2); without it, printer.device's no-file state (amicradle-guest
  * devices/gfopenprinter.device, opr_default_prefs: the generic driver on the parallel port), so a save changes
  * nothing but the fields the page shows. Plain C: tested on the host by Printing/tests/run.sh.
  *

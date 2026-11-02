@@ -1,4 +1,4 @@
-/* idlepace.h: a desktop commodity's tick, slowed while nobody uses the machine (Repo review 1 Nov 2026, openamigaprefs
+/* idlepace.h: a desktop commodity's tick, slowed while nobody uses the machine (Repo review 1 Nov 2026, gfopenprefs
  * OLD 2; Dale, 1 Nov 2026: "yes"). GFOpenMenus' bar polled every 100 ms and GFOpenSpeaker every 200 ms whether anyone was
  * there or not, so an idle desktop woke 10-20 times a second. With this, after a quiet spell (2 s) each runs at its
  * idle interval (GFOpenMenus 500 ms, GFOpenSpeaker 1 s), and goes back to its full speed on the first input event.

@@ -11,7 +11,7 @@ lets us update the filetype in icons to make default applications easier,
 the current solution is a bit... pants".
 
 **GFOpenTypes** (a working name, our to change) is the first of GFOpenPrefs,
-our preferences editors, in the repository `DalsinAI/openamigaprefs`. MIT,
+our preferences editors, in the repository `DalsinAI/gfopenprefs`. MIT,
 Copyright (c) 2026 AmiCradle Team, credit kept. GadTools, as OS 3.x
 applications are.
 
@@ -129,7 +129,7 @@ when the stack was given back. `GFOpenTypes LIST` on 4 KB, and the window on
 64 KB, exit cleanly.
 
 - `opentypes.c` sets `__stack` to 32 KB, so libnix's start code swaps to a
-  stack of its own when started with less (the practice in amigachrome's
+  stack of its own when started with less (the practice in amicradle's
   `docs/AMIGA_OS3_APPLICATION_PRACTICE.md`, section 2). The GFOpenBench build
   (IN_OPENBENCH) runs on GFOpenBench's stack and is unchanged.
 

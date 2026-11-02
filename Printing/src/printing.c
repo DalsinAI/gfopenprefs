@@ -1,6 +1,6 @@
 /* Printing: the paper settings printer.device and GFOpenPrint's driver go by, as one section of GFOpenPrefs (the user,
  * 24 October 2026: the legacy printing retired in favour of GFOpenPrint, and the paper settings on a GFOpenPrefs
- * "Printing" page). The OS's Printer and PrinterGfx editors are archived by openamigaup's GFOpenPrinter part.
+ * "Printing" page). The OS's Printer and PrinterGfx editors are archived by gfopenup's GFOpenPrinter part.
  *
  *   - Paper size (printer.prefs, pt_PaperSize): A4 first, then the other sizes the file can hold. GFOpenPrint's driver
  *     makes A3, A4, A5, US Letter and US Legal pages; any other size it prints on A4, and the status line says so.
@@ -16,7 +16,7 @@
  *
  * Save writes ENV:Sys/printer.prefs and printergfx.prefs and ENVARC:'s, Use ENV:'s only, Cancel nothing. A file is
  * written only where its bytes change, and one that isn't there is made only when a setting in it changes: with
- * GFOpenPrint's driver in DEVS:Printers as openamigaup's GFOpenPrinter part makes it (GFOpenPrint's driver on
+ * GFOpenPrint's driver in DEVS:Printers as gfopenup's GFOpenPrinter part makes it (GFOpenPrint's driver on
  * oapspool.device), else as printer.device takes no file (the generic driver on the parallel port). Every chunk
  * and byte this section doesn't edit is kept (pr_prefs.c): the driver, the port, PUNT and PDEV, the pitch, the
  * spacing, the quality and the shading. A file that isn't one this can keep whole is never written. printer.device

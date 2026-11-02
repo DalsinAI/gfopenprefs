@@ -12,7 +12,7 @@ CC=${CC:-"$STOVE/prefix/bin/m68k-amigaos-gcc"}
 OUT=${1:-$HERE/build/os3}
 mkdir -p "$OUT"
 # GFOpenAmigaGCC 16.2.0-open3's late-combine pass can store a copy one place late (GCC PR 123853; Common/wbclose.h's
-# strcpy of "OpenWBNotify" came out so): off until open4 (openamigagcc #29), on a compiler that knows the option.
+# strcpy of "OpenWBNotify" came out so): off until open4 (gfopengcc #29), on a compiler that knows the option.
 LATE=""
 if "$CC" -fno-late-combine-instructions -S -o /dev/null -x c /dev/null 2>/dev/null; then LATE="-fno-late-combine-instructions"; fi
 "$CC" -noixemul -m68040 $SPECS -std=gnu99 -Wall -Werror -O2 -fno-delete-null-pointer-checks -fno-common $LATE -o "$OUT/GFOpenUp-Setup" "$HERE/src/setup.c"

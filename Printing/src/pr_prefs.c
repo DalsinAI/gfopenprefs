@@ -1,6 +1,6 @@
 /* pr_prefs: printer.prefs and printergfx.prefs, the fields the Printing section edits (pr_prefs.h). The offsets are
  * those of GFOpenNDK's struct PrinterTxtPrefs, PrinterUnitPrefs, PrinterDeviceUnitPrefs and PrinterGfxPrefs,
- * big-endian with the 68k's two-byte alignment (amigachrome-guest's printer_core.cpp asserts the same sizes).
+ * big-endian with the 68k's two-byte alignment (amicradle-guest's printer_core.cpp asserts the same sizes).
  * Plain C: tested on the host by Printing/tests/run.sh.
  *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
@@ -67,7 +67,7 @@ int pr_paper_named(const char *word)
     return -1;
 }
 
-/* openamigaprint's src/driver/openprint_driver.c (geometry): A3, A4, A5, US Letter and US Legal; any other is A4 */
+/* gfopenprint's src/driver/openprint_driver.c (geometry): A3, A4, A5, US Letter and US Legal; any other is A4 */
 int pr_paper_openprint(int paper)
 {
     return paper == PR_A3 || paper == PR_A4 || paper == PR_A5 || paper == PR_US_LETTER || paper == PR_US_LEGAL;

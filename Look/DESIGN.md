@@ -29,7 +29,7 @@ redraws the open windows' frames and gadgets. From the Shell:
 The three profiles GFOpenUp installs: **Modern** (AmiCradle: Open, dark by
 the clock), **Lite 68040** (a real 68040 or 68060: Open, Lite) and
 **Classic 3.2** (any machine: the OS's own look). A profile is GFOpenLook's
-prefs format with `target` lines (opengadtools DESIGN.md section 2i).
+prefs format with `target` lines (gfopengadtools DESIGN.md section 2i).
 
 Holding Shift while GFOpenLook starts gives the OS's own look until the look
 is changed again (safe start).
@@ -65,7 +65,7 @@ from Menus' Look... button, each with no console.
   front). The lines are written with the others, and kept when Look saves.
 - **The Modern and Lite 68040 profiles** turn all three on: that is the look
   approved on the canvas. Classic 3.2 leaves them off.
-- **The Open theme is now flat** (opengadtools: GFOpenLook 0.5), so the
+- **The Open theme is now flat** (gfopengadtools: GFOpenLook 0.5), so the
   default accent is its blue, `#2f6fb3`; the old glassy Open is Glass.
 
 Not yet built on the os32 stove.
@@ -133,7 +133,7 @@ already taller, the status line and buttons go to its foot. On a screen
 under 400 lines the Theme tab's preview gets shorter, so its Simple view
 fits a 256-line screen.
 
-**Pointer acceleration** is not in 1.1. GFOpenMouseAccel (openamigaup
+**Pointer acceleration** is not in 1.1. GFOpenMouseAccel (gfopenup
 `src/openmouseaccel/`) keeps `ENV:GFOpenUp/GFOpenMouseAccel.prefs`, GFOpenInput's
 design (`Design-Pointer-Acceleration.md`) names other keys in
 `ENV:OpenInput/`, and nothing reads either yet; which file, and how it
@@ -299,7 +299,7 @@ the hidden devices' list is shorter for it (two rows on a 256-line screen,
 three elsewhere), so the page is no taller there. It is icon.library's
 setting, not Workbench's, so every program that draws or measures icons
 through icon.library follows it, and GFOpenBench's desktop and drawers too:
-`ENV:Sys/IconLabels`, `close` or `below` (amigachrome-guest
+`ENV:Sys/IconLabels`, `close` or `below` (amicradle-guest
 `libraries/openicon/README.md`, "Labels close to the image"). It goes with the
 tab's Use (ENV:), Save (ENV: and ENVARC:), Test and Cancel as workbench.prefs
 does, and a file is written only when it would change. Ticked, each label's
@@ -373,7 +373,7 @@ into the lab beside its own GFOpenLook:
 
 **Found, not changed.** GFOpenBench, the Team's desktop, doesn't read
 `workbench.prefs`: with DH1: hidden and saved, the lab's desktop still showed
-Work after a restart (openamigabench has no WBHD or WBNC reader). The hidden
+Work after a restart (gfopenbench has no WBHD or WBNC reader). The hidden
 devices and the icon frame are the OS's Workbench's and icon.library's; on
 the Team's desktop they wait for GFOpenBench to read them.
 

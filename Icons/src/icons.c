@@ -17,7 +17,7 @@
  *
  * Two variables, so icon.library (in the ROM) reads one word: ENV:Sys/IconLabels ("close", "close 3", "below") and
  * ENV:Sys/IconLayout ("cell=auto snap=on order=name columns=left labelcolour=backdrop"), read by GFOpenBench and its
- * drawers, which follow a change at once (opengadtools' workbench/wb_grid.c reads and writes both). And (0.2) a third
+ * drawers, which follow a change at once (gfopengadtools' workbench/wb_grid.c reads and writes both). And (0.2) a third
  * beside them, ENV:Sys/DesktopIcons ("show" or "none"; Common/deskicons.h), which GFOpenBench alone reads. Save writes
  * ENV: and ENVARC: (SetVar), Use ENV:, Test ENV: until Cancel puts back what was there, Cancel changes nothing else.
  *
@@ -49,7 +49,7 @@
 #define lt_note_to(f) ((void)0)
 #endif
 
-#include "wb_grid.h"                        /* opengadtools' workbench/: the two variables' words */
+#include "wb_grid.h"                        /* gfopengadtools' workbench/: the two variables' words */
 #include "deskicons.h"                      /* Common/: ENV:Sys/DesktopIcons's words, shared with GFOpenBench */
 
 static const char version[] __attribute__((used)) = "$VER: IconsPage 0.2 (25.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";

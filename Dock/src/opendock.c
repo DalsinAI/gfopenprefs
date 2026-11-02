@@ -1514,7 +1514,7 @@ static int relayout(struct Menu *menus)
 
 /* 0.6.10: whether anything a check could find has changed since the last one, so the two-second check can
  * be skipped. Exec counts each task added and removed on taskclock.resource (lib_Version 2, GFOpenExec's;
- * amigachrome-guest common/include/taskclock.h), and a window opened or closed changes the window list's
+ * amicradle-guest common/include/taskclock.h), and a window opened or closed changes the window list's
  * print (each window and its task), one walk under LockIBase. The count is read before the check looks, so a
  * change during it is seen next time. Without the resource (OS 3.2.3's exec, or an older GFOpenExec) every
  * check runs, as before. */

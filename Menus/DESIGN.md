@@ -107,7 +107,7 @@ for it on its first page.
 ### Building
 
 `Menus/build.sh [OUT_DIR]` uses the os32 stove (or `CC=`). The theme reader
-comes from an opengadtools checkout beside this one (or `OGT=`). It is built
+comes from an gfopengadtools checkout beside this one (or `OGT=`). It is built
 for the 68040 (-m68040), an FPU is not needed, and it never uses GFOpenGPU.
 
 ### The engine, GFOpenMenus 0.1
@@ -206,7 +206,7 @@ patches nothing:
   the mouse is never held.
 - The right button on the screen bar or in a program's window is unchanged.
 - **No `WORKBENCH` port, no right-click menu (0.4.5, W67).** GFOpenBench marks its drawers and its desktop as Workbench's windows but has no ARexx port. GFOpenMenus 0.4.4 took the right press there, asked nobody, and showed nothing (Dale, 18 October: "no right click menu in list mode"). Now it looks for the port at the press: without it, the press is an ordinary one, and the window's own menus open (GFOpenBench's Window, View and Icons, or its desktop's).
-- **Built -fno-late-combine-instructions (0.4.6, W134).** GFOpenAmigaGCC 16.2.0-open3's late-combine pass made `Common/wbclose.h`'s `strcpy(r->name, "OpenWBNotify")` a copy that stored each byte one place late (`move.b (a1)+,(a1,d0.l)`), so a root semaphore GFOpenMenus made was named "" and GFOpenLook's notice and GFOpenBench never found it. `Menus/engine/build.sh` turns the pass off on a compiler that has it, until GFOpenAmigaGCC open4 (openamigagcc #29). No source changed.
+- **Built -fno-late-combine-instructions (0.4.6, W134).** GFOpenAmigaGCC 16.2.0-open3's late-combine pass made `Common/wbclose.h`'s `strcpy(r->name, "OpenWBNotify")` a copy that stored each byte one place late (`move.b (a1)+,(a1,d0.l)`), so a root semaphore GFOpenMenus made was named "" and GFOpenLook's notice and GFOpenBench never found it. `Menus/engine/build.sh` turns the pass off on a compiler that has it, until GFOpenAmigaGCC open4 (gfopengcc #29). No source changed.
 - **Slower when idle (0.4.7).** The bar's tick (100 ms, or 500 ms for the title bar) went on whether anyone was there or not, so with GFOpenSpeaker the desktop woke 15 times a second doing nothing. After 2 s with no key, button, move or wheel it ticks every 500 ms, and the first input cuts the slow tick short and goes back to full speed (`Common/idlepace.h`, tested in `Common/tests/run.sh`). GFOpenSpeaker does the same, 200 ms to 1 s.
 
 `Menus/engine/wbprobe.c` sends commands to the port and prints the answers.
@@ -237,7 +237,7 @@ one line between rows. Measured on a PAL High Res Workbench in Topaz 8 it is
 640 x 248 inside GFOpenLook and 634 x 248 on its own. Taller screens keep the
 layout above.
 
-### For the GFOpenUp part (to add in openamigaup)
+### For the GFOpenUp part (to add in gfopenup)
 
     menus = Part(top, "GFOpenMenus", "0.1", "GFOpenMenus: our own menus, and their editor")
     menus.add("Prefs/Menus", (a.openamigaprefs / "Menus/build/os3/Menus").read_bytes(), "SYS:Prefs/Menus")

@@ -69,7 +69,7 @@ written at once, a look later, and never).
 
 ## 0.2.2 (13 October 2026): KEEP no longer spins
 
-After a Ctrl-E the keeper aborts its timer request and waits for it. The reply left the timer port's signal set, and `WaitIO` doesn't clear it, so every later `Wait` returned at once: the keeper read Locale prefs over and over, holding `ENV:Sys/Locale.prefs` open so often that writing it could fail with "object is in use". One `SetSignal` after `WaitIO` clears it. Found by the ZoneRules work (amigachrome-guest #107), whose library keeper had the same loop.
+After a Ctrl-E the keeper aborts its timer request and waits for it. The reply left the timer port's signal set, and `WaitIO` doesn't clear it, so every later `Wait` returned at once: the keeper read Locale prefs over and over, holding `ENV:Sys/Locale.prefs` open so often that writing it could fail with "object is in use". One `SetSignal` after `WaitIO` clears it. Found by the ZoneRules work (amicradle-guest #107), whose library keeper had the same loop.
 
 ## 0.2.1 (13 October 2026): no NULL output
 
@@ -82,7 +82,7 @@ Europe/London, not an offset; on AmiCradle the host hands the Amiga its zone
 and offset; on a real Amiga the Team's locale side carries the summer time
 rules and switches by itself; Locale prefs, as the Team writes them, are the
 one owner of the zone. The whole design, with the host's side and ACFS's
-dates, is amigachrome `docs/design/Design-Time-Zones.md`.
+dates, is amicradle `docs/design/Design-Time-Zones.md`.
 
 | Setting | Where it goes |
 | --- | --- |
@@ -123,7 +123,7 @@ dates, is amigachrome `docs/design/Design-Time-Zones.md`.
 - **Open: the autumn change holds waits.** Kickstart 3.2's `timer.device`
   counts `Delay()` and `C:Wait` to a moment on the system clock, so when KEEP
   sets the clock back, every wait in progress holds until the clock catches up
-  (an hour at a real change). Seen in the lab; the choices are in the amigachrome
+  (an hour at a real change). Seen in the lab; the choices are in the amicradle
   design, section 5a.
 
 Host tests: `DateTime/test/run.sh` (the host's C compiler): Europe/London's

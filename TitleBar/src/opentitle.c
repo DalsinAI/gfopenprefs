@@ -566,9 +566,9 @@ static void bar_paint(struct Window *win, WORD x, WORD y, WORD pw, WORD ph)
 #ifndef RECTFMT_RAW
 #define RECTFMT_RAW 5                          /* CyberGraphX 43: the bitmap's own pixel format */
 #endif
-#define SEE_LOOK_ALPHA 8UL                     /* openamigagfx include/graphics/openlayers.h: LAYERLOOK_ALPHA */
+#define SEE_LOOK_ALPHA 8UL                     /* gfopengfx include/graphics/openlayers.h: LAYERLOOK_ALPHA */
 
-/* GFOpenLayers 47.101 and up: SetLayerLook(layer, what, value) (-258, openamigagfx include/graphics/openlayers.h); ~0
+/* GFOpenLayers 47.101 and up: SetLayerLook(layer, what, value) (-258, gfopengfx include/graphics/openlayers.h); ~0
  * for a classic layer. Only once see_screen() has found GFOpenLayers. A6 saved by hand, as GFOpenWindows does. */
 static ULONG layer_look(struct Layer *l, ULONG what, ULONG value)
 {
@@ -1042,7 +1042,7 @@ static const char *const cog13[13] = {
 
 /* The cog's list (0.7): GFOpenPrefs's sections (section: GFOpenPrefs SECTION; 0.7.1: by the pages' names, as
  * GFOpenPrefs lists them), then the other settings programs
- * that are there (needs, or path when NULL), as in GFOpenUpMenu's Tools > Preferences (openamigaup
+ * that are there (needs, or path when NULL), as in GFOpenUpMenu's Tools > Preferences (gfopenup
  * src/openupmenu.c). */
 static const struct { const char *label, *path, *section, *needs; } cog_items[] = {
     { "Theme",         NULL, "THEME",    NULL },
@@ -1666,7 +1666,7 @@ static int ts_is(struct Window *w)
  *   - 32 bits a pixel, where a layer's own alpha counts (our windows' glyphs stay opaque on the clear bar);
  *   - Intuition takes TB_ICTRL_BAROPACITY;
  *   - a layer behind the bar covers it all, so there is something to see. GFOpenBench's backdrop window starts
- *     under the bar (openamigabench desktop/openbench.c), so with it alone there is only the compositor's black.
+ *     under the bar (gfopenbench desktop/openbench.c), so with it alone there is only the compositor's black.
  * Elsewhere (AGA, PAL, 8 or 16-bit, a screen classic layers draw) nothing here runs and the bar is solid.
  *
  * The cost at rest is today's: no extra wake. Each wake the loop already has (a tenth of a second while the pointer

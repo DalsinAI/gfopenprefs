@@ -49,10 +49,10 @@ static const char version[] __attribute__((used)) = "$VER: Windows 0.6.8 (18.10.
 
 struct wprefs {
     int snap, snap_dist, halves, switcher, wheel, places, places_wb, drawer_w, drawer_h, dblfront, edges, edge_ptr, drive_title, solid;
-    /* layers' composited mode (openamigagfx docs/design/compositing.md): the switch, and the look's lines,
+    /* layers' composited mode (gfopengfx docs/design/compositing.md): the switch, and the look's lines,
      * which have no gadget and are kept as written */
     int composite, shadows, shadow_size, shadow_strength, drag_opacity, inactive_opacity;
-    /* Intuition's gradient title bars on true-colour public screens (gradient on|off; amigachrome-guest
+    /* Intuition's gradient title bars on true-colour public screens (gradient on|off; amicradle-guest
      * docs/design/gradient-title-bars.md); it takes effect when the Workbench opens next */
     int gradient;
     char key[48];
@@ -287,7 +287,7 @@ static void forget_places(void)
 
 /* Why layers.library doesn't composite this screen, as the switch's words in compoff_text ("Transparency
  * and shadows (off on this screen: 8-bit)"); empty while it does, or when layers can't say. GFOpenLayers
- * 47.102 and up: ComposeLayerInfo(li, NULL, LAYERS_COMPOSE_WHY) (-246; openamigagfx
+ * 47.102 and up: ComposeLayerInfo(li, NULL, LAYERS_COMPOSE_WHY) (-246; gfopengfx
  * include/graphics/openlayers.h, LAYERS_WHY_ 1-8 in this order). Its own open of layers.library: built
  * into GFOpenBench, this file declares no library base. */
 static void comp_off(struct Screen *scr)

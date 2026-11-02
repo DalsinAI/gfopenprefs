@@ -19,8 +19,8 @@ Team, released under the MIT licence (`LICENSE`).
 
 ## From our other repositories
 
-- **AmiCradle's logo** (`DalsinAI/amigachrome`, `web/amigachrome-logo-192.png`): drawn 16 by 16 into `TitleBar/src/logo.h` by `TitleBar/tools/mklogo.py`.
-- **GFOpenGadTools** (`DalsinAI/opengadtools`): Look, Menus and the GFOpenMenus engine build against its theme reader from a checkout beside this one. It is not copied in.
+- **AmiCradle's logo** (`DalsinAI/amicradle`, `web/amicradle-logo-192.png`): drawn 16 by 16 into `TitleBar/src/logo.h` by `TitleBar/tools/mklogo.py`.
+- **GFOpenGadTools** (`DalsinAI/gfopengadtools`): Look, Menus and the GFOpenMenus engine build against its theme reader from a checkout beside this one. It is not copied in.
 
 ## Work we learned from
 

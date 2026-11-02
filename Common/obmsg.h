@@ -1,4 +1,4 @@
-/* obmsg.h: asking GFOpenBench, our Workbench (openamigabench desktop/openbench.c), to open something as
+/* obmsg.h: asking GFOpenBench, our Workbench (gfopenbench desktop/openbench.c), to open something as
  * Workbench's OpenWorkbenchObject does: a tool runs, a project opens with its default tool, a drawer
  * or disk opens in a drawer window. Programs of the Team that start things (the dock) ask GFOpenBench
  * first, and Workbench when GFOpenBench isn't there.

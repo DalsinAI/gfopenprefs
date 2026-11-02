@@ -1,6 +1,6 @@
 #!/bin/sh
 # GFOpenPrefs: every editor as a section of one program (OpenPrefs/src/openprefs.c), with the os32 stove
-# (m68k-amigaos-gcc, NDK 3.2) and the theme reader of an opengadtools checkout beside this one (OGT=dir).
+# (m68k-amigaos-gcc, NDK 3.2) and the theme reader of an gfopengadtools checkout beside this one (OGT=dir).
 #   OpenPrefs/build.sh [OUT_DIR]                    (default build/os3)
 # writes
 #   OUT_DIR/GFOpenPrefs        the app: SYS:Preferences/GFOpenPrefs (SYS:Prefs/GFOpenPrefs on an older disk), and
@@ -15,13 +15,13 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 P=$HERE/..
 STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32}
 CC="$STOVE/prefix/bin/m68k-amigaos-gcc"
-OGT=${OGT:-$P/../opengadtools}
+OGT=${OGT:-$P/../gfopengadtools}
 OUT=${1:-$HERE/build/os3}
 O=$OUT/obj
 mkdir -p "$O/app"
 BASE="-noixemul ${CPU:--m68020} -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common"
 # GFOpenAmigaGCC 16.2.0-open3's late-combine pass can store a copy one place late (GCC PR 123853; Common/wbclose.h's
-# strcpy of "OpenWBNotify" came out so): off until open4 (openamigagcc #29), on a compiler that knows the option.
+# strcpy of "OpenWBNotify" came out so): off until open4 (gfopengcc #29), on a compiler that knows the option.
 if "$CC" -fno-late-combine-instructions -S -o /dev/null -x c /dev/null 2>/dev/null; then BASE="$BASE -fno-late-combine-instructions"; fi
 FRAME="$BASE -DLT_OP -DLT_ONE -I$P/Common -I$HERE/src -I$OGT/lib"
 # GCC 16 warns of truncation in the editors' bounded copies (snprintf, strncpy): warnings, not errors, here.
@@ -68,7 +68,7 @@ page "$P/Display/src/dp_prefs.c" $DISP
 ICTL="-I$P/Look/src -I$P/IControl/src"
 page "$P/IControl/src/icontrol.c" -Dmain=icontrol_main -Dversion=icontrol_version $ICTL
 page "$P/IControl/src/ic_prefs.c" $ICTL
-# the Icons page (2.3) and the two variables' words, opengadtools' workbench/wb_grid.c (GFOpenBench reads them with it)
+# the Icons page (2.3) and the two variables' words, gfopengadtools' workbench/wb_grid.c (GFOpenBench reads them with it)
 page "$P/Icons/src/icons.c" -Dmain=icons_main -Dversion=icons_version -I"$OGT/workbench"
 "$CC" $FRAME -I"$OGT/workbench" -c -o "$O/app/wb_grid.o" "$OGT/workbench/wb_grid.c"
 # the Printing page (2.4): printer.prefs' and printergfx.prefs' paper settings on Look's PREF reader

@@ -1,6 +1,6 @@
 # GFOpenUp Setup
 
-The first-start wizard (openamigaup DESIGN.md section 6). It runs once from
+The first-start wizard (gfopenup DESIGN.md section 6). It runs once from
 `SYS:WBStartup` the first time Workbench starts after GFOpenUp is installed,
 and stays in `SYS:Prefs` to run again. MIT, Copyright (c) 2026 AmiCradle Team.
 
@@ -57,7 +57,7 @@ install puts every line back on.
 `Setup/build.sh [OUT_DIR]` uses the os32 stove (or `CC=`) and builds
 `GFOpenUp-Setup` for a 68040 (built with -m68040), with no FPU needed.
 
-### For the GFOpenUp part (to add in openamigaup)
+### For the GFOpenUp part (to add in gfopenup)
 
     setup = Part(top, "GFOpenUpSetup", "0.1", "GFOpenUp Setup: the first-start wizard, with the startup switches")
     setup.add("Prefs/GFOpenUp-Setup", (a.openamigaprefs / "Setup/build/os3/GFOpenUp-Setup").read_bytes(), "SYS:Prefs/GFOpenUp-Setup")
@@ -97,7 +97,7 @@ own lines. Now the new text goes to a short name in the same drawer
 the Close are checked, and only then the old file steps aside as `.bak`,
 the new one takes its name (with the old one's protection bits and comment)
 and the `.bak` is deleted. If the new one can't take the name, the old one
-gets it back. This is what GFOpenUpTool does since openamigaup #179. Files on
+gets it back. This is what GFOpenUpTool does since gfopenup #179. Files on
 the RAM disk (ENV:, T:) are written in place as before. GFOpenBench's
 built-in GFOpenUp-Setup changes with GFOpenBench's next build.
 

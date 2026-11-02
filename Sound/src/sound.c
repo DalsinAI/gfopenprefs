@@ -20,7 +20,7 @@
  * "Sound USE" at boot (GFOpenUp's startup) gives the board the saved levels.
  *
  * Built into GFOpenBench (the Team, 11 October 2026: the Open preferences in GFOpenBench natively) with
- * -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: GFOpenBench starts it as a process of its
+ * -DIN_OPENBENCH, as gfopenbench desktop/ob_builtin.h says: GFOpenBench starts it as a process of its
  * own with no arguments, as Workbench starts a tool, so it is the window; Ctrl-C is Cancel, Ctrl-F
  * brings the window to the front; each start begins as a new program would, since GFOpenBench's data
  * stays from one start to the next. GFOpenSpeaker stays a program of its own.

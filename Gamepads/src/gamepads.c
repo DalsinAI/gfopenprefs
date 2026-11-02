@@ -1,5 +1,5 @@
 /* GFOpenPrefs Gamepads 0.2: game controllers, through GFOpenInput
- * (gfopeninput.library; design: DESIGN.md, and openamigainput's
+ * (gfopeninput.library; design: DESIGN.md, and gfopeninput's
  * Design-OpenInput.md section 8).
  *
  *   - the controllers, live: each one's name, maker and whether it is
@@ -23,7 +23,7 @@
  * the ReadJoyPort patch is in when it is switched on.
  *
  * Built into GFOpenBench as GFOpenGamepads (the Team, 11 October 2026: the Open preferences in GFOpenBench
- * natively) with -DIN_OPENBENCH, as openamigabench desktop/ob_builtin.h says: GFOpenBench starts it as
+ * natively) with -DIN_OPENBENCH, as gfopenbench desktop/ob_builtin.h says: GFOpenBench starts it as
  * a process of its own with no arguments, as Workbench starts a tool, so it is the window; Ctrl-C is
  * Cancel, Ctrl-F brings the window to the front; gfopeninput.library is opened under this editor's own
  * name, and the pad it holds is let go as it quits; each start begins as a new program would, since

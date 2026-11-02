@@ -1,7 +1,7 @@
 # GFOpenPrefs Gamepads
 
 The game controllers editor, built on GFOpenInput (`gfopeninput.library`,
-DalsinAI/openamigainput; its design's section 8 is this page). Pad mapping
+DalsinAI/gfopeninput; its design's section 8 is this page). Pad mapping
 moves here from GFOpenUSB Prefs. MIT, Copyright (c) 2026 AmiCradle Team.
 
 ![The Gamepads editor testing a modern pad: the pad drawn as a controller, the d-pad's left arm and the triggers' amounts lit in the accent colour](docs/window.png)
@@ -92,7 +92,7 @@ patch in when it is switched on; nothing else does.
 `src/gp_pad.c` (where the Test view's parts go) and `src/gp_core.c` (the settings, the files' formats, building mapping lines
 and seeing what the wizard's pad did) is plain C, tested on the host:
 `tests/run.sh`. `src/gamepads.c` is the window. `include/` holds
-gfopeninput.library's headers, copied from openamigainput (frozen for 0.1:
+gfopeninput.library's headers, copied from gfopeninput (frozen for 0.1:
 they change only by adding).
 
 Needs gfopeninput.library 1.2 or later; with 1.1 (the skeleton) or none it

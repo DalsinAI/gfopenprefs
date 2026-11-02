@@ -1,7 +1,7 @@
 # GFOpenDock and GFOpenPrefs Dock
 
 GFOpenDock is a dock on the Workbench screen, and Dock is its prefs editor.
-The design comes from openamigaup DESIGN.md: a Mac-like dock that takes
+The design comes from gfopenup DESIGN.md: a Mac-like dock that takes
 over the docks people already have. MIT, Copyright (c) 2026 AmiCradle Team.
 
 ![GFOpenDock 0.3 on a graphics card: the light look, glass at 60 per cent (0.4 starts at 35)](docs/screenshot.png)
@@ -291,7 +291,7 @@ Cancel, and Ctrl-F to the `GFOpenDock` port. Save and Use (and `SAVE` or
 `Dock/build.sh [OUT_DIR]` uses the os32 stove (or `CC=`) and builds
 `GFOpenDock` and `Dock` for a 68040 (built with -m68040), with no FPU needed.
 
-### For the GFOpenUp part (to add in openamigaup)
+### For the GFOpenUp part (to add in gfopenup)
 
     dock = Part(top, "GFOpenDock", "0.1", "GFOpenDock: a dock that takes over ToolManager's, AmiDock's or AmiStart's, and its editor")
     dock.add("C/GFOpenDock", (a.openamigaprefs / "Dock/build/os3/GFOpenDock").read_bytes(), "SYS:C/GFOpenDock")

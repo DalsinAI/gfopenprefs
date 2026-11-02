@@ -1,6 +1,6 @@
 #!/bin/sh
 # For the Cradle's stove_build (STOVE= and OUT= set, target Menus/engine): build.sh into OUT,
-# with opengadtools from the Cradle's own checkout (cradle-builds/DalsinAI__opengadtools)
+# with gfopengadtools from the Cradle's own checkout (cradle-builds/DalsinAI__gfopengadtools)
 # when it is there, else as build.sh finds it (OGT= to say where).
 # MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
@@ -17,7 +17,7 @@ tree() {
     done
     echo "$1"
 }
-if [ -z "${OGT:-}" ] && [ -d "$up/DalsinAI__opengadtools" ]; then OGT=$(tree "$up/DalsinAI__opengadtools" opengadtools); fi
+if [ -z "${OGT:-}" ] && [ -d "$up/DalsinAI__gfopengadtools" ]; then OGT=$(tree "$up/DalsinAI__gfopengadtools" gfopengadtools); fi
 export OGT
 OS32_GCC16=${OS32_GCC16:-${STOVE:-}}
 export OS32_GCC16

@@ -1,4 +1,4 @@
-/* GFOpenUp Setup 0.1: the first-start wizard (openamigaup DESIGN.md section 6).
+/* GFOpenUp Setup 0.1: the first-start wizard (gfopenup DESIGN.md section 6).
  * It runs once, from WBStartup, the first time Workbench starts after GFOpenUp
  * is installed, and stays in SYS:Prefs to run again.
  *
@@ -101,9 +101,9 @@ static char *read_file(const char *path, LONG *lenp)
  * a full or write-protected SYS:, or a reset, left S:User-Startup empty or cut short, and the next boot missed
  * the user's own lines. Now the bytes go to a short name in the same drawer, every Write and the Close are
  * checked, and only then the old file steps aside (.bak), the new one takes its name and the .bak goes; if the
- * new one can't take the name, the old one gets it back. As GFOpenUpTool does since openamigaup #179. On the RAM
+ * new one can't take the name, the old one gets it back. As GFOpenUpTool does since gfopenup #179. On the RAM
  * disk (ENV:, T:) the file is written in place as before: OS 3.2's ENV: shows ENVARC:'s files through a link,
- * where a name stays taken after Rename (openamigaup #179), and the RAM disk is gone at a reboot anyway. */
+ * where a name stays taken after Rename (gfopenup #179), and the RAM disk is gone at a reboot anyway. */
 
 /* 1 when nothing has the name, 0 when something has, -1 when it can't be told. No DOS requester. */
 static int name_free(const char *path)

@@ -8,7 +8,7 @@
  * theme file, once the program has a Workbench screen; pt_panel() fills a
  * window's inside and frames it; pt_text_pen() gives the pen for text.
  * With no theme (or the Classic one) pt_ok is 0 and the caller draws as it
- * did. The program links opengadtools' lib/ogt_theme.c (OGT=dir, as the
+ * did. The program links gfopengadtools' lib/ogt_theme.c (OGT=dir, as the
  * Menus engine does) and opens cybergraphics.library (CyberGfxBase).
  *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
