@@ -107,7 +107,7 @@ for it on its first page.
 ### Building
 
 `Menus/build.sh [OUT_DIR]` uses the os32 stove (or `CC=`). The theme reader
-comes from an gfopengadtools checkout beside this one (or `OGT=`). It is built
+comes from a gfopengadtools checkout beside this one (or `OGT=`). It is built
 for the 68040 (-m68040), an FPU is not needed, and it never uses GFOpenGPU.
 
 ### The engine, GFOpenMenus 0.1

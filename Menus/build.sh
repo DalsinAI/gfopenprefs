@@ -1,6 +1,6 @@
 #!/bin/sh
 # GFOpenPrefs Menus with the os32 stove (m68k-amigaos-gcc, NDK 3.2), and the
-# theme reader of an gfopengadtools checkout beside this one (OGT=dir).
+# theme reader of a gfopengadtools checkout beside this one (OGT=dir).
 #   Menus/build.sh [OUT_DIR]       (default build/os3)
 # MIT, Copyright (c) 2026 AmiCradle Team.
 # CPU= and OPT= change -m68040 and -O2 (the ROM's build: OPT=-Os).

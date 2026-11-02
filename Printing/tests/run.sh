@@ -1,6 +1,6 @@
 #!/bin/sh
 # Host tests for the Printing section's fields (Printing/src/pr_prefs.c) on Look's PREF reader and writer.
-# With an gfopenup checkout beside this one (OAU=dir), also: the two samples are still the bytes its GFOpenPrinter
+# With a gfopenup checkout beside this one (OAU=dir), also: the two samples are still the bytes its GFOpenPrinter
 # part writes (tools/build_pack.py printer_prefs and printergfx_prefs), so the page's no-file files stay the part's.
 #   sh Printing/tests/run.sh
 # MIT, Copyright (c) 2026 AmiCradle Team.

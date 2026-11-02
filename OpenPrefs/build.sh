@@ -1,6 +1,6 @@
 #!/bin/sh
 # GFOpenPrefs: every editor as a section of one program (OpenPrefs/src/openprefs.c), with the os32 stove
-# (m68k-amigaos-gcc, NDK 3.2) and the theme reader of an gfopengadtools checkout beside this one (OGT=dir).
+# (m68k-amigaos-gcc, NDK 3.2) and the theme reader of a gfopengadtools checkout beside this one (OGT=dir).
 #   OpenPrefs/build.sh [OUT_DIR]                    (default build/os3)
 # writes
 #   OUT_DIR/GFOpenPrefs        the app: SYS:Preferences/GFOpenPrefs (SYS:Prefs/GFOpenPrefs on an older disk), and

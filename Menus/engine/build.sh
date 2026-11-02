@@ -1,6 +1,6 @@
 #!/bin/sh
 # GFOpenMenus (the engine) with the os32-gcc16 stove (m68k-amigaos-gcc 16, NDK 3.2),
-# the editor's om_prefs.c and the theme reader of an gfopengadtools checkout (OGT=dir).
+# the editor's om_prefs.c and the theme reader of a gfopengadtools checkout (OGT=dir).
 #   Menus/engine/build.sh [OUT_DIR]      (default Menus/build/os3)
 # The compiler: CC, else OS32_GCC16 (as GFOpenFTP's build-os3.sh), else STOVE,
 # else ~/AmiCradle/stoves/os32-gcc16. Not the os32 stove's GCC 6.5.0b: at -O2
