@@ -86,6 +86,12 @@
  *   see-through bar stayed solid until someone moved the mouse (Instance-32, 26 October). The menus, the cog's list
  *   and the menu button still make it solid as before.
  *
+ * 0.7.8 (3 November 2026, Dale: "re-write the screen call to allow passing an optional icon for the screen"): where
+ *   Intuition takes SA_TitleIcon (GFOpenIntuition, IntuitionControlA on the Workbench screen) the logo is the screen's
+ *   own, drawn by Intuition as part of the bar: no logo window, no spaces before the title, and nothing to cover, race
+ *   or leave behind when another window's title is shown (a drawer's menu turned the logo into a white block on the
+ *   see-through bar). The logo window stays for an Intuition that doesn't take it. Cleared again as GFOpenTitle quits.
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -135,7 +141,7 @@
 #include "obmsg.h"
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.7.7 (27.10.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.7.8 (3.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -163,6 +169,7 @@ struct Library *LayersBase, *UtilityBase, *SocketBase, *WorkbenchBase, *CyberGfx
 
 static tb_prefs prefs;
 static struct Screen *scr;
+static int icon_in_bar;                        /* 0.7.8: Intuition draws the logo now (SA_TitleIcon) */
 static struct DrawInfo *dri;
 static struct Window *logo_w, *clock_w;
 static WORD cx, cy, cw, ch;                    /* the clock window's place */
@@ -505,13 +512,22 @@ static void apply_title(void)
         return;
     }
     if (have && !ours(now) && now[0]) {
-        /* someone's own title format: keep it, only make room for the logo */
-        if (!prefs.logo || !strncmp(now, LOGO_PAD, strlen(LOGO_PAD))) return;
-        snprintf(want, sizeof want, "%s%s", barlogo_pad(scr, pad), now);
+        /* someone's own title format: keep it, only make room for the logo (0.7.8: none needed when Intuition
+         * draws it: the room made before goes) */
+        if (icon_in_bar) {
+            const char *f = now;
+            if (strncmp(now, LOGO_PAD, strlen(LOGO_PAD))) return;
+            while (*f == ' ') f++;
+            snprintf(want, sizeof want, "%s", f);
+        } else {
+            if (!prefs.logo || !strncmp(now, LOGO_PAD, strlen(LOGO_PAD))) return;
+            snprintf(want, sizeof want, "%s%s", barlogo_pad(scr, pad), now);
+        }
     } else {
         cpus[0] = 0;
         if (prefs.memory) cpus_text(cpus, sizeof cpus);
-        snprintf(want, sizeof want, "%s%s%s", prefs.logo ? barlogo_pad(scr, pad) : "", prefs.memory ? TITLE_MEM : TITLE_PLAIN, cpus);
+        snprintf(want, sizeof want, "%s%s%s", prefs.logo && !icon_in_bar ? barlogo_pad(scr, pad) : "",
+                 prefs.memory ? TITLE_MEM : TITLE_PLAIN, cpus);
     }
     if (!have || strcmp(now, want)) wb_set_title(want);
 }
@@ -1690,6 +1706,23 @@ static ULONG bar_opacity(ULONG level)
     return IntuitionControlA(scr, t);
 }
 
+/* 0.7.8: the logo as the screen's own (GFOpenIntuition's SA_TitleIcon, through IntuitionControlA): 1 when Intuition
+ * took it (or let it go, on == 0); 0 from an Intuition without it, which keeps the logo window */
+#define TB_SA_TITLEICON (TAG_USER + 0x41430004UL)
+struct tb_title_icon { UWORD w, h; const ULONG *argb; };
+static const struct tb_title_icon tb_icon = { LOGO_BIG_W, LOGO_BIG_H, logo_big };
+
+static ULONG bar_icon(int on)
+{
+    struct TagItem t[2];
+    if (!scr) return 0;
+    t[0].ti_Tag = TB_SA_TITLEICON;
+    t[0].ti_Data = on ? (ULONG)&tb_icon : 0;
+    t[1].ti_Tag = TAG_DONE;
+    t[1].ti_Data = 0;
+    return IntuitionControlA(scr, t);
+}
+
 static int see_screen(void)
 {
     ULONG why;
@@ -1840,6 +1873,7 @@ static void close_all(void)
     pt_free();
     bp_release();
     if (dri) { FreeScreenDrawInfo(scr, dri); dri = NULL; }
+    if (icon_in_bar) { bar_icon(0); icon_in_bar = 0; }   /* 0.7.8: the screen's logo goes with us */
     if (scr) { UnlockPubScreen(NULL, scr); scr = NULL; }
 }
 
@@ -1850,6 +1884,7 @@ static int open_all(void)
     if (!(scr = LockPubScreen((STRPTR)"Workbench"))) return 0;
     made_bh = scr->BarHeight;
     if (!(dri = GetScreenDrawInfo(scr))) { close_all(); return 0; }
+    icon_in_bar = prefs.logo && bar_icon(1) == 1;   /* 0.7.8 */
     bar_edge = read_bar_edge();
     bar_sample_now();
     pt_load(scr);
@@ -2131,7 +2166,7 @@ static int wb_title_shown(void)
 /* the logo only beside Workbench's title: another program's title starts at the bar's left edge */
 static void logo_follow(void)
 {
-    int want = prefs.logo && wb_title_shown();
+    int want = prefs.logo && !icon_in_bar && wb_title_shown();
     if (want && !logo_w) {
         bar_sample_now();
         if ((logo_w = see_new(bar_window(0, 0, logo_window_w(), scr->BarHeight)))) draw_logo();
@@ -2187,9 +2222,9 @@ int main(void)
         timer = !OpenDevice((STRPTR)TIMERNAME, UNIT_VBLANK, (struct IORequest *)tr, 0);
 
     read_prefs();
-    apply_title();
     watch_start();
     if (!open_all()) quit = 1;
+    apply_title();                             /* 0.7.8: after open_all, which finds out whether Intuition draws the logo */
     while (!quit) {
         ULONG sig, ms;
         struct Window *act;
@@ -2237,8 +2272,8 @@ int main(void)
         if (sig & SIGBREAKF_CTRL_F) {
             close_all();
             read_prefs();
-            apply_title();
             if (!open_all()) break;
+            apply_title();                     /* 0.7.8: after open_all, as at the start */
         }
         port_events(port);
         ts_replies();
