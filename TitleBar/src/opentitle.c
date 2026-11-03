@@ -1715,7 +1715,7 @@ static const struct tb_title_icon tb_icon = { LOGO_BIG_W, LOGO_BIG_H, logo_big }
 static ULONG bar_icon(int on)
 {
     struct TagItem t[2];
-    if (!scr) return 0;
+    if (!scr || IntuitionBase->LibNode.lib_Version < 48) return 0;   /* GFOpenIntuition only */
     t[0].ti_Tag = TB_SA_TITLEICON;
     t[0].ti_Data = on ? (ULONG)&tb_icon : 0;
     t[1].ti_Tag = TAG_DONE;
