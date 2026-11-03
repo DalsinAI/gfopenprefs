@@ -17,6 +17,9 @@
  * that blend"), "m68k/arm64" on the Pi, and "m68k" when the board doesn't say (an older runtime without native
  * jobs).
  *
+ * 3 November 2026: where GFOpenIntuition draws the logo itself (SA_TitleIcon), a title leaves no room:
+ * barlogo_in_bar asks Intuition, and barlogo_spaces is 0 then.
+ *
  * MIT, Copyright (c) 2026 AmigaChrome Team. */
 #ifndef BARLOGO_H
 #define BARLOGO_H
@@ -25,6 +28,8 @@
 #include <intuition/screens.h>
 #include <graphics/rastport.h>
 #include <proto/graphics.h>
+#include <intuition/intuitionbase.h>
+#include <proto/intuition.h>
 
 #define BARLOGO_PIC_W 64                /* the logo's picture (OpenTitle's logo_big.h) */
 #define BARLOGO_PIC_H 44
@@ -51,11 +56,26 @@ static inline WORD barlogo_window_w(WORD bar_h)
 }
 
 /* How many spaces of the bar's font the title starts with on screen s. */
+/* 1 when Intuition draws a logo at the start of s's bar (GFOpenIntuition's SA_TitleIcon, asked with ~0 through
+ * IntuitionControlA, GFOpenIntuition 48 and up); 0 from any other Intuition */
+#define BARLOGO_SA_TITLEICON (TAG_USER + 0x41430004UL)
+static inline int barlogo_in_bar(struct Screen *s)
+{
+    struct TagItem t[2];
+    if (!s || IntuitionBase->LibNode.lib_Version < 48) return 0;
+    t[0].ti_Tag = BARLOGO_SA_TITLEICON;
+    t[0].ti_Data = ~0UL;
+    t[1].ti_Tag = TAG_DONE;
+    t[1].ti_Data = 0;
+    return IntuitionControlA(s, t) == 1;
+}
+
 static inline int barlogo_spaces(struct Screen *s)
 {
     struct RastPort rp;
     WORD sp, need;
     int n;
+    if (barlogo_in_bar(s)) return 0;            /* Intuition draws the logo: no room needed */
     if (!s || !s->RastPort.Font) return BARLOGO_MIN_SPACES;
     InitRastPort(&rp);
     SetFont(&rp, s->RastPort.Font);
