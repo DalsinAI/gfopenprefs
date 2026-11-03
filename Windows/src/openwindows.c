@@ -189,7 +189,7 @@ static void read_gestures(void)
     if (text) {
         int n = gestures_parse(&t, text);
         if (n < 0) {
-            char msg[96];
+            char msg[128];   /* the line number and GESTURES_ENV's name: up to 99 bytes (GCC 16 -Werror=format-truncation) */
             snprintf(msg, sizeof msg, "GFOpenWindows: " GESTURES_ENV " line %d can't be read; the built-in table is used\n", -n);
             PutStr((STRPTR)msg);
         }
