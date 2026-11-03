@@ -204,7 +204,7 @@ static void parse_look(struct look *l, const char *text)
                 } else if (!strcmp(w, "oldapp") && word(&p, v, sizeof v)) {
                     char f[8];
                     int x = word(&p, f, sizeof f) ? atoi(f) : 2;
-                    char one[48];
+                    char one[sizeof v + 8];   /* v, a space and 2 to 4: GCC 16 checks the room (-Werror=format-truncation) */
                     snprintf(one, sizeof one, "%s %d", v, x >= 2 && x <= 4 ? x : 2);
                     if (l->oldapps[0]) strncat(l->oldapps, ", ", sizeof l->oldapps - strlen(l->oldapps) - 1);
                     strncat(l->oldapps, one, sizeof l->oldapps - strlen(l->oldapps) - 1);
