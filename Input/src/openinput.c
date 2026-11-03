@@ -15,10 +15,17 @@
  *   - the keymap, from DEVS:Keymaps
  *   - Gamepads... opens the Gamepads editor (SYS:Prefs/GFOpenGamepads), so pads live
  *     under Input (the user, 10 October 2026)
+ *   - Monitor hotkey (0.1.4; Dale, 3 November 2026: "an OS wide option to bring
+ *     up monitor by pressing ctrl alt help on an amiga and ctrl alt f12 on a pc
+ *     keyboard"): Ctrl+Alt+Help, and Ctrl+Alt+F12 on a PC keyboard, open
+ *     GFOpenMonitor. On unless turned off. GFOpenUpMenu (gfopenup) holds the
+ *     keys; this page keeps the switch in ENV:GFOpenPrefs/Hotkeys
+ *     (Common/hotkeys.h) and sends GFOpenUpMenu Ctrl-F to read it again
  *
  * Save writes ENV:Sys/input.prefs and ENVARC:; Use writes ENV: only (IPrefs
  * reads it at once); Cancel changes nothing. Everything else in the file is
- * kept as it was.
+ * kept as it was. ENV:GFOpenPrefs/Hotkeys goes the same way, written only
+ * when the switch changes it.
  *
  * Built into GFOpenBench (the Team, 11 October 2026: the Open preferences in GFOpenBench natively) with
  * -DIN_OPENBENCH, as gfopenbench desktop/ob_builtin.h says: GFOpenBench starts it as a process of its
@@ -58,8 +65,9 @@
 #ifdef IN_OPENBENCH
 #include "obmsg.h"
 #endif
+#include "../../Common/hotkeys.h"                /* ENV:GFOpenPrefs/Hotkeys: the GFOpenMonitor hotkeys' switch */
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenInput 0.1.3 (13.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenInput 0.1.4 (03.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 #ifdef IN_OPENBENCH
 /* inside GFOpenBench, a global UtilityBase could be another built-in's: every UtilityBase below, and in
@@ -226,6 +234,42 @@ static int save_input(const char *path)
     return ok;
 }
 
+/* ---- the GFOpenMonitor hotkeys' switch (0.1.4, Common/hotkeys.h) ------------------- */
+
+static int monitor_key = 1;
+
+static void load_hotkeys(void)
+{
+    UBYTE *text = read_all(HK_ENV, NULL);
+    monitor_key = hk_monitor_on((const char *)text);
+    if (text) FreeVec(text);
+}
+
+/* The file at path with the switch in it, written only when that changes it (no file and on: nothing to write) */
+static int save_hotkeys(const char *path)
+{
+    static char out[HK_MAX];
+    UBYTE *old = read_all(path, NULL);
+    int n = hk_put_monitor((const char *)old, monitor_key, out, sizeof out), ok = 1;
+    BPTR d;
+    if (n < 0) n = hk_put_monitor(NULL, monitor_key, out, sizeof out);   /* too long to keep: this page's line alone */
+    if (old ? strcmp((const char *)old, out) != 0 : !monitor_key) {
+        if ((d = CreateDir((STRPTR)(path[0] == 'E' && path[3] == ':' ? "ENV:GFOpenPrefs" : "ENVARC:GFOpenPrefs")))) UnLock(d);
+        ok = n > 0 && write_file(path, (const UBYTE *)out, n);
+    }
+    if (old) FreeVec(old);
+    return ok;
+}
+
+/* GFOpenUpMenu, which holds the keys, reads the switch again */
+static void tell_hotkeys(void)
+{
+    struct MsgPort *p;
+    Forbid();
+    if ((p = FindPort((STRPTR)HK_PORT)) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
+    Permit();
+}
+
 /* ---- the keymaps ------------------------------------------------------------- */
 
 static char names[MAX_NAMES][64];
@@ -278,7 +322,7 @@ static int index_of(const char *name)
 
 /* ---- the window ----------------------------------------------------------------- */
 
-enum { G_SPEED = 1, G_ACCEL, G_SWAP, G_DBL, G_DELAY, G_RATE, G_KEYMAP, G_PADS, G_STATUS, G_SAVE, G_USE, G_CANCEL, G_COUNT };
+enum { G_SPEED = 1, G_ACCEL, G_SWAP, G_DBL, G_DELAY, G_RATE, G_MONITOR, G_KEYMAP, G_PADS, G_STATUS, G_SAVE, G_USE, G_CANCEL, G_COUNT };
 
 static const char *const speed_labels[] = { "Slow", "Medium", "Fast", NULL };
 static const UWORD speed_ticks[] = { 4, 2, 1 };
@@ -327,6 +371,9 @@ static int put_in_place(int save)
     }
     if (save && !save_input(INPUT_ENVARC)) { status("Couldn't write ENVARC:Sys/input.prefs."); return 0; }
     if (!save_input(INPUT_ENV)) { status("Couldn't write ENV:Sys/input.prefs."); return 0; }
+    if (save && !save_hotkeys(HK_ENVARC)) { status("Couldn't write ENVARC:GFOpenPrefs/Hotkeys."); return 0; }
+    if (!save_hotkeys(HK_ENV)) { status("Couldn't write ENV:GFOpenPrefs/Hotkeys."); return 0; }
+    tell_hotkeys();
     return 1;
 }
 
@@ -378,6 +425,7 @@ static int gui(void)
     make_list();
     sel_keymap = index_of(ip.ip_KeymapName[0] ? ip.ip_KeymapName : ip.ip_Keymap);
     sel_speed = ip.ip_PointerTicks >= 4 ? 0 : ip.ip_PointerTicks >= 2 ? 1 : 2;
+    load_hotkeys();
     accel = oiac[2] != 0;
     swap = ip.ip_SwitchMouseButtons != 0;
 
@@ -420,6 +468,8 @@ static int gui(void)
     G(INTEGER_KIND, G_DELAY, X, row, nw, lh, "Repeat delay (ms)", PLACETEXT_LEFT, GTIN_Number, ms_of(&ip.ip_KeyRptDelay), GTIN_MaxChars, 5);
     row += lh + 4;
     G(INTEGER_KIND, G_RATE, X, row, nw, lh, "Repeat rate (ms)", PLACETEXT_LEFT, GTIN_Number, ms_of(&ip.ip_KeyRptSpeed), GTIN_MaxChars, 5);
+    row += lh + 4;
+    G(CHECKBOX_KIND, G_MONITOR, X, row, 26, lh, "Monitor hotkey", PLACETEXT_LEFT, GTCB_Checked, monitor_key, GTCB_Scaled, TRUE);
     row += lh + 10;
     G(BUTTON_KIND, G_PADS, X, row, TextLength(&scr->RastPort, (STRPTR)"Gamepads...", 11) + 24, lh, "_Gamepads...", 0, GT_Underscore, '_');
     row += lh + 4;
@@ -487,6 +537,11 @@ static int gui(void)
                 case G_SPEED: sel_speed = code; break;
                 case G_ACCEL: accel = (gg->Flags & GFLG_SELECTED) != 0; break;
                 case G_SWAP: swap = (gg->Flags & GFLG_SELECTED) != 0; break;
+                case G_MONITOR:
+                    monitor_key = (gg->Flags & GFLG_SELECTED) != 0;
+                    status(monitor_key ? "Ctrl+Alt+Help (Ctrl+Alt+F12 on a PC) opens GFOpenMonitor."
+                                       : "Ctrl+Alt+Help and Ctrl+Alt+F12 do nothing.");
+                    break;
                 case G_KEYMAP: sel_keymap = code; break;
 #ifdef LT_ONE
                 default: {                          /* another section: the page's changes kept, as Use, when it has any */
