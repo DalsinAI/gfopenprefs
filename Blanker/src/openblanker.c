@@ -137,16 +137,23 @@ static struct TextFont *sized(struct TextFont *f, int px)
     return f;
 }
 
-/* one font at the size asked for: gfopenfont.library (outlines, made at this size), then diskfont.library */
+/* one font at the size asked for. OS 3.2's own outlines (a name without a drawer: CGTriumvirate, CGTimes) from
+ * diskfont.library first, which has the system's bullet.library draw them as the system does (gfopenfont.library
+ * 1.6 and 1.7 hand them to bullet.library too, but gave their space no width: Instance-32's copy showed
+ * "JayMiner"); ours (FONTS:GFOpenBlanker/...) from gfopenfont.library first, which reads their OT_YSizeFactor. */
 static struct TextFont *try_font(const char *name, int px)
 {
     struct TextAttr ta;
-    struct TextFont *f;
+    struct TextFont *f = NULL;
+    int ours = strchr(name, ':') != NULL, i;
     ta.ta_Name = (STRPTR)name; ta.ta_YSize = (UWORD)px; ta.ta_Style = FS_NORMAL; ta.ta_Flags = FPF_DISKFONT;
-    f = sized(OpenFontTextBase ? openfont_text_font(OpenFontTextBase, &ta) : NULL, px);   /* an outline font: made at this size */
-    if (!f) {
-        if (!DiskfontBase) DiskfontBase = OpenLibrary((STRPTR)"diskfont.library", 36);
-        if (DiskfontBase) f = sized(OpenDiskFont(&ta), px);
+    for (i = 0; i < 2 && !f; i++) {
+        if ((i == 0) == ours) {
+            if (OpenFontTextBase) f = sized(openfont_text_font(OpenFontTextBase, &ta), px);   /* an outline font: made at this size */
+        } else {
+            if (!DiskfontBase) DiskfontBase = OpenLibrary((STRPTR)"diskfont.library", 36);
+            if (DiskfontBase) f = sized(OpenDiskFont(&ta), px);
+        }
     }
     return f;
 }
