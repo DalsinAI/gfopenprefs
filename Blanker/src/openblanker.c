@@ -45,7 +45,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.3 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.4 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -137,20 +137,36 @@ static struct TextFont *sized(struct TextFont *f, int px)
     return f;
 }
 
-static struct TextFont *font(const char *name, int px)
+/* one font at the size asked for: gfopenfont.library (outlines, made at this size), then diskfont.library */
+static struct TextFont *try_font(const char *name, int px)
 {
     struct TextAttr ta;
     struct TextFont *f;
-    if (px < 8) px = 8;
     ta.ta_Name = (STRPTR)name; ta.ta_YSize = (UWORD)px; ta.ta_Style = FS_NORMAL; ta.ta_Flags = FPF_DISKFONT;
     f = sized(OpenFontTextBase ? openfont_text_font(OpenFontTextBase, &ta) : NULL, px);   /* an outline font: made at this size */
     if (!f) {
         if (!DiskfontBase) DiskfontBase = OpenLibrary((STRPTR)"diskfont.library", 36);
         if (DiskfontBase) f = sized(OpenDiskFont(&ta), px);
     }
-    if (!f) { ta.ta_Name = (STRPTR)"topaz.font"; ta.ta_YSize = 8; ta.ta_Flags = FPF_ROMFONT; f = OpenFont(&ta); }
     return f;
 }
+
+/* 1.4: the first of a list of fonts there is at the size asked for. OS 3.2's CGTriumvirate and CGTimes come first
+ * (Instance-32); a disk without them (the open ROM's, Instance-40, had the credits in topaz) has DejaVu Sans, the
+ * GFOpenFont part's, and DejaVu Serif, which this part brings: both free (DejaVu fonts 2.37) and drawn by
+ * gfopenfont.library. topaz 8 is the last. */
+static struct TextFont *font(const char *const *names, int px)
+{
+    struct TextAttr ta;
+    struct TextFont *f = NULL;
+    if (px < 8) px = 8;
+    for (; *names && !f; names++) f = try_font(*names, px);
+    if (!f) { ta.ta_Name = (STRPTR)"topaz.font"; ta.ta_YSize = 8; ta.ta_Style = FS_NORMAL; ta.ta_Flags = FPF_ROMFONT; f = OpenFont(&ta); }
+    return f;
+}
+
+static const char *const sans[] = { "CGTriumvirate.font", "DejaVuSans.font", NULL };
+static const char *const serif[] = { "CGTimes.font", "DejaVuSerif.font", "DejaVuSans.font", NULL };
 
 static void style_of(int style, struct TextFont **f, int *pen, int *soft)
 {
@@ -266,12 +282,12 @@ static int open_show(void)
     if (!scr) return 0;
     {
         int H = scr->Height;
-        f_title = font("CGTriumvirate.font", H / 13);
-        f_sans_big = font("CGTriumvirate.font", H / 15);
-        f_sans_mid = font("CGTriumvirate.font", H / 30);
-        f_sans_small = font("CGTriumvirate.font", H / 40);
-        f_serif = font("CGTimes.font", H / 22);
-        f_serif_small = font("CGTimes.font", H / 30);
+        f_title = font(sans, H / 13);
+        f_sans_big = font(sans, H / 15);
+        f_sans_mid = font(sans, H / 30);
+        f_sans_small = font(sans, H / 40);
+        f_serif = font(serif, H / 22);
+        f_serif_small = font(serif, H / 30);
     }
     SetRGB32(&scr->ViewPort, P_BG, c32(full[0][0]), c32(full[0][1]), c32(full[0][2]));
     set_level(0);
