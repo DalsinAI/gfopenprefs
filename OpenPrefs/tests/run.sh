@@ -69,6 +69,24 @@ if bad:
     print('FAIL ' + '; '.join(bad)); sys.exit(1)
 print('ok   a page that can\'t start is named on a requester and the window stays')
 EOF
+# the Theme page's profiles: SYS:Prefs/Presets/GFOpenPrefs, else the drawer an install from before the rename has
+# (SYS:Prefs/Presets/OpenPrefs: Instance-32, 4 November 2026); a page whose presets drawer is empty says so
+python3 - "$P/Look/src/look.c" "$P/Look/src/appearance.c" <<'EOF' || fail=1
+import re, sys
+look, app = open(sys.argv[1]).read(), open(sys.argv[2]).read()
+bad = []
+if '"SYS:Prefs/Presets/OpenPrefs"' not in look or not re.search(r'if \(!nprofiles\) \{\s*profile_dir = PROFILE_DIR_OLD;', look):
+    bad.append('Theme does not fall back to SYS:Prefs/Presets/OpenPrefs for its profiles')
+if re.search(r'PROFILE_DIR "/%s\.profile"', look):
+    bad.append('a profile is read from PROFILE_DIR, not the drawer it was listed from')
+if 'if (!nthemes) strcpy(status_text' not in look:
+    bad.append('Theme says nothing when no theme is installed')
+if '!sets.n)' not in app:
+    bad.append('Pointer says nothing when no pointer set is installed')
+if bad:
+    print('FAIL ' + '; '.join(bad)); sys.exit(1)
+print('ok   the profiles\' old drawer is read, and an empty presets drawer is said')
+EOF
 STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32-gcc16}
 if [ ! -x "$STOVE/prefix/bin/m68k-amigaos-gcc" ]; then echo "skipped the build: no stove at $STOVE"; exit $fail; fi
 OGT=${OGT:-$P/../gfopengadtools}
