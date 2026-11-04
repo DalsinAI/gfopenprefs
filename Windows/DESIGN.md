@@ -17,7 +17,7 @@ Team.
 | Snapping | A window dropped near a screen edge, or near another window's edge, lines up with it | `snap on 12` (the distance in pixels) |
 | Halves | A window dropped with the pointer at the screen's left or right edge fills that half (resizable windows only) | `snap.halves on` |
 | Switcher | Amiga+Tab brings the window at the back to the front and activates it; Amiga+Shift+Tab sends the front window to the back | `switcher on`, `switcher.key lcommand tab` (commodity words) |
-| Wheel | The mouse wheel goes to the window under the pointer, which becomes active first | `wheel on` |
+| Wheel (0.11) | The mouse wheel scrolls the scroll focus: the scroller last pushed, or beside the place last clicked, in the active window; until then the window's main one. Or the window under the pointer, or nothing (the raw keys alone). Below | `wheel.scroll on`, `wheel.target focus` (or `pointer`), `wheel.lines 3`, `wheel.self <program>` |
 | Places | A program's window opens where it was last left, and at the same size when it can be resized | `places on`, `never <program>` lines |
 | Drawers too (0.3) | Workbench's drawer windows are remembered the same way, with no Snapshot needed | `places.drawers on` |
 | Double-click to front (0.4) | A double-click in a window's title bar brings it to the front. On by default | `doubleclick.front on` |
@@ -37,6 +37,49 @@ The settings are in `ENV:GFOpenPrefs/Windows`. Save writes `ENV:` and
 editor sends Ctrl-F to the task of the public port `GFOpenWindows`, or starts
 `SYS:Tools/Commodities/GFOpenWindows` when something is switched on and it
 isn't running. From the Shell: `Windows [FROM file] [USE] [SAVE] [ADVANCED]`.
+
+**The wheel (GFOpenWindows 0.11, 4 November 2026).** Dale: "when the scrollable window or area is selected
+by a mouse click or the scroll bars have been pushed once, the middle mouse wheel, both on real amigas and on
+the host machine, should work to scroll up and down". The Team's input.device 50.5 (gfopeninput) sends each
+wheel step as the NewMouse standard has it, `IECLASS_NEWMOUSE` and `IECLASS_RAWKEY` `$7A`-`$7D`, pressed and
+let go; Input prefs switches the wheel and the middle button on and off (on by default). GFOpenWindows does the
+rest (`src/wheel.h`, `src/wheel.c`, the pure part, with `tests/test_wheel.c`):
+
+- **The scroll focus**, per window: a left press on a scroller (its knob, its container or within 28 pixels of
+  its ends, its arrows) makes it the focus; a press elsewhere makes the scroller beside it the focus (down: the
+  nearest to its right whose height takes it in; across: the nearest below it); a press beside none leaves the
+  focus as it was. Until there is one, the window's main scroller: its right border's (across, its bottom
+  border's), else the longest. With `wheel.target pointer`, the scroller beside the pointer in the window under
+  it (made active first only when its program scrolls itself).
+- **Shift with the wheel**, or the horizontal wheel, moves the scroller across.
+- **Scrollers**: plain props (`GTYP_PROPGADGET`; GadTools' scrollers, sliders and lists' scrollers are plain
+  props) and BOOPSI ones that answer `PGA_Top`, `PGA_Total` and `PGA_Visible` (propgclass and classes built on
+  it). Gadgets inside a BOOPSI group are not looked into.
+- **A step, as a drag would**: a plain prop's knob moves `wheel.lines` lines (a line the window's font height
+  of the scroller's height; the whole worked out from the knob's size), by `NewModifyProp`, then the program
+  gets what a drag sends it, each only where its window asked for the class: `IDCMP_GADGETDOWN` (`GACT_IMMEDIATE`),
+  `IDCMP_MOUSEMOVE` (`GACT_FOLLOWMOUSE`), `IDCMP_GADGETUP` (`GACT_RELVERIFY`), with `IAddress` the gadget, sent
+  to its port and freed when replied. A BOOPSI scroller gets `OM_UPDATE` with `PGA_Top` (`DoGadgetMethodA`): it
+  draws itself and notifies its target (`IDCMP_IDCMPUPDATE` for `ICTARGET_IDCMP`); a top counted in pixels
+  (OpenFiles' lists) is moved by lines of the font's height.
+- **No double scroll**: the wheel's raw keys always go to the program as they came. A window's first step is
+  held a moment: it goes on, and 80 ms later, if the focus scroller moved by itself, the program knows the
+  wheel (MUI's, ReAction's, the Team's own) and GFOpenWindows only passes its steps on from then on; if it
+  could have moved and didn't, GFOpenWindows moves it, for that step and the rest; at its end that way, it asks
+  again at the next step. A program named on a `wheel.self` line is never moved. A window with no scroller
+  gets the raw keys alone.
+- `ENV:OpenWindowsLog` (a file) also says what each window was found to be, and each step's move.
+
+Tested in labs t5-wheel32 and t5-wheel40 (copies of Instance-32 and Instance-40; the host's wheel as input
+record 33): GFOpenBench's drawer of 80 icons scrolls itself (found so); Locale prefs' country list (GadTools),
+the ASL file requester's list, OpenView (MultiView) on a 600-line text and a test program's plain prop
+(`tests/amiga/wheeltest.c`: GADGETDOWN, MOUSEMOVE and GADGETUP with the knob 1093 a step, 3 lines of 100)
+were moved by GFOpenWindows; the test program's propgclass scroller got `IDCMP_IDCMPUPDATE` (top 0, 3, 6);
+OpenFiles' two lists each scrolled by the one clicked last, 3 lines a step; the test program in its RAW mode
+(scrolling by the wheel's keys itself) was found to, and not moved again; `wheel.target pointer` scrolled Locale's list under the pointer while the Shell was active; with
+`wheel.scroll off` the program got the raw keys and nothing moved. The Shell's console has no scrollback to
+scroll (opencon-handler keeps none), so its window gets the raw keys alone. Shift with the wheel and the
+horizontal wheel go across by the same path; no lab program had a scroller across to show it (host tests only).
 
 Places are kept in `ENV:GFOpenPrefs/WindowPlaces`, and in `ENVARC:` within
 ten seconds of a change, as lines of `"program:title" left top width height`.

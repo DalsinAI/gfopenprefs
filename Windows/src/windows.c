@@ -48,7 +48,12 @@ static const char version[] __attribute__((used)) = "$VER: Windows 0.7 (4.11.202
 #define VIEW_ENVARC "ENVARC:GFOpenAmiga/PrefsView"
 
 struct wprefs {
-    int snap, snap_dist, halves, switcher, wheel, places, places_wb, drawer_w, drawer_h, dblfront, edges, edge_ptr, drive_title, solid;
+    int snap, snap_dist, halves, switcher, places, places_wb, drawer_w, drawer_h, dblfront, edges, edge_ptr, drive_title, solid;
+    /* GFOpenWindows 0.11, the wheel: what it scrolls (0 the scroll focus, Dale's default; 1 the window under the
+     * pointer; 2 nothing, the wheel's raw keys alone), lines a step, and the programs left to scroll themselves
+     * (wheel.self lines, kept as written) */
+    int wheel_target, wheel_lines;
+    char wself[160];
     /* layers' composited mode (gfopengfx docs/design/compositing.md): the switch, and the look's lines,
      * which have no gadget and are kept as written */
     int composite, shadows, shadow_size, shadow_strength, drag_opacity, inactive_opacity;
@@ -103,7 +108,7 @@ static int write_file(const char *path, const char *text)
 static void defaults(struct wprefs *p)
 {
     memset(p, 0, sizeof *p);
-    p->snap = 1; p->snap_dist = 12; p->switcher = 1; p->wheel = 1; p->places = 1; p->dblfront = 1; p->edges = 1; p->drive_title = 1;
+    p->snap = 1; p->snap_dist = 12; p->switcher = 1; p->wheel_target = 0; p->wheel_lines = 3; p->places = 1; p->dblfront = 1; p->edges = 1; p->drive_title = 1;
     p->composite = 1; p->shadows = 1; p->shadow_size = 8; p->shadow_strength = 40; p->drag_opacity = 75; p->inactive_opacity = 100;
     p->gradient = 1;
     p->centre = 0; p->centre_asked = 1; p->centre_over = 1; p->centre_custom = 0; p->gadget = -1;
@@ -129,7 +134,13 @@ static void parse(struct wprefs *p, char *text)
         else if (!strcmp(line, "snap.halves")) p->halves = !strncmp(v, "on", 2);
         else if (!strcmp(line, "switcher")) p->switcher = !strncmp(v, "on", 2);
         else if (!strcmp(line, "switcher.key")) strncpy(p->key, v, sizeof p->key - 1);
-        else if (!strcmp(line, "wheel")) p->wheel = !strncmp(v, "on", 2);
+        else if (!strcmp(line, "wheel.scroll")) { if (strncmp(v, "on", 2)) p->wheel_target = 2; else if (p->wheel_target == 2) p->wheel_target = 0; }
+        else if (!strcmp(line, "wheel.target")) { if (p->wheel_target != 2) p->wheel_target = !strncmp(v, "pointer", 7); }
+        else if (!strcmp(line, "wheel.lines")) p->wheel_lines = atoi(v);
+        else if (!strcmp(line, "wheel.self")) {
+            if (p->wself[0] && strlen(p->wself) + 2 < sizeof p->wself) strcat(p->wself, ", ");
+            strncat(p->wself, v, sizeof p->wself - strlen(p->wself) - 1);
+        }
         else if (!strcmp(line, "doubleclick.front")) p->dblfront = !strncmp(v, "on", 2);
         else if (!strcmp(line, "edges")) p->edges = !strncmp(v, "on", 2);
         else if (!strcmp(line, "edges.pointer")) p->edge_ptr = !strncmp(v, "on", 2);   /* no gadget: kept as written */
@@ -160,14 +171,16 @@ static void parse(struct wprefs *p, char *text)
 static void make_text(const struct wprefs *p, char *out, int size)
 {
     char never[160], *n, *e;
+    int k;
     int len = snprintf(out, size,
         "; GFOpenPrefs Windows 0.6: what GFOpenWindows does\n"
-        "snap %s %d\nsnap.halves %s\nswitcher %s\nswitcher.key %s\nwheel %s\nplaces %s\nplaces.drawers %s\ndrawer %d %d\n"
+        "snap %s %d\nsnap.halves %s\nswitcher %s\nswitcher.key %s\nwheel.scroll %s\nwheel.target %s\nwheel.lines %d\n"
+        "places %s\nplaces.drawers %s\ndrawer %d %d\n"
         "doubleclick.front %s\nedges %s\nedges.pointer %s\ndrive.title %s\ndrag.solid %s\n"
         "composite %s\nshadows %s\nshadow.size %d\nshadow.strength %d\ndrag.opacity %d\ninactive.opacity %d\n"
         "gradient %s\n",
         p->snap ? "on" : "off", p->snap_dist, p->halves ? "on" : "off", p->switcher ? "on" : "off", p->key,
-        p->wheel ? "on" : "off", p->places ? "on" : "off", p->places_wb ? "on" : "off", p->drawer_w, p->drawer_h,
+        p->wheel_target == 2 ? "off" : "on", p->wheel_target == 1 ? "pointer" : "focus", p->wheel_lines, p->places ? "on" : "off", p->places_wb ? "on" : "off", p->drawer_w, p->drawer_h,
         p->dblfront ? "on" : "off", p->edges ? "on" : "off", p->edge_ptr ? "on" : "off", p->drive_title ? "on" : "off",
         p->solid ? "on" : "off", p->composite ? "on" : "off", p->shadows ? "on" : "off", p->shadow_size,
         p->shadow_strength, p->drag_opacity, p->inactive_opacity, p->gradient ? "on" : "off");
@@ -176,13 +189,15 @@ static void make_text(const struct wprefs *p, char *out, int size)
                     p->centre ? "on" : "off", p->centre_asked ? "on" : "off", p->centre_over ? "on" : "off",
                     p->centre_custom ? "on" : "off");
     if (p->gadget >= 0) len += snprintf(out + len, size - len, "snapshot.gadget %s\n", p->gadget ? "on" : "off");
-    strcpy(never, p->never);
+    for (k = 0; k < 2; k++) {               /* the never lines, then (0.11) the wheel.self ones */
+    strcpy(never, k ? p->wself : p->never);
     for (n = never; *n && len < size - 40; n = e) {
         while (*n == ' ' || *n == ',') n++;
         for (e = n; *e && *e != ','; e++) ;
         if (*e) *e++ = 0;
         { char *t = n + strlen(n); while (t > n && t[-1] == ' ') *--t = 0; }
-        if (*n) len += snprintf(out + len, size - len, "never %s\n", n);
+        if (*n) len += snprintf(out + len, size - len, k ? "wheel.self %s\n" : "never %s\n", n);
+    }
     }
 }
 
@@ -201,7 +216,7 @@ static void tell(void)
     Forbid();
     if ((p = FindPort((STRPTR)"GFOpenWindows")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
     Permit();
-    if (!p && (cur.snap || cur.switcher || cur.wheel || cur.places || cur.drawer_w || cur.dblfront || cur.edges || cur.drive_title ||
+    if (!p && (cur.snap || cur.switcher || cur.wheel_target != 2 || cur.places || cur.drawer_w || cur.dblfront || cur.edges || cur.drive_title ||
                cur.centre || GADGET(&cur))) {
         BPTR in = Open((STRPTR)"NIL:", MODE_OLDFILE), out = Open((STRPTR)"NIL:", MODE_NEWFILE);
         /* asynchronous: both handles are the new process's, closed when it ends */
@@ -215,7 +230,7 @@ static void tell(void)
 
 static int put_in_place(int save)
 {
-    static char text[1024];
+    static char text[2048];
     int ok;
     make_text(&cur, text, sizeof text);
     ok = write_file(PREFS_ENV, text);
@@ -226,10 +241,11 @@ static int put_in_place(int save)
 
 /* ---- the window ---------------------------------------------------------------------- */
 
-enum { G_SNAP, G_DIST, G_HALVES, G_SWITCH, G_KEY, G_WHEEL, G_DBLFRONT, G_EDGES, G_SOLID, G_DRIVETITLE, G_COMP, G_GRAD, G_PLACES, G_DRAWERS, G_NEVER, G_FORGET, G_DRAWW, G_DRAWH,
+enum { G_SNAP, G_DIST, G_HALVES, G_SWITCH, G_KEY, G_WHEEL, G_LINES, G_DBLFRONT, G_EDGES, G_SOLID, G_DRIVETITLE, G_COMP, G_GRAD, G_PLACES, G_DRAWERS, G_NEVER, G_FORGET, G_DRAWW, G_DRAWH,
        G_CENTRE, G_SGAD, G_CASKED, G_CPARENT, G_CCUSTOM,
        G_STATUS, G_SAVE, G_USE, G_CANCEL, G_COUNT };
 static struct Gadget *gad[G_COUNT];
+static STRPTR wheel_labels[] = { (STRPTR)"Area clicked", (STRPTR)"Under pointer", (STRPTR)"Nothing", NULL };
 static struct Window *win;
 static char status_text[120];
 static char compoff_text[64];           /* the switch's words with why this screen isn't composited (comp_off) */
@@ -275,7 +291,8 @@ static void show(void)
     SET(G_HALVES, GTCB_Checked, cur.halves, GA_Disabled, !cur.snap);
     SET(G_SWITCH, GTCB_Checked, cur.switcher);
     SET(G_KEY, GTST_String, (ULONG)cur.key, GA_Disabled, !cur.switcher);
-    SET(G_WHEEL, GTCB_Checked, cur.wheel);
+    SET(G_WHEEL, GTCY_Active, cur.wheel_target);
+    SET(G_LINES, GTIN_Number, cur.wheel_lines, GA_Disabled, cur.wheel_target == 2);
     SET(G_DBLFRONT, GTCB_Checked, cur.dblfront);
     SET(G_EDGES, GTCB_Checked, cur.edges);
     SET(G_SOLID, GTCB_Checked, cur.solid);
@@ -380,7 +397,7 @@ static int gui_once(void)
     if (compact && W < 620) W = 620;
     /* the paired columns are measured, and the window widens only when they need it (a 600-wide screen keeps it) */
     if (pair) {
-        static const char *const right[] = { "Wheel under pointer", "Workbench drawers too", "Centre new windows", NULL };
+        static const char *const right[] = { "Wheel scrolls", "Workbench drawers too", "Centre new windows", NULL };
         int k, t, left, need;
         left = 10 + 26 + 8 + TextLength(&scr->RastPort, (STRPTR)"Transparency and shadows", 24);
         if (left < X + 26) left = X + 26;
@@ -409,7 +426,7 @@ static int gui_once(void)
     row = top + lt_space(scr->Font, W - 20, lh) + 8; /* below the tabs (looktabs.h): one row, or two */
     if (compact) {
         static const char *const left[] = { "Snap to edges", "Window switcher", "Remember places", "Never for", NULL };
-        static const char *const right[] = { "Fill a half", "Wheel under pointer", "Workbench drawers too", "Drawers at least", NULL };
+        static const char *const right[] = { "Fill a half", "Wheel scrolls", "Workbench drawers too", "Drawers at least", NULL };
         /* rows lh + 1 apart (0.10: lh + 2 before the centring row came, which then made 257 lines in Topaz 8) */
         int k, t, x1 = 0, x2 = 0, mid = (W - 20) / 2 + 10, st = lh + 1, iw = TextLength(&scr->RastPort, (STRPTR)"0000", 4) + 12;
         for (k = 0; left[k]; k++) if ((t = TextLength(&scr->RastPort, (STRPTR)left[k], strlen(left[k]))) > x1) x1 = t;
@@ -422,7 +439,7 @@ static int gui_once(void)
         G(CHECKBOX_KIND, G_SWITCH, x1, row, 26, lh, "Window switcher", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
         t = TextLength(&scr->RastPort, (STRPTR)"key", 3);
         G(STRING_KIND, G_KEY, x1 + 34 + t + 8, row, mid - 12 - (x1 + 34 + t + 8), lh, "key", PLACETEXT_LEFT, GTST_MaxChars, 46);
-        G(CHECKBOX_KIND, G_WHEEL, x2, row, 26, lh, "Wheel under pointer", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += st + 4;
+        G(CYCLE_KIND, G_WHEEL, x2, row, W - 10 - x2, lh, "Wheel scrolls", PLACETEXT_LEFT, GTCY_Labels, (ULONG)wheel_labels); row += st + 4;
         G(CHECKBOX_KIND, G_DBLFRONT, LX, row, 26, lh, "Double-click a title bar to bring the window to the front", PLACETEXT_RIGHT,
           GTCB_Scaled, TRUE); row += st;
         G(CHECKBOX_KIND, G_EDGES, LX, row, 26, lh, "Resize a window from any edge but its title bar", PLACETEXT_RIGHT, GTCB_Scaled, TRUE);
@@ -449,7 +466,7 @@ static int gui_once(void)
     } else {
     G(CHECKBOX_KIND, G_SNAP, X, row, 26, lh, "Snap to edges", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
     if (advanced) G(INTEGER_KIND, G_DIST, X + 160, row, 50, lh, "within", PLACETEXT_LEFT, GTIN_MaxChars, 2);
-    if (pair) G(CHECKBOX_KIND, G_WHEEL, x2, row, 26, lh, "Wheel under pointer", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
+    if (pair) G(CYCLE_KIND, G_WHEEL, x2, row, W - 10 - x2, lh, "Wheel scrolls", PLACETEXT_LEFT, GTCY_Labels, (ULONG)wheel_labels);
     row += lh + sp;
     if (advanced) { G(CHECKBOX_KIND, G_HALVES, X, row, 26, lh, "Fill a half", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 10; }
     G(CHECKBOX_KIND, G_SWITCH, X, row, 26, lh, "Window switcher", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
@@ -457,7 +474,13 @@ static int gui_once(void)
     /* 0.10: on a small screen, centring beside the switcher (the snapshot gadget follows it; Advanced has its own switch) */
     if (pair) G(CHECKBOX_KIND, G_CENTRE, x2, row, 26, lh, "Centre new windows", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
     row += lh + (advanced ? 10 : sp);
-    if (!pair) { G(CHECKBOX_KIND, G_WHEEL, X, row, 26, lh, "Wheel under pointer", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + sp; }
+    if (!pair) {
+        /* 0.11: what the wheel scrolls, and (Advanced) how many lines a step */
+        G(CYCLE_KIND, G_WHEEL, X, row, 160, lh, "Wheel scrolls", PLACETEXT_LEFT, GTCY_Labels, (ULONG)wheel_labels);
+        if (advanced) G(INTEGER_KIND, G_LINES, X + 160 + 16 + TextLength(&scr->RastPort, (STRPTR)"lines a step", 12), row, 50, lh,
+                        "lines a step", PLACETEXT_LEFT, GTIN_MaxChars, 2);
+        row += lh + sp;
+    }
     /* a long label: the box in the column with its words after it */
     G(CHECKBOX_KIND, G_DBLFRONT, LX, row, 26, lh, "Double-click a title bar to bring the window to the front", PLACETEXT_RIGHT,
       GTCB_Scaled, TRUE);
@@ -570,7 +593,12 @@ static int gui_once(void)
                     if (*str) strncpy(cur.key, str, sizeof cur.key - 1);
                     status("The key in commodity words, for example: lcommand tab");
                     break;
-                case G_WHEEL: cur.wheel = sel; break;
+                case G_WHEEL:
+                    cur.wheel_target = code; show();
+                    status(code == 0 ? "The wheel scrolls the list or scroll bar clicked last, in the active window." :
+                           code == 1 ? "The wheel scrolls the window under the pointer." : "The wheel's keys go to programs; nothing else is scrolled.");
+                    break;
+                case G_LINES: cur.wheel_lines = num < 1 ? 1 : num > 30 ? 30 : num; show(); break;
                 case G_DBLFRONT: cur.dblfront = sel; break;
                 case G_EDGES: cur.edges = sel; break;
                 case G_SOLID: cur.solid = sel; break;

@@ -35,6 +35,7 @@
 #include <libraries/gadtools.h>
 #include <prefs/prefhdr.h>
 #include <devices/timer.h>
+#include <devices/input.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/intuition.h>
@@ -99,7 +100,13 @@ static struct ip_prefs ip;
 /* The Team's chunk, OIAC (gfopeninput device/teamprefs.h): ten big-endian words, version, flags, enabled,
  * precision speed, full speed, maximum multiplier (hundredths), maximum pointer speed, exponent (hundredths),
  * smoothing (hundredths), reset angle. This editor sets "enabled" and keeps the rest as the file has them,
- * or the input library's defaults ("Balanced"). No chunk: acceleration off. */
+ * or the input library's defaults ("Balanced"). No chunk: acceleration off.
+ * The flags word (input.device 50.5, 4 November 2026): bit 0 the wheel off, bit 1 the middle button off, bit 2 a
+ * wheel adapter on the joystick port, bits 4-7 its counts a step less one. 0, and no chunk, is the wheel and the
+ * middle button on (Dale: on for new installs and old ones alike). */
+#define OIACF_NOWHEEL  0x0001
+#define OIACF_NOMIDDLE 0x0002
+#define OIACF_JOYWHEEL 0x0004
 #define OIAC_WORDS 10
 static UWORD oiac[OIAC_WORDS];
 static const UWORD oiac_defaults[OIAC_WORDS] = { 1, 0, 0, 200, 4000, 600, 0, 150, 60, 90 };
@@ -166,7 +173,7 @@ static void load_input(const char *path)
     if (file_data && file_len >= 12 && !memcmp(file_data, "FORM", 4) && !memcmp(file_data + 8, "PREF", 4) &&
         (c = chunk(file_data, file_len, "OIAC", &n)) && n >= 6) {
         LONG i, words = n / 2 < OIAC_WORDS ? n / 2 : OIAC_WORDS;
-        for (i = 2; i < words; i++) oiac[i] = (UWORD)(c[2 * i] << 8 | c[2 * i + 1]);
+        for (i = 1; i < words; i++) oiac[i] = (UWORD)(c[2 * i] << 8 | c[2 * i + 1]);
         had_oiac = 1;
     }
     if (!had_oiac && ip.ip_MouseAccel) oiac[2] = 1;   /* an older file's OS switch moves into OIAC when saved */
@@ -217,7 +224,7 @@ static int save_input(const char *path)
     o += 8 + INPT_SIZE;
     memcpy(out + o, "OIAC", 4);
     put32(out + o + 4, 2 * OIAC_WORDS);
-    oiac[0] = 1; oiac[1] = 0;                    /* version 1 */
+    oiac[0] = 1;                                 /* version 1; oiac[1], the flags, as the page has them */
     for (i = 0; i < OIAC_WORDS; i++) { out[o + 8 + 2 * i] = (UBYTE)(oiac[i] >> 8); out[o + 9 + 2 * i] = (UBYTE)oiac[i]; }
     o += 8 + 2 * OIAC_WORDS;
     put32(out + 4, o - 8);
@@ -278,7 +285,7 @@ static int index_of(const char *name)
 
 /* ---- the window ----------------------------------------------------------------- */
 
-enum { G_SPEED = 1, G_ACCEL, G_SWAP, G_DBL, G_DELAY, G_RATE, G_KEYMAP, G_PADS, G_STATUS, G_SAVE, G_USE, G_CANCEL, G_COUNT };
+enum { G_SPEED = 1, G_ACCEL, G_SWAP, G_WHEEL, G_MIDDLE, G_JOYW, G_DBL, G_DELAY, G_RATE, G_KEYMAP, G_PADS, G_STATUS, G_SAVE, G_USE, G_CANCEL, G_COUNT };
 
 static const char *const speed_labels[] = { "Slow", "Medium", "Fast", NULL };
 static const UWORD speed_ticks[] = { 4, 2, 1 };
@@ -286,7 +293,7 @@ static const UWORD speed_ticks[] = { 4, 2, 1 };
 static struct Window *win;
 static struct Gadget *gad[G_COUNT];
 static char status_text[80];
-static int sel_speed, accel, swap, sel_keymap;
+static int sel_speed, accel, swap, sel_keymap, wheel, middle, joyw;
 
 static void status(const char *s)
 {
@@ -311,11 +318,32 @@ static void set_ms(struct timeval *tv, LONG ms)
     tv->tv_micro = (ms % 1000) * 1000;
 }
 
+/* The repeat times to input.device, as IPrefs gives them: the Team's input.device reads its chunk (the wheel, the
+ * middle button, acceleration) again then, so the change holds at once (input.device 50.5) */
+static void apply_now(void)
+{
+    struct MsgPort *p = CreateMsgPort();
+    struct timerequest *t = p ? (struct timerequest *)CreateIORequest(p, sizeof *t) : NULL;
+    if (t && !OpenDevice((STRPTR)"input.device", 0, (struct IORequest *)t, 0)) {
+        t->tr_node.io_Command = IND_SETTHRESH;
+        t->tr_time = ip.ip_KeyRptDelay;
+        DoIO((struct IORequest *)t);
+        t->tr_node.io_Command = IND_SETPERIOD;
+        t->tr_time = ip.ip_KeyRptSpeed;
+        DoIO((struct IORequest *)t);
+        CloseDevice((struct IORequest *)t);
+    }
+    if (t) DeleteIORequest((struct IORequest *)t);
+    if (p) DeleteMsgPort(p);
+}
+
 static int put_in_place(int save)
 {
     ip.ip_PointerTicks = speed_ticks[sel_speed];
     oiac[2] = accel ? 1 : 0;                     /* the input library's acceleration (OIAC) */
     ip.ip_SwitchMouseButtons = swap ? 1 : 0;
+    oiac[1] = (UWORD)((oiac[1] & ~(OIACF_NOWHEEL | OIACF_NOMIDDLE | OIACF_JOYWHEEL)) | (wheel ? 0 : OIACF_NOWHEEL) |
+                      (middle ? 0 : OIACF_NOMIDDLE) | (joyw ? OIACF_JOYWHEEL : 0));
     set_ms(&ip.ip_DoubleClick, number(G_DBL));
     set_ms(&ip.ip_KeyRptDelay, number(G_DELAY));
     set_ms(&ip.ip_KeyRptSpeed, number(G_RATE));
@@ -327,6 +355,7 @@ static int put_in_place(int save)
     }
     if (save && !save_input(INPUT_ENVARC)) { status("Couldn't write ENVARC:Sys/input.prefs."); return 0; }
     if (!save_input(INPUT_ENV)) { status("Couldn't write ENV:Sys/input.prefs."); return 0; }
+    apply_now();
     return 1;
 }
 
@@ -380,6 +409,9 @@ static int gui(void)
     sel_speed = ip.ip_PointerTicks >= 4 ? 0 : ip.ip_PointerTicks >= 2 ? 1 : 2;
     accel = oiac[2] != 0;
     swap = ip.ip_SwitchMouseButtons != 0;
+    wheel = !(oiac[1] & OIACF_NOWHEEL);
+    middle = !(oiac[1] & OIACF_NOMIDDLE);
+    joyw = (oiac[1] & OIACF_JOYWHEEL) != 0;
 
     fh = scr->Font->ta_YSize;
     lh = fh + 6;
@@ -414,6 +446,14 @@ static int gui(void)
     G(CHECKBOX_KIND, G_ACCEL, X, row, 26, lh, "Acceleration", PLACETEXT_LEFT, GTCB_Checked, accel, GTCB_Scaled, TRUE);
     row += lh + 4;
     G(CHECKBOX_KIND, G_SWAP, X, row, 26, lh, "Swap buttons", PLACETEXT_LEFT, GTCB_Checked, swap, GTCB_Scaled, TRUE);
+    row += lh + 4;
+    /* input.device 50.5: the wheel (the NewMouse keys; what it scrolls is the Windows page's), the middle button,
+     * and a wheel adapter on the joystick port (WheelBusMouse's and PS2M's way: off, a joystick there would scroll) */
+    G(CHECKBOX_KIND, G_WHEEL, X, row, 26, lh, "Mouse wheel", PLACETEXT_LEFT, GTCB_Checked, wheel, GTCB_Scaled, TRUE);
+    row += lh + 4;
+    G(CHECKBOX_KIND, G_MIDDLE, X, row, 26, lh, "Middle button", PLACETEXT_LEFT, GTCB_Checked, middle, GTCB_Scaled, TRUE);
+    row += lh + 4;
+    G(CHECKBOX_KIND, G_JOYW, X, row, 26, lh, "Joy-port wheel", PLACETEXT_LEFT, GTCB_Checked, joyw, GTCB_Scaled, TRUE);
     row += lh + 4;
     G(INTEGER_KIND, G_DBL, X, row, nw, lh, "Double-click (ms)", PLACETEXT_LEFT, GTIN_Number, ms_of(&ip.ip_DoubleClick), GTIN_MaxChars, 5);
     row += lh + 10;
@@ -487,6 +527,12 @@ static int gui(void)
                 case G_SPEED: sel_speed = code; break;
                 case G_ACCEL: accel = (gg->Flags & GFLG_SELECTED) != 0; break;
                 case G_SWAP: swap = (gg->Flags & GFLG_SELECTED) != 0; break;
+                case G_WHEEL: wheel = (gg->Flags & GFLG_SELECTED) != 0;
+                    status(wheel ? "The wheel scrolls (what it scrolls: Windows)." : "The wheel sends nothing."); break;
+                case G_MIDDLE: middle = (gg->Flags & GFLG_SELECTED) != 0;
+                    status(middle ? "Pressing the wheel is the middle button." : "The middle button sends nothing."); break;
+                case G_JOYW: joyw = (gg->Flags & GFLG_SELECTED) != 0;
+                    status(joyw ? "A wheel adapter in the joystick port scrolls." : "The joystick port is a joystick's."); break;
                 case G_KEYMAP: sel_keymap = code; break;
 #ifdef LT_ONE
                 default: {                          /* another section: the page's changes kept, as Use, when it has any */
