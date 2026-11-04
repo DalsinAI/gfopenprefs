@@ -39,16 +39,17 @@
 #include <proto/intuition.h>
 #include <proto/graphics.h>
 #include <proto/commodities.h>
+#include <proto/diskfont.h>
 #include "openfont_text.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.2 (24.10.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.3 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
-struct Library *CxBase, *OpenFontTextBase;
+struct Library *CxBase, *OpenFontTextBase, *DiskfontBase;
 
 static struct Task *me;
 static volatile ULONG idle_ticks;      /* seconds since the last key or mouse */
@@ -123,13 +124,30 @@ static void set_level(int level)   /* 0..256: how far the pens have come up from
     }
 }
 
+/* 1.3: the font at the size asked for, or none. gfopenfont.library 1.5 and
+ * openfont.library 1.4 can't draw OS 3.2's Intellifont outlines (CGTriumvirate
+ * and CGTimes are .type files) and gave back whatever size of the font was
+ * already in memory: a 13-pixel CGTriumvirate for an 83-pixel title, or none,
+ * and the credits came out in topaz (Instance-32, 4 November 2026). A font
+ * that isn't the size asked for is put back, and diskfont.library, which has
+ * the system's bullet.library draw them, is asked next; topaz 8 is the last. */
+static struct TextFont *sized(struct TextFont *f, int px)
+{
+    if (f && f->tf_YSize != px) { CloseFont(f); f = NULL; }
+    return f;
+}
+
 static struct TextFont *font(const char *name, int px)
 {
     struct TextAttr ta;
     struct TextFont *f;
     if (px < 8) px = 8;
     ta.ta_Name = (STRPTR)name; ta.ta_YSize = (UWORD)px; ta.ta_Style = FS_NORMAL; ta.ta_Flags = FPF_DISKFONT;
-    f = OpenFontTextBase ? openfont_text_font(OpenFontTextBase, &ta) : NULL;     /* an outline font: made at this size */
+    f = sized(OpenFontTextBase ? openfont_text_font(OpenFontTextBase, &ta) : NULL, px);   /* an outline font: made at this size */
+    if (!f) {
+        if (!DiskfontBase) DiskfontBase = OpenLibrary((STRPTR)"diskfont.library", 36);
+        if (DiskfontBase) f = sized(OpenDiskFont(&ta), px);
+    }
     if (!f) { ta.ta_Name = (STRPTR)"topaz.font"; ta.ta_YSize = 8; ta.ta_Flags = FPF_ROMFONT; f = OpenFont(&ta); }
     return f;
 }
@@ -416,6 +434,7 @@ out:
     if (port) { struct Message *msg; if (port->mp_Node.ln_Name) RemPort(port); while ((msg = GetMsg(port))) ReplyMsg(msg); DeleteMsgPort(port); }
     if (rd) FreeArgs(rd);
     if (OpenFontTextBase) CloseLibrary(OpenFontTextBase);
+    if (DiskfontBase) CloseLibrary(DiskfontBase);
     if (CxBase) CloseLibrary(CxBase);
     if (GfxBase) CloseLibrary((struct Library *)GfxBase);
     if (IntuitionBase) CloseLibrary((struct Library *)IntuitionBase);
