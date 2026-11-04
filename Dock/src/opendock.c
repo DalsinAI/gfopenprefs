@@ -217,6 +217,16 @@ static void load_icons(void)
                     icons[i] = screen_icon("SYS:System/Shell", 0);
                 if (!icons[i]) { snprintf(c, sizeof c, "C:%s", prog); icons[i] = screen_icon(c, 0); }
             }
+            /* 0.6.12: a drawer with no icon of its own (Instance-40's SYS:Prefs) has the drawer's default, not a tool's */
+            if (!icons[i] && b->kind == OD_WB) {
+                BPTR l = Lock((STRPTR)prog, ACCESS_READ);
+                struct FileInfoBlock *fib = l ? AllocDosObject(DOS_FIB, NULL) : NULL;
+                int dir = fib && Examine(l, fib) && fib->fib_DirEntryType > 0;
+                if (fib) FreeDosObject(DOS_FIB, fib);
+                if (l) UnLock(l);
+                if (dir) icons[i] = GetIconTags(NULL, ICONGETA_Screen, (ULONG)scr, ICONGETA_RemapIcon, TRUE,
+                                                ICONGETA_GenerateImageMasks, TRUE, ICONGETA_GetDefaultType, WBDRAWER, TAG_DONE);
+            }
             if (!icons[i]) icons[i] = screen_icon(prog, 1);
         }
     }
