@@ -152,9 +152,10 @@ static struct TextFont *try_font(const char *name, int px)
 }
 
 /* 1.4: the first of a list of fonts there is at the size asked for. OS 3.2's CGTriumvirate and CGTimes come first
- * (Instance-32); a disk without them (the open ROM's, Instance-40, had the credits in topaz) has DejaVu Sans, the
- * GFOpenFont part's, and DejaVu Serif, which this part brings: both free (DejaVu fonts 2.37) and drawn by
- * gfopenfont.library. topaz 8 is the last. */
+ * (Instance-32); a disk without them (the open ROM's, Instance-40, had the credits in topaz) has DejaVu Sans and
+ * DejaVu Serif in FONTS:GFOpenBlanker, which GFOpenUp's GFOpenBlanker part brings: free (DejaVu fonts 2.37), drawn
+ * by gfopenfont.library, their .otags' OT_YSizeFactor fitting ascent and descent to the size (gfopenfont.library
+ * 1.7). topaz 8 is the last. */
 static struct TextFont *font(const char *const *names, int px)
 {
     struct TextAttr ta;
@@ -165,8 +166,8 @@ static struct TextFont *font(const char *const *names, int px)
     return f;
 }
 
-static const char *const sans[] = { "CGTriumvirate.font", "DejaVuSans.font", NULL };
-static const char *const serif[] = { "CGTimes.font", "DejaVuSerif.font", "DejaVuSans.font", NULL };
+static const char *const sans[] = { "CGTriumvirate.font", "FONTS:GFOpenBlanker/DejaVuSans.font", NULL };
+static const char *const serif[] = { "CGTimes.font", "FONTS:GFOpenBlanker/DejaVuSerif.font", "FONTS:GFOpenBlanker/DejaVuSans.font", NULL };
 
 static void style_of(int style, struct TextFont **f, int *pen, int *soft)
 {

@@ -34,9 +34,10 @@ colour, then `SetRGB32` brings them up, frame by frame on the vertical blank.
   and the key that wakes the show goes there, not to the program underneath.
 - **Type**: CGTriumvirate and CGTimes, the outline fonts every AmigaOS 3.2 has,
   made at exact sizes for the screen's height. A disk without them (the open
-  ROM's) has DejaVu Sans (the GFOpenFont part's) and DejaVu Serif (which
-  GFOpenUp's GFOpenBlanker part brings), both free and drawn by
-  gfopenfont.library (1.4); topaz 8 if none is there at the size asked for.
+  ROM's) has DejaVu Sans and DejaVu Serif in `FONTS:GFOpenBlanker`, which
+  GFOpenUp's GFOpenBlanker part brings: free, drawn by gfopenfont.library,
+  sized by their `.otag`s' `OT_YSizeFactor` (1.4); topaz 8 if none is there
+  at the size asked for.
   Text is ISO-8859-1.
 
 - **Ending cleanly (1.1):** the pointer is the window's again, the window is
