@@ -54,7 +54,7 @@
 #include "obmsg.h"
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenDock 0.6.11 (25.10.2026) GFOpenPrefs, AmiCradle Team";   /* 0.6.11: wakes once a second at rest, ten times only while the pointer is over it; 0.6.10: no look at the tasks while none start or end; 0.6.9: running programs after a line; 0.6.8: one look at the tasks per check; 0.6.7: its editor is GFOpenPrefs DOCK, never ROM: */
+const char version[] __attribute__((used)) = "$VER: GFOpenDock 0.6.12 (4.11.2026) GFOpenPrefs, AmiCradle Team";   /* 0.6.12: a Shell command button has the Shell's icon (NewShell) or its C: icon; 0.6.11: wakes once a second at rest, ten times only while the pointer is over it; 0.6.10: no look at the tasks while none start or end; 0.6.9: running programs after a line; 0.6.8: one look at the tasks per check; 0.6.7: its editor is GFOpenPrefs DOCK, never ROM: */
 
 #define PREFS_ENV "ENV:GFOpenDock/Dock"
 #define PREFS_ENVARC "ENVARC:GFOpenDock/Dock"
@@ -207,7 +207,18 @@ static void load_icons(void)
         if (b->kind == OD_SEPARATOR) continue;
         if (b->icon[0]) icons[i] = screen_icon(b->icon, 0);
         /* the program's own icon (a drawer's too), or the default one for its kind */
-        if (!icons[i]) { program_of(b, prog, sizeof prog); icons[i] = screen_icon(prog, 1); }
+        if (!icons[i]) {
+            program_of(b, prog, sizeof prog);
+            /* 0.6.12: a Shell command names no file of its own: NewShell and NewCLI have the Shell's icon, any other
+             * the icon beside it in C: when there is one (Instance-32's "Shell" button showed the tool picture) */
+            if (b->kind != OD_WB && strchr(prog, ':') == NULL && strchr(prog, '/') == NULL) {
+                char c[300];
+                if (!strcasecmp(prog, "NewShell") || !strcasecmp(prog, "NewCLI"))
+                    icons[i] = screen_icon("SYS:System/Shell", 0);
+                if (!icons[i]) { snprintf(c, sizeof c, "C:%s", prog); icons[i] = screen_icon(c, 0); }
+            }
+            if (!icons[i]) icons[i] = screen_icon(prog, 1);
+        }
     }
 }
 
