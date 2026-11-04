@@ -185,6 +185,129 @@ Not yet:
 - A title cut at its first digit still gives drawers such as `DH1:` and
   `DH2:` one key.
 
+**Centred until snapped, and the snapshot gadget (GFOpenWindows 0.10, GFOpenPrefs
+Windows, 4 November 2026).** Dale: "we need to have a setting that makes windows
+open in the centre of the screen until their location is stored via snap", and
+"we need a snap icon similar to the way MUI does it".
+
+| Setting | What it does | Default |
+| --- | --- | --- |
+| `centre on` | A window with no snapped place opens centred in the screen's free area: the screen less its title bar and less GFOpenDock's shelf (any borderless window of the dock's task lying along an edge, noted once a second). Placed before it opens, through the same patch and copies of the program's tags as a kept place (no jump). Kept wholly on the screen | **off**: nothing changes for anyone who hasn't chosen it |
+| `centre.asked on` | A window whose program gives a corner of its own is left there. "Its own" is any corner but 0,0, the left edge under the screen's bar, or a step of up to 64 pixels in from that corner (`place_asked`) | on |
+| `centre.parent on` | A window a program opens while one of its own windows is active (a dialog, a requester) is centred over that window, kept in the free area | on |
+| `centre.custom on` | Windows on screens that aren't public (a game's or a demo's own) are centred too | off |
+| `snapshot.gadget on/off` | The snapshot gadget in title bars. With no line it follows `centre` | as `centre` |
+
+The editor: "Open new windows in the centre of the screen" and "Snapshot gadget in
+title bars (Shift-click forgets)" in both views, the three rules under the first in
+Advanced ("Leave windows where their program puts them", "Centre requesters over
+their window", "Centre on games' and demos' own screens too"). In the two-column
+views of a 640 x 256 screen: "Centre new windows" (and "Snapshot gadget" in
+Advanced). Read live: Use or Save, then Ctrl-F, as every other setting.
+
+**Left alone**, whatever the setting: backdrop windows, borderless windows and
+windows with no drag bar (popups, docks, full-screen views); a window as big as
+the screen either way; a window with no size to centre by; windows of programs on
+the `never` list.
+
+**What "snapped" means.** A place the snapshot gadget stored: its line in
+`WindowPlaces` ends ` snap` (`"wintest:Snap me" 300 200 500 300 snap`). Older
+GFOpenWindows read the four numbers and ignore the word. A snapped place is
+pinned: the look never moves it to where the window was later left, and when the
+table is full a place the look kept makes way before a snapped one. With `centre
+on` only snapped places count (Remember places' own keeping stops; its places stay
+in the file for when centring is off again). With `centre off` a snapped place
+wins over the look's. A Workbench drawer is "snapped" two ways: by the gadget, or
+by its icon's own snapshot (GFOpenBench's Window > Snapshot, which writes the
+icon's DrawerData). GFOpenBench opens a drawer whose icon keeps no place at
+((width - w) / 2, (height - h) / 3) (gfopengadtools `wb_drawer.c`); that drawer is
+centred, any other is where its icon says.
+
+**The rules chosen, and why.**
+- *Explicit positions.* Programs on 3.2.3 and OpenUp, as the lab found them: the
+  Shell's CON: window and `OpenWindow()` NewWindows give 0,0; GFOpenPrefs'
+  editors give 40,33; MultiView (OpenView), ASL's file requester and the
+  Installer work out a centred corner of their own (480,180 and 712,418 on
+  1920 x 1080); test windows that ask for 300,200 mean it. A corner at or near
+  the top left is taken as "anywhere" and centred; any other is the program's and
+  kept (`centre.asked`, on). Switched off, every window without a snapshot is
+  centred.
+- *Requesters.* A window opened while one of its own program's windows is active
+  is centred over that window (the lab's dialog: over a 700 x 500 window at
+  100,120, at 300,310). ASL's requesters work out their own corner (ASL prefs'),
+  which is kept as the rule above says. EasyRequest's and AutoRequest's windows are
+  opened inside Intuition, not through the call GFOpenWindows patches, and
+  GFOpenIntuition already centres them on the screen (183 x 94 at 868,493 on
+  1920 x 1080); nothing moves them.
+- *Custom screens.* A screen counts as public when it is Workbench's or on
+  Intuition's public screen list (`LockPubScreenList`); `Screen->Flags` can't tell
+  (a CUSTOMSCREEN's type bits include PUBLICSCREEN's). A game's own screen is
+  left alone (`centre.custom`, off). A game that opens a backdrop on its own
+  screen (BurgerSpace in the lab) is left alone on both counts.
+
+**The snapshot gadget.** A gadget in the title bar of every window it can serve,
+left of the depth gadget and of the zoom gadget where there is one, as MUI's
+snapshot gadget sits beside the system gadgets (MorphOS' `WA_ExtraGadget_Snapshot`;
+gfopenmui `zune/classes/window.c`). A click stores the window's place and size as
+a snapped place; Shift and a click forgets it (MUI's unsnapshot,
+`MUIM_Window_Snapshot` with 0; the public MUI documents found don't say which
+modifier MUI's own gadget uses for it, so Shift is our choice and can change).
+The pin shows which: standing and hollow (a light inside in the shine pen), nothing
+stored; pushed in a row and solid, snapped. Both files are written at once.
+- On windows with a drag bar and a depth gadget, not backdrops or borderless
+  ones, on public screens, of programs GFOpenWindows may keep (`never` lines
+  hold), and on GFOpenBench's drawers (not its root window). GimmeZeroZero windows
+  too: the gadget is a GZZ gadget, in the outer layer, and the window's inner
+  layout is untouched.
+- A boopsi gadget of GFOpenWindows' own class (`gadgetclass`'s), inserted just
+  before the drag bar in the window's list, after close, depth and zoom: it is
+  drawn after them and takes a press before the drag bar. It sends the program
+  nothing (no GADGETUP, no GADGETDOWN): the press and release are its own
+  (`GM_GOACTIVE`, `GM_HANDLEINPUT`), and at the release over it the main task is
+  signalled. Held, it draws pressed; let go off it, nothing happens.
+- Its tile is the window's own depth gadget's image, drawn at its place in the
+  state of the window (active, inactive, held), so it is the theme's, GFOpenLook's
+  or Intuition's, gradient or flat, on RTG and on the chipset; the depth glyph is
+  then covered by the tile's own column and the pin drawn over it in the shadow
+  pen, sized to the bar (one cell a pixel on an 8-point bar, two on a 14-point).
+- Added by the patch on the opening task as each window opens; when the gadget
+  is switched on, the next look adds it to the windows already open. Switched
+  off, or GFOpenWindows quitting, every gadget is taken out (`RemoveGList`,
+  `RefreshWindowFrame`) and the class freed; a window that closed is noted at the
+  next look and its gadget disposed of.
+- *On even when centring is off?* Yes, when chosen: `snapshot.gadget on` gives a
+  general "remember this window" button, and a snapped place then wins over what
+  Remember places keeps. It still defaults to follow centring (no line), so
+  nobody who hasn't chosen either sees a new gadget.
+
+![The snapshot gadget, four times life size: on Instance-32's gradient RTG look, active and not snapped, inactive and snapped; on the open ROM (Instance-40), not snapped, clicked (snapped), Shift-clicked (forgotten)](docs/snapshot-gadget.png)
+
+Lab (4 November 2026; copies of Instance-32 and Instance-40, each GFOpenWindows
+0.10 put in its SYS:, a probe opening each kind of window):
+
+| Window | centre off (0.9.2 and 0.10) | centre on |
+| --- | --- | --- |
+| no corner (tags) | 0,0 | centred (710,357 above the dock on I-32; 710,457 on I-40's 1920 x 1200) |
+| 0,0 by tags; a NewWindow at 0,0 | 0,0 | centred |
+| asks 300,200 | 300,200 | 300,200 (its own) |
+| by inner size | 0,0 | centred |
+| GimmeZeroZero | 0,0 | centred, with the gadget, its inner layer intact |
+| on a game's own screen (not public) | 0,0 | 0,0 |
+| a dialog opened from an active window | 0,0 | over its window, 300,310 |
+| as big as the screen | 0,0 | 0,0 |
+| the Shell (NewShell CON:0/0/640/200) | 0,0 | centred, 640,407 |
+| GFOpenPrefs | 40,33 | centred, 588,253 |
+| MultiView, ASL, Installer | their own centred corners | the same |
+| a drawer with no icon (RAM:FreshDrawer) | GFOpenBench's default | centred above the dock, 530,207 |
+| the Work drawer (its Disk.info keeps a place) | where its icon says | the same |
+
+A window clicked snapped at 300,200 reopened there, after a reboot too (both
+labs); Shift-click forgot it and it opened centred again; the gadget came out of
+every window when switched off, live, and when GFOpenWindows quit. The host tests
+(`tests/test_places.c`) cover the snapped lines, the table's order with snapped
+places, forgetting, the free area with docks on each edge, centring over a parent
+and on a 640 x 256 screen, and the explicit-corner rule.
+
 **Double-click to front (GFOpenWindows 0.4, 8 October 2026).** The user asked
 for "double click to bring windows forward" as part of the GFOpen tools, on by
 default. Intuition brings a window forward only from its depth gadget, and

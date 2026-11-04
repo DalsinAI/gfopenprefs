@@ -135,11 +135,20 @@ int place_tags(struct TagItem *out, int max, const struct place_plan *plan, cons
 
 int place_index(struct place *pl, int *n, const char *key, int make)
 {
-    int i, oldest = 0;
+    int i;
     for (i = 0; i < *n; i++) if (!strcmp(pl[i].key, key)) return i;
     if (!make) return -1;
     if (*n < PLACES_MAX) i = (*n)++;
-    else { for (i = 1; i < *n; i++) if (pl[i].used < pl[oldest].used) oldest = i; i = oldest; }
+    else {
+        /* the one used longest ago; 0.10: a place the look kept before a snapped one, which goes only when every
+         * place is snapped */
+        int found = -1;
+        for (i = 0; i < *n; i++)
+            if (!pl[i].snap && (found < 0 || pl[i].used < pl[found].used)) found = i;
+        if (found < 0)
+            for (i = 1, found = 0; i < *n; i++) if (pl[i].used < pl[found].used) found = i;
+        i = found;
+    }
     memset(&pl[i], 0, sizeof pl[i]);
     strncpy(pl[i].key, key, sizeof pl[i].key - 1);
     return i;
@@ -160,7 +169,78 @@ int place_parse(const char *line, struct place *pl)
     if (k > (int)sizeof pl->key - 1) k = sizeof pl->key - 1;
     memcpy(pl->key, line + 1, k);
     pl->l = (short)l; pl->t = (short)t; pl->w = (short)w; pl->h = (short)h;
+    while (*e == ' ' || *e == '\t') e++;
+    pl->snap = !strncmp(e, "snap", 4);          /* 0.10: stored by the snap gadget */
     return 1;
+}
+
+void place_remove(struct place *pl, int *n, int i)
+{
+    if (i < 0 || i >= *n) return;
+    if (i < *n - 1) memmove(&pl[i], &pl[i + 1], (size_t)(*n - 1 - i) * sizeof *pl);
+    (*n)--;
+}
+
+/* ---- centring ---- */
+
+void place_area_init(struct place_area *a, short sw, short sh, short bar)
+{
+    a->l = 0; a->t = bar > 0 ? bar + 1 : 0; a->r = sw; a->b = sh;
+    if (a->t >= sh) a->t = 0;
+}
+
+void place_area_reserve(struct place_area *a, short sw, short sh, short wl, short wt, short ww, short wh)
+{
+    const short near = 16;
+    short wr = wl + ww, wb = wt + wh;
+    struct place_area n = *a;
+    if (ww <= 0 || wh <= 0) return;
+    if (ww > wh) {                                          /* lying along the top or the bottom */
+        if (wb >= sh - near && wt > sh / 2) { if (wt < n.b) n.b = wt; }
+        else if (wt <= a->t + near && wb < sh / 2) { if (wb > n.t) n.t = wb; }   /* at the top, or just under the bar */
+    } else if (wh > ww) {                                   /* standing along a side */
+        if (wl <= near && wr < sw / 2) { if (wr > n.l) n.l = wr; }
+        else if (wr >= sw - near && wl > sw / 2) { if (wl < n.r) n.r = wl; }
+    }
+    /* never less than half the screen: a window that big is not a dock to keep clear of */
+    if (n.r - n.l >= sw / 2 && n.b - n.t >= sh / 2) *a = n;
+}
+
+int place_asked(int given, short l, short t, short bar)
+{
+    if (!given) return 0;
+    /* 0,0, under the bar (BarHeight + 1), or a small step in from that corner: what programs give to mean "anywhere"
+     * (the lab, 4 November 2026: GFOpenPrefs' editors 40,33; CON: windows 0,0 and 0,11). A corner they work out
+     * themselves (centred, by another window, from their own settings) is further in: theirs */
+    if (l >= 0 && l <= PLACE_NEAR && t >= 0 && t <= bar + 1 + PLACE_NEAR) return 0;
+    return 1;
+}
+
+static short centred(short lo, short hi, short size, short p0, short psize)
+{
+    long c = psize > 0 ? (long)p0 + (psize - size) / 2 : (long)lo + (hi - lo - size) / 2;
+    if (c + size > hi) c = hi - size;
+    if (c < lo) c = lo;
+    return (short)c;
+}
+
+void place_centre(const struct place_area *a, short sw, short sh, short w, short h,
+                  short pl, short pt, short pw, short ph, short *l, short *t)
+{
+    int over = pw > 0 && ph > 0;
+    *l = centred(a->l, a->r, w, over ? pl : 0, over ? pw : 0);
+    *t = centred(a->t, a->b, h, over ? pt : 0, over ? ph : 0);
+    /* bigger than the area: wholly on the screen */
+    if (sw > 0 && *l + w > sw) *l = sw - w;
+    if (sh > 0 && *t + h > sh) *t = sh - h;
+    if (*l < 0) *l = 0;
+    if (*t < 0) *t = 0;
+}
+
+int place_too_big(const struct place_area *a, short sw, short sh, short w, short h)
+{
+    (void)a;
+    return w <= 0 || h <= 0 || (sw > 0 && w >= sw) || (sh > 0 && h >= sh);
 }
 
 void place_order(const struct place *pl, int n, int *order)

@@ -70,6 +70,10 @@
 #include <intuition/intuitionbase.h>
 #include <intuition/classusr.h>
 #include <intuition/pointerclass.h>
+#include <intuition/gadgetclass.h>
+#include <intuition/imageclass.h>
+#include <intuition/cghooks.h>
+#include <intuition/screens.h>
 #include <graphics/gfx.h>
 #include <graphics/layers.h>
 #include <graphics/clip.h>
@@ -92,7 +96,7 @@
 #include "gestures.h"
 #include "places.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.9.2 (24.10.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.10 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"
@@ -110,6 +114,13 @@ struct GfxBase *GfxBase;
 static struct {
     int snap, snap_dist, halves, switcher, wheel, places, places_wb, drawer_w, drawer_h, dblfront, edges, edge_ptr, drive_title, solid;
     int taller;                                  /* 0.8.2: extra rows in every window's title bar (default 4) */
+    /* 0.10 (Dale, 4 November 2026): windows with no snapshot open centred; the snapshot gadget */
+    int centre;                                  /* centre on: a window with no snapped place opens centred (off) */
+    int centre_asked;                            /* centre.asked on: one whose program gives its own corner is left there (on) */
+    int centre_custom;                           /* centre.custom on: windows on screens that aren't public too (off) */
+    int centre_over;                             /* centre.parent on: a window opened while one of its program's own is
+                                                    active is centred over that one (requesters, dialogs) (on) */
+    int gadget;                                  /* snapshot.gadget on|off; -1 (no line): as centre */
     char key[48];
     char never[MAX_NEVER][32];
     int nnever;
@@ -140,6 +151,7 @@ static void read_prefs(void)
     char *text = read_file(PREFS_ENV), *p, *line;
     memset(&cfg, 0, sizeof cfg);
     cfg.snap = 1; cfg.snap_dist = 12; cfg.halves = 0; cfg.switcher = 1; cfg.wheel = 1; cfg.places = 1; cfg.dblfront = 1; cfg.edges = 1; cfg.edge_ptr = 1; cfg.drive_title = 1; cfg.taller = 4;
+    cfg.centre = 0; cfg.centre_asked = 1; cfg.centre_custom = 0; cfg.centre_over = 1; cfg.gadget = -1;
     strcpy(cfg.key, "lcommand tab");
     if (!text) return;
     for (p = text; *p; ) {
@@ -163,6 +175,11 @@ static void read_prefs(void)
         else if (!strcmp(line, "title.taller")) cfg.taller = atoi(v);
         else if (!strcmp(line, "places")) cfg.places = on_off(v);
         else if (!strcmp(line, "places.drawers")) cfg.places_wb = on_off(v);
+        else if (!strcmp(line, "centre")) cfg.centre = on_off(v);
+        else if (!strcmp(line, "centre.asked")) cfg.centre_asked = on_off(v);
+        else if (!strcmp(line, "centre.custom")) cfg.centre_custom = on_off(v);
+        else if (!strcmp(line, "centre.parent")) cfg.centre_over = on_off(v);
+        else if (!strcmp(line, "snapshot.gadget")) cfg.gadget = on_off(v);
         else if (!strcmp(line, "never") && cfg.nnever < MAX_NEVER) strncpy(cfg.never[cfg.nnever++], v, 31);
         else if (!strcmp(line, "drawer")) { cfg.drawer_w = atoi(v); if (strchr(v, ' ')) cfg.drawer_h = atoi(strchr(v, ' ') + 1); }
     }
@@ -172,6 +189,12 @@ static void read_prefs(void)
     if (cfg.taller > 16) cfg.taller = 16;
     FreeVec(text);
 }
+
+/* 0.10: the snapshot gadget is on: snapshot.gadget's word, or with no such line as centring is */
+#define GADGET_ON (cfg.gadget >= 0 ? cfg.gadget : cfg.centre)
+/* 0.10: only snapped places count: with centring on (a window with none opens centred), or with Remember
+ * places off and the gadget on (a snapshot is the only way a window keeps a place) */
+#define SNAPPED_ONLY (cfg.centre || !cfg.places)
 
 /* ---- the action filter's table (0.9; gestures.h, docs/design/action-filter.md) ---------- */
 
@@ -1164,7 +1187,8 @@ static void write_places(const char *path)
     place_order(places, nplaces, order);        /* 0.9.2: the one used longest ago first */
     for (i = 0; i < nplaces; i++) {
         const struct place *pl = &places[order[i]];
-        FPrintf(fh, (STRPTR)"\"%s\" %ld %ld %ld %ld\n", (LONG)pl->key, (LONG)pl->l, (LONG)pl->t, (LONG)pl->w, (LONG)pl->h);
+        FPrintf(fh, (STRPTR)"\"%s\" %ld %ld %ld %ld%s\n", (LONG)pl->key, (LONG)pl->l, (LONG)pl->t, (LONG)pl->w, (LONG)pl->h,
+                (LONG)(pl->snap ? " snap" : ""));
     }
     Close(fh);
 }
@@ -1177,6 +1201,14 @@ static int placeable(int wb, int drawer, const char *prog)
     if (!prog[0] || never(prog)) return 0;
     if (!wb) return 1;
     return drawer && cfg.places_wb;
+}
+
+/* 0.10: a window that may be snapped with the gadget: as above, and a Workbench drawer whatever "Workbench
+ * drawers too" says (a snapshot is the user's own choice; Workbench's own Snapshot still writes the icon) */
+static int snappable(int wb, int drawer, const char *prog)
+{
+    if (!prog[0] || never(prog)) return 0;
+    return !wb || drawer;
 }
 
 /* ---- placed before they open (0.7; 0.9.2) ----------------------------------------------------- */
@@ -1212,8 +1244,9 @@ static volatile UBYTE patch_pass;       /* 1: place nothing */
  * whatever its program calls it later), whether it opened at its kept place, and the look it opened in.
  * Written by the patch on the opening task, read and cleared by the look, both under Forbid(). */
 #define OPENED 16
-static struct { struct Window *w; char title[40]; UBYTE placed; ULONG look; } opened[OPENED];
+static struct { struct Window *w; char title[40]; UBYTE placed; ULONG look; char why[40]; } opened[OPENED];   /* placed: 1 its place, 2 centred (0.10) */
 static UBYTE opened_next;
+static void snap_attach(struct Window *w, int from_look);     /* 0.10: the snapshot gadget (below) */
 
 static struct TagItem *tag_of(struct TagItem *tags, struct TagItem *ext, ULONG tag)
 {
@@ -1254,15 +1287,18 @@ static int place_for(const char *title, int has_idcmp, int wbflag, struct place 
     char prog[32], key[64];
     int pass, found = 0;
     for (pass = 0; pass < 2 && !found; pass++) {
-        int wb, drawer, i;
+        int wb, drawer, i, ok_auto, ok_snap;
         if (pass == 1 && has_idcmp) break;
         program_of_task(pass == 0 ? FindTask(NULL) : NULL, prog, sizeof prog);
         wb = place_workbench(prog, wbflag);
         drawer = wb && title && strncmp(title, "Workbench", 9);
-        if (!placeable(wb, drawer, prog)) continue;
+        /* 0.10: a place the look kept counts unless only snapshots do; a snapshot counts for any window it can be taken of */
+        ok_auto = !SNAPPED_ONLY && placeable(wb, drawer, prog);
+        ok_snap = snappable(wb, drawer, prog);
+        if (!ok_auto && !ok_snap) continue;
         place_key(title, prog, key, sizeof key);
         Forbid();                               /* the look changes them only under Forbid() too */
-        if ((i = place_index(places, &nplaces, key, 0)) >= 0) { *pl = places[i]; found = 1; }
+        if ((i = place_index(places, &nplaces, key, 0)) >= 0 && (places[i].snap ? ok_snap : ok_auto)) { *pl = places[i]; found = 1; }
         Permit();
     }
     return found;
@@ -1298,6 +1334,128 @@ fail:
     return 0;
 }
 
+/* ---- centred until snapped (0.10) --------------------------------------------------------------
+ *
+ * Dale, 4 November 2026: "a setting that makes windows open in the centre of the screen until their location
+ * is stored via snap". With centre on, a window with no snapped place (the gadget's, or a Workbench drawer's
+ * icon snapshot) opens centred in the screen's free area, placed before it opens as a kept place is (no jump).
+ * Left as they ask: backdrops, borderless windows and windows with no drag bar (popups, docks, full-screen
+ * views); a window as big as the screen either way; one on a screen that isn't public (a game's or a demo's
+ * own) unless centre.custom; one whose program gives a corner of its own (place_asked: not 0,0 and not the
+ * left edge just under the screen's bar) unless centre.asked is off; a Workbench drawer whose icon keeps a
+ * place. A window a program opens while one of its own windows is active (a requester, a dialog, ASL's) is
+ * centred over that window with centre.parent (on), and kept in the free area. */
+
+/* What centring needs of the screen a window is about to open on */
+struct open_scr { struct Screen *s; WORD sw, sh, bar, font, bl, br, bt, bb; int pub; };
+
+/* 1 for Workbench's screen and every screen on Intuition's list of public screens (a game's or a demo's own is
+ * on neither; its Flags can't say: PUBLICSCREEN is a screen type, and CUSTOMSCREEN's bits hold it too) */
+static int screen_public(struct Screen *s)
+{
+    struct List *l;
+    struct Node *n;
+    int pub = 0;
+    if (!s) return 0;
+    if ((s->Flags & SCREENTYPE) == WBENCHSCREEN) return 1;
+    if ((l = LockPubScreenList())) {
+        for (n = l->lh_Head; n->ln_Succ; n = n->ln_Succ)
+            if (((struct PubScreenNode *)n)->psn_Screen == s) { pub = 1; break; }
+        UnlockPubScreenList();
+    }
+    return pub;
+}
+
+static int opening_screen_info(struct NewWindow *nw, struct TagItem *tags, struct TagItem *ext, struct open_scr *o)
+{
+    struct Screen *s = (struct Screen *)tag_or(tags, ext, WA_CustomScreen, 0), *locked = NULL;
+    memset(o, 0, sizeof *o);
+    if (!s) s = (struct Screen *)tag_or(tags, ext, WA_PubScreen, 0);
+    if (!s && nw && (nw->Type & SCREENTYPE) == CUSTOMSCREEN) s = nw->Screen;
+    if (!s) {
+        STRPTR name = (STRPTR)tag_or(tags, ext, WA_PubScreenName, 0);
+        locked = LockPubScreen(name);           /* NULL: the default public screen */
+        s = locked;
+    }
+    if (s) {
+        o->s = s; o->sw = s->Width; o->sh = s->Height; o->bar = s->BarHeight;
+        o->font = s->Font ? s->Font->ta_YSize : 8;
+        o->bl = s->WBorLeft; o->br = s->WBorRight; o->bt = s->WBorTop; o->bb = s->WBorBottom;
+        /* a public screen: Workbench, or one a program made public (a game's or a demo's own is neither) */
+        o->pub = locked != NULL || screen_public(s);
+    }
+    if (locked) UnlockPubScreen(NULL, locked);
+    return s != NULL && o->sw > 0 && o->sh > 0;
+}
+
+/* Docks along a screen's edge (GFOpenDock's shelf), noted by the look for the patch, under Forbid() */
+#define DOCKS 4
+static struct { struct Screen *s; WORD l, t, w, h; } docks[DOCKS];
+static int ndocks;
+
+/* 1 when (nw, tags) were given a centred corner in copies (with_plan) */
+static int centre_window(struct NewWindow *nw, struct TagItem *tags, struct TagItem *ext, ULONG flags, const char *title,
+                         int wbflag, struct ExtNewWindow *copy, struct NewWindow **pass_nw, struct TagItem **use,
+                         struct TagItem **buf, struct TagItem **extbuf, char *why, int whysize)
+{
+    struct open_scr o;
+    struct place_area area;
+    struct place_plan p;
+    char prog[32];
+    WORD w, h, l, t, pl = 0, pt = 0, pw = 0, ph = 0;
+    int wb, drawer, given, k;
+    struct Task *me_now = FindTask(NULL);
+    why[0] = 0;
+    if ((flags & (WFLG_BACKDROP | WFLG_BORDERLESS)) || !(flags & WFLG_DRAGBAR)) return 0;
+    program_of_task(me_now, prog, sizeof prog);
+    if (!prog[0] || never(prog)) return 0;
+    if (!opening_screen_info(nw, tags, ext, &o)) return 0;
+    if (!o.pub && !cfg.centre_custom) { strncpy(why, "a screen that isn't public", whysize - 1); return 0; }
+    /* its outer size: as asked, or from its inner size and the screen's borders (near enough to centre it) */
+    w = (WORD)tag_or(tags, ext, WA_Width, nw ? (ULONG)(LONG)nw->Width : 0);
+    h = (WORD)tag_or(tags, ext, WA_Height, nw ? (ULONG)(LONG)nw->Height : 0);
+    if (tag_of(tags, ext, WA_InnerWidth))
+        w = (WORD)tag_or(tags, ext, WA_InnerWidth, 0) + o.bl + ((flags & WFLG_SIZEGADGET) && o.br < 18 ? 18 : o.br);
+    if (tag_of(tags, ext, WA_InnerHeight))
+        h = (WORD)tag_or(tags, ext, WA_InnerHeight, 0) + o.bt + o.font + 1 + o.bb;
+    place_area_init(&area, o.sw, o.sh, o.bar);
+    if (place_too_big(&area, o.sw, o.sh, w, h)) { strncpy(why, "as big as the screen", whysize - 1); return 0; }
+    given = nw != NULL || tag_of(tags, ext, WA_Left) || tag_of(tags, ext, WA_Top);
+    l = (WORD)tag_or(tags, ext, WA_Left, nw ? (ULONG)(LONG)nw->LeftEdge : 0);
+    t = (WORD)tag_or(tags, ext, WA_Top, nw ? (ULONG)(LONG)nw->TopEdge : 0);
+    /* GFOpenBench marks its drawers WFLG_WBENCHWINDOW only after they open: known here by its name (OpenBench before
+     * the GF names, as OpenUp 0.8 installs it) */
+    wb = place_workbench(prog, wbflag) || !stricmp(prog, "OpenBench");
+    drawer = wb && title && strncmp(title, "Workbench", 9);
+    if (drawer) {
+        /* GFOpenBench opens a drawer whose icon keeps no place at ((width - w) / 2, (height - h) / 3)
+         * (gfopengadtools wb_drawer.c); anywhere else is the place its icon's DrawerData keeps (Snapshot) */
+        if (l != (o.sw - w) / 2 || t != (o.sh - h) / 3) { strncpy(why, "its icon keeps its place", whysize - 1); return 0; }
+    } else if (cfg.centre_asked && place_asked(given, l, t, o.bar)) {
+        strncpy(why, "its program gives its own place", whysize - 1);
+        return 0;
+    }
+    if (cfg.centre_over && !wb) {
+        /* a requester or dialog: over the window of its own program that is active */
+        Forbid();
+        {
+            struct Window *a = IntuitionBase->ActiveWindow;
+            if (a && a->WScreen == o.s && !(a->Flags & WFLG_BACKDROP) && a->UserPort && a->UserPort->mp_SigTask == (APTR)me_now) {
+                pl = a->LeftEdge; pt = a->TopEdge; pw = a->Width; ph = a->Height;
+            }
+        }
+        Permit();
+    }
+    Forbid();
+    for (k = 0; k < ndocks; k++)
+        if (docks[k].s == o.s) place_area_reserve(&area, o.sw, o.sh, docks[k].l, docks[k].t, docks[k].w, docks[k].h);
+    Permit();
+    place_centre(&area, o.sw, o.sh, w, h, pl, pt, pw, ph, &l, &t);
+    p.l = l; p.t = t; p.w = w; p.h = h; p.size = 0;
+    strncpy(why, pw ? "centred over its program's window" : "centred", whysize - 1);
+    return with_plan(nw, tags, ext, &p, copy, pass_nw, use, buf, extbuf);
+}
+
 /* OpenWindowTagList(nw, tags) with the window's kept place, when it has one. */
 static struct Window *__attribute__((used)) ow_open_window(struct NewWindow *nw, struct TagItem *tags, APTR fn)
 {
@@ -1307,6 +1465,8 @@ static struct Window *__attribute__((used)) ow_open_window(struct NewWindow *nw,
     struct Window *win;
     const char *title = NULL;
     int cogged = 0, saw = 0, placed = 0;
+    char why[40];
+    why[0] = 0;
     patch_in++;
     if (nw && (nw->Flags & WFLG_NW_EXTENDED)) ext = ((struct ExtNewWindow *)nw)->Extension;
     /* 0.8.1: a window the cog asked for: at the screen's top right, COGPLACE_GAP from its top and right */
@@ -1340,12 +1500,13 @@ static struct Window *__attribute__((used)) ow_open_window(struct NewWindow *nw,
             }
         }
     }
-    if (!cogged && !patch_pass && on && cfg.places && FindTask(NULL) != me) {
+    if (!cogged && !patch_pass && on && (cfg.places || cfg.centre || GADGET_ON) && FindTask(NULL) != me) {
         ULONG flags, idcmp;
         struct place pl;
         int found = 0;
         flags = tag_or(tags, ext, WA_Flags, nw ? nw->Flags : 0);
         if (tag_or(tags, ext, WA_Backdrop, 0)) flags |= WFLG_BACKDROP;
+        if (tag_or(tags, ext, WA_Borderless, 0)) flags |= WFLG_BORDERLESS;
         if (tag_or(tags, ext, WA_GimmeZeroZero, 0)) flags |= WFLG_GIMMEZEROZERO;
         if (tag_or(tags, ext, WA_SizeGadget, 0)) flags |= WFLG_SIZEGADGET;
         if (tag_or(tags, ext, WA_DragBar, 0)) flags |= WFLG_DRAGBAR;
@@ -1373,6 +1534,12 @@ static struct Window *__attribute__((used)) ow_open_window(struct NewWindow *nw,
                 place_plan(&pl, &a, sw, sh, &p);
                 placed = with_plan(nw, tags, ext, &p, &copy, &pass_nw, &use, &buf, &extbuf);
             }
+        } else if (cfg.centre) {
+            /* 0.10: no snapped place: centred, unless it is one centring leaves alone (centre_window) */
+            if (centre_window(nw, tags, ext, flags, title, (flags & WFLG_WBENCHWINDOW) != 0, &copy, &pass_nw, &use, &buf, &extbuf,
+                              why, sizeof why))
+                placed = 2;
+            else if (!why[0]) strcpy(why, "left as it asks");
         }
     }
     {
@@ -1395,6 +1562,7 @@ static struct Window *__attribute__((used)) ow_open_window(struct NewWindow *nw,
             if (title) while (title[k] && k < (int)sizeof opened[0].title - 1) { opened[opened_next].title[k] = title[k]; k++; }
             opened[opened_next].title[k] = 0;
             opened[opened_next].placed = (UBYTE)placed;
+            memcpy(opened[opened_next].why, why, sizeof opened[0].why);
             opened[opened_next].look = looks;
             opened_next = (UBYTE)((opened_next + 1) % OPENED);
         }
@@ -1402,6 +1570,8 @@ static struct Window *__attribute__((used)) ow_open_window(struct NewWindow *nw,
     }
     if (buf) FreeVec(buf);
     if (extbuf) FreeVec(extbuf);
+    /* 0.10: the snapshot gadget, as the window opens (on the opening task, as the program would add one) */
+    if (win && !cogged && !patch_pass && on && GADGET_ON && FindTask(NULL) != me) snap_attach(win, 0);
     patch_in--;
     return win;
 }
@@ -1456,6 +1626,348 @@ static int places_patch_off(void)
     return patch_in == 0;
 }
 
+/* ---- the snapshot gadget (0.10) ----------------------------------------------------------------
+ *
+ * Dale, 4 November 2026: "we need a snap icon similar to the way MUI does it". A gadget in the title bar,
+ * left of the depth and zoom gadgets, as MUI's snapshot gadget sits by MorphOS' (WA_ExtraGadget_Snapshot):
+ * a click keeps the window's place and size (a snapped place, "snap" in WindowPlaces), Shift and a click
+ * forgets it (MUI's unsnapshot). Its pin shows which: hollow and standing, nothing kept; solid
+ * and pushed in, snapped. With centring on, a window that is not snapped opens centred.
+ *
+ * - On a window with a drag bar and a depth gadget, not a backdrop or borderless one, on a public screen, of
+ *   a program GFOpenWindows may keep (never lines), and on Workbench's drawers (not its root window).
+ * - The tile is the window's own depth gadget's image (the theme's, Intuition's, GFOpenLook's: whatever draws
+ *   it, active and inactive, held and not, on RTG and on the chipset), drawn at the gadget's place; the depth
+ *   glyph is then covered with the tile's own column left of it, and the pin drawn in the shadow pen.
+ * - It goes into the window's list just before the drag bar, after close, depth and zoom: it is drawn after
+ *   them and takes a press before the drag bar does. It sends the program nothing: the press is the gadget's
+ *   own (GM_GOACTIVE, GM_HANDLEINPUT), and at the release over it (GM_GOINACTIVE) the main task is told.
+ * - GFOpenWindows takes its gadgets out again when the gadget is switched off and when it quits; one on a
+ *   window that closed is disposed of at the next look. */
+
+static struct IClass *snap_class;
+struct snapdata { UBYTE snapped, pressed, forget, act; };
+#define SNAP_RING 8
+static struct { struct Window *w; struct Gadget *g; UBYTE what; } snap_ring[SNAP_RING];  /* what: 1 snap, 2 forget */
+static volatile int snap_in, snap_out;
+static ULONG sig_snap;
+#define SNAP_GADS 128
+static struct { struct Window *w; struct Gadget *g; } sgads[SNAP_GADS];   /* changed under Forbid() */
+static int nsgads;
+
+/* The pin, 7 x 8 cells (bit 6 the left): its outline in the shadow pen and, standing (nothing kept), its inside in
+ * the shine pen, as the depth glyph's boxes are drawn (dark lines round a light inside); pushed in a row and solid
+ * dark when snapped */
+static const UBYTE pin_open[8] = { 0x3e, 0x22, 0x14, 0x14, 0x7f, 0x08, 0x08, 0x08 };
+static const UBYTE pin_open_in[8] = { 0x00, 0x1c, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00 };
+static const UBYTE pin_shut[8] = { 0x00, 0x3e, 0x3e, 0x1c, 0x7f, 0x08, 0x08, 0x00 };
+
+static int is_snap_gadget(struct Gadget *g)
+{
+    return snap_class && (g->GadgetType & GTYP_GTYPEMASK) == GTYP_CUSTOMGADGET && OCLASS(g) == snap_class;
+}
+
+static struct Gadget *depth_gadget(struct Window *w)
+{
+    struct Gadget *g;
+    for (g = w->FirstGadget; g; g = g->NextGadget)
+        if ((g->GadgetType & GTYP_SYSGADGET) && (g->GadgetType & GTYP_SYSTYPEMASK) == GTYP_WDEPTH) return g;
+    return NULL;
+}
+
+static void snap_draw(struct Window *w, struct Gadget *g, struct RastPort *rp, struct DrawInfo *dri, int in)
+{
+    struct snapdata *d = INST_DATA(snap_class, g);
+    struct Gadget *dg = depth_gadget(w);
+    WORD x0 = (g->Flags & GFLG_RELRIGHT) ? w->Width - 1 + g->LeftEdge : g->LeftEdge, y0 = g->TopEdge;
+    WORD x1 = x0 + g->Width - 1, y1 = y0 + g->Height - 1, u, gx, gy, r, c, aw, ah;
+    int active = (w->Flags & WFLG_WINDOWACTIVE) != 0;
+    const UBYTE *bits = d->snapped ? pin_shut : pin_open;
+    ULONG apen = GetAPen(rp), mode = GetDrMd(rp);
+    UWORD shadow = dri ? dri->dri_Pens[SHADOWPEN] : 1;
+    if (g->Width < 6 || g->Height < 6) return;
+    SetDrMd(rp, JAM1);
+    if (dg && (dg->Flags & GFLG_GADGIMAGE) && dg->GadgetRender) {
+        struct Image *im = (struct Image *)dg->GadgetRender;
+        ULONG st = active ? (in ? IDS_SELECTED : IDS_NORMAL) : (in ? IDS_INACTIVESELECTED : IDS_INACTIVENORMAL);
+        WORD ix0, ix1, cx;
+        DrawImageState(rp, im, x0, y0, st, dri);
+        /* the depth glyph covered with the tile's own column left of it (the tile's bands run across) */
+        ix0 = x0 + im->LeftEdge; ix1 = ix0 + im->Width - 1;
+        cx = ix0 + 2;
+        for (c = cx + 1; c <= ix1 - 2; c++) ClipBlit(rp, cx, y0 + 1, rp, c, y0 + 1, 1, g->Height - 2, 0xc0);
+    } else {
+        /* no image to borrow: a plain tile in the bar's pens */
+        SetAPen(rp, dri ? dri->dri_Pens[active ? FILLPEN : BACKGROUNDPEN] : 0);
+        RectFill(rp, x0, y0, x1, y1);
+        SetAPen(rp, dri ? dri->dri_Pens[in ? SHADOWPEN : SHINEPEN] : 2);
+        Move(rp, x0, y1); Draw(rp, x0, y0); Draw(rp, x1, y0);
+        SetAPen(rp, dri ? dri->dri_Pens[in ? SHINEPEN : SHADOWPEN] : 1);
+        Draw(rp, x1, y1); Draw(rp, x0 + 1, y1);
+    }
+    /* the pin: 7 x 8 cells of u pixels, in the middle, a pixel down and right while held */
+    aw = g->Width - 6; ah = g->Height - 4;
+    u = ah / 9; if (u * 8 > aw) u = aw / 8; if (u < 1) u = 1;
+    gx = x0 + (g->Width - 7 * u) / 2 + in; gy = y0 + (g->Height - 8 * u) / 2 + in;
+    SetAPen(rp, shadow);
+    for (r = 0; r < 8; r++)
+        for (c = 0; c < 7; c++)
+            if (bits[r] & (0x40 >> c)) RectFill(rp, gx + c * u, gy + r * u, gx + c * u + u - 1, gy + r * u + u - 1);
+    if (!d->snapped) {
+        SetAPen(rp, dri ? dri->dri_Pens[SHINEPEN] : 2);
+        for (r = 0; r < 8; r++)
+            for (c = 0; c < 7; c++)
+                if (pin_open_in[r] & (0x40 >> c)) RectFill(rp, gx + c * u, gy + r * u, gx + c * u + u - 1, gy + r * u + u - 1);
+    }
+    SetAPen(rp, apen);
+    SetDrMd(rp, mode);
+}
+
+static void snap_redraw(struct GadgetInfo *gi, struct Gadget *g, int in)
+{
+    struct RastPort *rp;
+    if (gi && gi->gi_Window && (rp = ObtainGIRPort(gi))) {
+        snap_draw(gi->gi_Window, g, rp, gi->gi_DrInfo, in);
+        ReleaseGIRPort(rp);
+    }
+}
+
+/* The class's dispatcher: on Intuition's input task (press, release, drawing) and on whichever task refreshes
+ * the window. It never waits and never calls DOS. */
+static ULONG snap_dispatch(struct IClass *cl __asm("a0"), Object *o __asm("a2"), Msg msg __asm("a1"))
+{
+    struct Gadget *g = (struct Gadget *)o;
+    struct snapdata *d;
+    switch (msg->MethodID) {
+    case OM_NEW: {
+        ULONG r = CallHookPkt(&cl->cl_Super->cl_Dispatcher, o, msg);
+        if (r) memset(INST_DATA(cl, (Object *)r), 0, sizeof(struct snapdata));
+        return r;
+    }
+    case GM_RENDER: {
+        struct gpRender *m = (struct gpRender *)msg;
+        d = INST_DATA(cl, o);
+        if (m->gpr_GInfo && m->gpr_GInfo->gi_Window && m->gpr_RPort)
+            snap_draw(m->gpr_GInfo->gi_Window, g, m->gpr_RPort, m->gpr_GInfo->gi_DrInfo, d->pressed);
+        return 0;
+    }
+    case GM_HITTEST:
+        return GMR_GADGETHIT;
+    case GM_GOACTIVE: {
+        struct gpInput *m = (struct gpInput *)msg;
+        d = INST_DATA(cl, o);
+        if (!m->gpi_IEvent) return GMR_NOREUSE;             /* ActivateGadget(): nothing to do */
+        d->pressed = 1; d->act = 0;
+        d->forget = (m->gpi_IEvent->ie_Qualifier & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)) != 0;
+        snap_redraw(m->gpi_GInfo, g, 1);
+        return GMR_MEACTIVE;
+    }
+    case GM_HANDLEINPUT: {
+        struct gpInput *m = (struct gpInput *)msg;
+        struct InputEvent *ie = m->gpi_IEvent;
+        int inside = m->gpi_Mouse.X >= 0 && m->gpi_Mouse.Y >= 0 && m->gpi_Mouse.X < g->Width && m->gpi_Mouse.Y < g->Height;
+        d = INST_DATA(cl, o);
+        if (ie && ie->ie_Class == IECLASS_RAWMOUSE) {
+            if (ie->ie_Code == SELECTUP) {
+                d->act = !inside ? 0 : d->forget || (ie->ie_Qualifier & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)) ? 2 : 1;
+                return GMR_NOREUSE;
+            }
+            if (ie->ie_Code == MENUDOWN) { d->act = 0; return GMR_NOREUSE; }
+            if (inside != d->pressed) { d->pressed = (UBYTE)inside; snap_redraw(m->gpi_GInfo, g, inside); }
+        }
+        return GMR_MEACTIVE;
+    }
+    case GM_GOINACTIVE: {
+        struct gpGoInactive *m = (struct gpGoInactive *)msg;
+        d = INST_DATA(cl, o);
+        d->pressed = 0;
+        snap_redraw(m->gpgi_GInfo, g, 0);
+        if (d->act && m->gpgi_GInfo && m->gpgi_GInfo->gi_Window) {
+            Forbid();
+            if ((snap_in + 1) % SNAP_RING != snap_out) {
+                snap_ring[snap_in].w = m->gpgi_GInfo->gi_Window; snap_ring[snap_in].g = g; snap_ring[snap_in].what = d->act;
+                snap_in = (snap_in + 1) % SNAP_RING;
+            }
+            Permit();
+            Signal(me, sig_snap);
+        }
+        d->act = 0;
+        return 0;
+    }
+    }
+    return CallHookPkt(&cl->cl_Super->cl_Dispatcher, o, msg);
+}
+
+static volatile UBYTE snap_accept;              /* 1: snap_attach may add gadgets (read by the patch) */
+static int snap_all;                            /* the next look adds the gadget to every window open */
+
+static void snap_class_on(void)
+{
+    if (!snap_class && (snap_class = MakeClass(NULL, (ClassID)"gadgetclass", NULL, sizeof(struct snapdata), 0)))
+        snap_class->cl_Dispatcher.h_Entry = (ULONG (*)())snap_dispatch;
+    if (!snap_accept && snap_class) snap_all = 1;
+    snap_accept = snap_class != NULL;
+}
+
+/* The key a window is kept by, as the look knows it (the title it opened with), on the main task */
+static void window_key(struct Window *w, char *key, int size)
+{
+    char prog[32], title[sizeof opened[0].title];
+    int j, k;
+    for (j = 0; j < nseen; j++)
+        if (seen[j].w == w) { strncpy(key, seen[j].key, size - 1); key[size - 1] = 0; return; }
+    title[0] = 0;
+    if (w->Title) { strncpy(title, (const char *)w->Title, sizeof title - 1); title[sizeof title - 1] = 0; }
+    Forbid();
+    for (k = 0; k < OPENED; k++) if (opened[k].w == w) memcpy(title, opened[k].title, sizeof title);
+    Permit();
+    program_of(w, prog, sizeof prog);
+    place_key(title, prog, key, size);
+}
+
+static int key_snapped(const char *key)
+{
+    int i, s;
+    Forbid();
+    i = place_index(places, &nplaces, key, 0);
+    s = i >= 0 && places[i].snap;
+    Permit();
+    return s;
+}
+
+/* The snapshot gadget onto w, when it is one to have it. from_look 0: on the opening task, from the patch,
+ * just after the window opened; 1: on the main task, for a window that opened without the patch seeing it. */
+static void snap_attach(struct Window *w, int from_look)
+{
+    struct Gadget *dg, *x, *g;
+    struct Screen *s = w->WScreen;
+    char prog[32], key[64];
+    WORD minl = 0x7fff;
+    int pos, dpos = -1, k, ok = 0, wb, drawer;
+    if (!snap_accept || !snap_class || (w->Flags & (WFLG_BACKDROP | WFLG_BORDERLESS))) return;
+    if (!screen_public(s)) return;
+    if (from_look) program_of(w, prog, sizeof prog);
+    else program_of_task(FindTask(NULL), prog, sizeof prog);
+    wb = place_workbench(prog, (w->Flags & WFLG_WBENCHWINDOW) != 0);
+    drawer = wb && w->Title && strncmp((const char *)w->Title, "Workbench", 9);
+    if (!snappable(wb, drawer, prog) || !(dg = depth_gadget(w))) return;
+    for (x = w->FirstGadget, pos = 0; x; x = x->NextGadget, pos++) {
+        if (is_snap_gadget(x)) return;                          /* it has one */
+        if ((x->GadgetType & GTYP_SYSGADGET) && (x->GadgetType & GTYP_SYSTYPEMASK) == GTYP_WDRAGGING && dpos < 0) dpos = pos;
+        /* the title bar's gadgets on the right: depth, zoom, and any a program or the system put there */
+        if ((x->Flags & GFLG_RELRIGHT) && !(x->Flags & GFLG_RELWIDTH) && x->TopEdge < w->BorderTop &&
+            ((x->Activation & GACT_TOPBORDER) || (x->GadgetType & GTYP_SYSGADGET)) && x->LeftEdge < minl)
+            minl = x->LeftEdge;
+    }
+    if (dpos < 0 || minl == 0x7fff) return;                     /* no drag bar: nothing to drag, nothing to snap */
+    g = (struct Gadget *)NewObject(snap_class, NULL, GA_RelRight, (ULONG)(LONG)(minl - dg->Width), GA_Top, (ULONG)(LONG)dg->TopEdge,
+                                   GA_Width, (ULONG)dg->Width, GA_Height, (ULONG)dg->Height, GA_TopBorder, TRUE,
+                                   GA_GZZGadget, (ULONG)((w->Flags & WFLG_GIMMEZEROZERO) != 0), TAG_DONE);
+    if (!g) return;
+    if (from_look) window_key(w, key, sizeof key);
+    else place_key((const char *)w->Title, prog, key, sizeof key);
+    ((struct snapdata *)INST_DATA(snap_class, g))->snapped = (UBYTE)key_snapped(key);
+    Forbid();
+    for (k = 0; k < nsgads; k++) if (sgads[k].w == w && sgads[k].g) break;
+    if (k == nsgads && nsgads < SNAP_GADS) { sgads[nsgads].w = w; sgads[nsgads].g = g; nsgads++; ok = 1; }
+    Permit();
+    if (!ok) { DisposeObject(g); return; }
+    AddGList(w, g, (UWORD)dpos, 1, NULL);
+    RefreshGList(g, w, NULL, 1);
+}
+
+/* 1 when w is open and g is in its list */
+static int snap_alive(struct Window *w, struct Gadget *g)
+{
+    struct Screen *s;
+    struct Window *x;
+    struct Gadget *y;
+    int found = 0;
+    ULONG lock = LockIBase(0);
+    for (s = IntuitionBase->FirstScreen; s && !found; s = s->NextScreen)
+        for (x = s->FirstWindow; x; x = x->NextWindow)
+            if (x == w) {
+                for (y = w->FirstGadget; y; y = y->NextGadget) if (y == g) { found = 1; break; }
+                break;
+            }
+    UnlockIBase(lock);
+    return found;
+}
+
+/* Each gadget's pin as its window's place is now; the gadgets of windows that closed disposed of */
+static void snap_sweep(int redraw)
+{
+    int k;
+    char key[64];
+    for (k = 0; k < nsgads; ) {
+        struct Window *w = sgads[k].w;
+        struct Gadget *g = sgads[k].g;
+        if (!snap_alive(w, g)) {
+            Forbid(); sgads[k] = sgads[--nsgads]; Permit();
+            DisposeObject(g);
+            continue;
+        }
+        if (redraw) {
+            struct snapdata *d = INST_DATA(snap_class, g);
+            UBYTE now;
+            window_key(w, key, sizeof key);
+            now = (UBYTE)key_snapped(key);
+            if (now != d->snapped) { d->snapped = now; RefreshGList(g, w, NULL, 1); }
+        }
+        k++;
+    }
+}
+
+/* Every gadget out of its window (the gadget switched off, or GFOpenWindows quitting); 1 when the class is gone */
+static int snap_off(void)
+{
+    int i;
+    snap_accept = 0;                                            /* no new ones, from the patch or the look */
+    for (i = 0; i < 250 && patch_in; i++) Delay(1);             /* one being added now finishes first */
+    while (nsgads > 0) {
+        struct Window *w = sgads[nsgads - 1].w;
+        struct Gadget *g = sgads[nsgads - 1].g;
+        if (snap_alive(w, g) && RemoveGList(w, g, 1) >= 0) RefreshWindowFrame(w);
+        Forbid(); nsgads--; Permit();
+        DisposeObject(g);
+    }
+    if (snap_class && FreeClass(snap_class)) snap_class = NULL;
+    return snap_class == NULL;
+}
+
+/* A click on a gadget: the window's place snapped, or (Shift) forgotten; both files written at once */
+static void snap_do(void)
+{
+    char key[64], line[160];
+    while (snap_out != snap_in) {
+        struct Window *w;
+        struct Gadget *g;
+        int what, i;
+        Forbid();
+        w = snap_ring[snap_out].w; g = snap_ring[snap_out].g; what = snap_ring[snap_out].what;
+        snap_out = (snap_out + 1) % SNAP_RING;
+        Permit();
+        if (!snap_alive(w, g)) continue;
+        window_key(w, key, sizeof key);
+        Forbid();
+        if (what == 1) {
+            i = place_index(places, &nplaces, key, 1);
+            places[i].l = w->LeftEdge; places[i].t = w->TopEdge; places[i].w = w->Width; places[i].h = w->Height;
+            places[i].snap = 1;
+            places[i].used = ++places_clock;
+        } else if ((i = place_index(places, &nplaces, key, 0)) >= 0)
+            place_remove(places, &nplaces, i);
+        Permit();
+        write_places(PLACES_ENV);
+        write_places(PLACES_ENVARC);
+        places_dirty = 0;
+        snprintf(line, sizeof line, "%s \"%s\" %d %d %d %d\n", what == 1 ? "snapped" : "forgot", key,
+                 w->LeftEdge, w->TopEdge, w->Width, w->Height);
+        place_log(line);
+    }
+    snap_sweep(1);
+}
+
 /* ---- drive windows: the name only (0.6) --------------------------------------------------------- */
 
 /* Workbench titles a drive's window "Work  70% full, 453MB free, 62.0MB in use"
@@ -1489,11 +2001,44 @@ static void drive_titles(void)
         if (is_window(fix[i])) SetWindowTitles(fix[i], fix[i]->Title, (STRPTR)-1);      /* the same string: drawn again */
 }
 
+/* 0.10: the docks along each screen's edge, for centring: the borderless windows of GFOpenDock's task (its port,
+   GFOpenDock, or OpenDock on an OpenUp before the GF names), noted under Forbid() for the patch */
+static void find_docks(void)
+{
+    static const char *const names[] = { "GFOpenDock", "OpenDock" };
+    struct MsgPort *port = NULL;
+    struct Task *dock = NULL;
+    struct Screen *s;
+    struct Window *w;
+    int k, n = 0;
+    struct { struct Screen *s; WORD l, t, w, h; } got[DOCKS];
+    Forbid();
+    for (k = 0; k < 2 && !port; k++) port = FindPort((STRPTR)names[k]);
+    if (port) dock = (struct Task *)port->mp_SigTask;
+    Permit();
+    if (dock) {
+        ULONG lock = LockIBase(0);
+        for (s = IntuitionBase->FirstScreen; s; s = s->NextScreen)
+            for (w = s->FirstWindow; w && n < DOCKS; w = w->NextWindow)
+                if ((w->Flags & WFLG_BORDERLESS) && w->UserPort && w->UserPort->mp_SigTask == (APTR)dock) {
+                    got[n].s = s; got[n].l = w->LeftEdge; got[n].t = w->TopEdge; got[n].w = w->Width; got[n].h = w->Height;
+                    n++;
+                }
+        UnlockIBase(lock);
+    }
+    Forbid();
+    for (k = 0; k < n; k++) { docks[k].s = got[k].s; docks[k].l = got[k].l; docks[k].t = got[k].t; docks[k].w = got[k].w; docks[k].h = got[k].h; }
+    ndocks = n;
+    Permit();
+}
+
 /* Once a second: every window's place is noted, and kept when it was moved or sized; a Workbench drawer
    is made at least the drawer size. 0.9.2: nothing is moved to its place here any more: the patch places a
    window before it opens, and a window it didn't see open (a system requester Intuition opens itself, one
    opened before GFOpenWindows started) stays where it opened. ENV:OpenWindowsLog, when set, names a file
-   that gets a line for each new window and each place kept. */
+   that gets a line for each new window and each place kept. 0.10: with "centre on" no place is kept here
+   (only the snapshot gadget keeps one); a snapped place is never moved; the docks are noted for centring and
+   the snapshot gadget goes onto windows the patch didn't see open. */
 static void watch(void)
 {
     /* static: Run gives a commodity a 4 KB stack, and this is 12 KB */
@@ -1504,7 +2049,9 @@ static void watch(void)
     struct Window *w;
     ULONG lock;
     if (cfg.drive_title) drive_titles();
-    if (!cfg.places && !cfg.drawer_w) return;
+    if (cfg.centre) find_docks();
+    if (nsgads) snap_sweep(0);                  /* 0.10: the gadgets of windows that closed */
+    if (!cfg.places && !cfg.drawer_w && !cfg.centre && !GADGET_ON) return;
     busy = patch_in != 0;                       /* a window opening through the patch now: new ones wait a look */
     lock = LockIBase(0);
     for (s = IntuitionBase->FirstScreen; s; s = s->NextScreen)
@@ -1543,7 +2090,8 @@ static void watch(void)
         }
         if (known >= 0) {
             memcpy(now[i].key, seen[known].key, sizeof now[i].key);     /* the key it was first known by */
-            if (cfg.places && placeable(now[i].wb, now[i].drawer, now[i].prog) &&
+            /* 0.10: not with only snapshots counting, and never over a snapped place (it stays where it was snapped) */
+            if (!SNAPPED_ONLY && placeable(now[i].wb, now[i].drawer, now[i].prog) && !key_snapped(now[i].key) &&
                 (seen[known].l != now[i].l || seen[known].t != now[i].t || seen[known].wd != now[i].wd || seen[known].ht != now[i].ht)) {
                 /* the user moved or sized it: remember that */
                 int p;
@@ -1557,10 +2105,14 @@ static void watch(void)
                          now[i].l, now[i].t, now[i].wd, now[i].ht);
                 place_log(line);
             }
+            /* 0.10: the gadget just switched on (or GFOpenWindows just started): onto the windows open already. Later,
+             * only the patch adds it: a window it didn't see open is one Intuition opened inside itself (a system
+             * requester), which no place could ever be given to */
+            if (snap_all && GADGET_ON && is_window(now[i].w)) snap_attach(now[i].w, 1);
         } else {
             /* a new window (the first look only notes the windows already open) */
             int rec = -1, cogged = 0, placed = 0, p = -1;
-            char title[sizeof opened[0].title];
+            char title[sizeof opened[0].title], why[sizeof opened[0].why];
             if (busy && looks > 1) { now[i].keep = 0; continue; }   /* the patch may not have noted it yet */
             Forbid();
             for (k = 0; k < COG_WINS; k++)
@@ -1569,27 +2121,34 @@ static void watch(void)
                 int x = (opened_next + OPENED - k) % OPENED;
                 if (opened[x].w == now[i].w) rec = x;
             }
+            why[0] = 0;
             if (rec >= 0) {
                 memcpy(title, opened[rec].title, sizeof title);
                 placed = opened[rec].placed;
+                memcpy(why, opened[rec].why, sizeof why);
                 opened[rec].w = NULL;
             }
             Permit();
             if (rec >= 0) place_key(title, now[i].prog, now[i].key, sizeof now[i].key);   /* the title it opened with */
-            if (looks > 1 && cfg.places && placeable(now[i].wb, now[i].drawer, now[i].prog) &&
+            if (looks > 1 && (cfg.places || cfg.centre || GADGET_ON) && snappable(now[i].wb, now[i].drawer, now[i].prog) &&
                 (p = place_index(places, &nplaces, now[i].key, 0)) >= 0) {
-                Forbid();
-                places[p].used = ++places_clock;
-                Permit();
+                /* 0.10: a place that counts now: a snapped one, or one the look kept when those count */
+                if (places[p].snap || (!SNAPPED_ONLY && placeable(now[i].wb, now[i].drawer, now[i].prog))) {
+                    Forbid();
+                    places[p].used = ++places_clock;
+                    Permit();
+                } else p = -1;
             }
             if (looks > 1 && log_path[0]) {
-                int mine = cfg.places && placeable(now[i].wb, now[i].drawer, now[i].prog);
-                snprintf(line, sizeof line, "look %lu: new \"%s\" at %d %d %d %d, %s%s\n", (unsigned long)looks, now[i].key,
+                int mine = (cfg.places || cfg.centre || GADGET_ON) && snappable(now[i].wb, now[i].drawer, now[i].prog);
+                snprintf(line, sizeof line, "look %lu: new \"%s\" at %d %d %d %d, %s%s%s%s\n", (unsigned long)looks, now[i].key,
                          now[i].l, now[i].t, now[i].wd, now[i].ht,
                          cogged ? "placed by the cog" : !mine ? (now[i].wb ? "a Workbench window: Workbench's" : "not one GFOpenWindows keeps") :
                          rec < 0 ? "not seen opening, left where it opened" :
-                         placed ? "placed before it opened" : p >= 0 ? "opened as asked" : "no place kept",
-                         p >= 0 && (places[p].l != now[i].l || places[p].t != now[i].t) ? " (not at its kept place)" : "");
+                         placed == 2 ? "centred before it opened" : placed ? "placed before it opened" :
+                         p >= 0 ? "opened as asked" : "no place kept",
+                         p >= 0 && (places[p].l != now[i].l || places[p].t != now[i].t) ? " (not at its kept place)" : "",
+                         why[0] ? ": " : "", why);
                 place_log(line);
             }
             if (looks > 1 && !cogged && p < 0 && now[i].wb && cfg.drawer_w && (now[i].flags & WFLG_SIZEGADGET) &&
@@ -1621,6 +2180,7 @@ static void watch(void)
         memcpy(seen[nseen].cur, now[i].cur, sizeof seen[0].cur);
         nseen++;
     }
+    if (looks > 1) snap_all = 0;
     if (places_dirty && looks % 2 == 0) write_places(PLACES_ENV);
     if (places_dirty && looks % 10 == 0) { write_places(PLACES_ENV); write_places(PLACES_ENVARC); places_dirty = 0; }
 }
@@ -1628,7 +2188,7 @@ static void watch(void)
 /* ---- the commodity --------------------------------------------------------------------------- */
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenWindows", (STRPTR)"GFOpenWindows 0.9.2", (STRPTR)"Snapping, edges, Amiga+Tab, wheel and window places",
+    NB_VERSION, (STRPTR)"GFOpenWindows", (STRPTR)"GFOpenWindows 0.10", (STRPTR)"Snapping, edges, Amiga+Tab, wheel, window places, centring",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 static CxObj *broker, *hot_fwd, *hot_back;
@@ -1679,6 +2239,7 @@ int main(void)
     if ((bsig = AllocSignal(-1)) < 0 || (wsig = AllocSignal(-1)) < 0 || (gsig = AllocSignal(-1)) < 0) goto out;
     sig_button = 1UL << bsig; sig_wheel = 1UL << wsig; sig_grab = 1UL << gsig;
     { BYTE hsig = AllocSignal(-1); if (hsig >= 0) sig_hover = 1UL << hsig; }
+    { BYTE ssig = AllocSignal(-1); if (ssig >= 0) sig_snap = 1UL << ssig; }   /* 0.10: a click on a snapshot gadget */
     pointers_on();
     if (!(port = CreateMsgPort())) goto out;
     nb.nb_Port = port;
@@ -1688,6 +2249,7 @@ int main(void)
     AddPort(port);
     read_settings();
     read_places();
+    if (GADGET_ON && sig_snap) snap_class_on();        /* 0.10: before the patch, so the first windows get it */
     taller_on();                                       /* 0.8.2: taller title bars from here on */
     places_patch_on();                                 /* 0.8.1: always: the cog's placing goes through it too */
     cog.sem.ss_Link.ln_Name = (char *)COGPLACE_NAME;
@@ -1703,14 +2265,17 @@ int main(void)
     if (timer) { tr->tr_node.io_Command = TR_ADDREQUEST; tr->tr_time.tv_secs = 1; tr->tr_time.tv_micro = 0; SendIO((struct IORequest *)tr); }
 
     while (!quit) {
-        ULONG got = Wait((1UL << port->mp_SigBit) | sig_button | sig_wheel | sig_grab | sig_hover | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F |
+        ULONG got = Wait((1UL << port->mp_SigBit) | sig_button | sig_wheel | sig_grab | sig_hover | sig_snap | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F |
                          (timer ? 1UL << tport->mp_SigBit : 0));
         CxMsg *m;
         if (got & SIGBREAKF_CTRL_C) quit = 1;
         if (got & SIGBREAKF_CTRL_F) {
             read_settings(); hotkeys(port); taller_on();
             places_patch_on();                   /* 0.8.1: always on: the kept places follow cfg.places inside it */
+            if (GADGET_ON && sig_snap) snap_class_on();   /* 0.10: read live: on, the next look adds it to open windows */
+            else if (snap_class) snap_off();             /* off: taken out of every window now */
         }
+        if (got & sig_snap) snap_do();
         if (got & sig_wheel) wheel();
         if (got & sig_grab) resize();
         if (got & sig_hover) hover();
@@ -1728,9 +2293,18 @@ int main(void)
                 case CXCMD_UNIQUE:                    /* started again: read the settings again, stay */
                     read_settings(); hotkeys(port); taller_on();
                     places_patch_on();               /* 0.8.1: always on */
+                    if (GADGET_ON && sig_snap) snap_class_on();
+                    else if (snap_class) snap_off();
                     break;
                 }
             }
+        }
+        if (quit && snap_class && !snap_off()) {
+            /* 0.10: a gadget of ours is still somewhere (its class can't go): our code must stay */
+            quit = 0;
+            on = 0;
+            ActivateCxObj(broker, 0);
+            PutStr((STRPTR)"GFOpenWindows: a snapshot gadget is still in use; GFOpenWindows stays loaded\n");
         }
         if (quit && !places_patch_off()) {
             /* Another program patched OpenWindowTagList or OpenWindow after us: our
@@ -1751,6 +2325,7 @@ int main(void)
     }
     if (places_dirty) { write_places(PLACES_ENV); write_places(PLACES_ENVARC); }
 out:
+    if (snap_class) snap_off();
     taller_off();
     if (cog.sem.ss_Link.ln_Name) { Forbid(); cog.armed = 0; RemSemaphore(&cog.sem); Permit(); }
     if (broker) ActivateCxObj(broker, 0);           /* no new presses on an edge */

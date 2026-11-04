@@ -302,6 +302,93 @@ int main(void)
               order[0], order[1], order[2], order[3]);
     }
 
+    /* ---- 0.10: snapped places ---- */
+    CHECK(place_parse("\"wintest:Snap me\" 300 200 500 300 snap", &pl) && pl.snap && pl.l == 300 && pl.h == 300 &&
+          !strcmp(pl.key, "wintest:Snap me"), "a snapped line read");
+    CHECK(place_parse("\"CON:AmigaShell\" 145 523 853 421", &pl) && !pl.snap, "a line with no word: kept by the look, not snapped");
+    /* the table full: a place the look kept makes way before a snapped one, even one used longer ago */
+    for (i = 0; i < n; i++) table[i].snap = 0;
+    table[5].used = 1; table[5].snap = 1;
+    table[9].used = 2;
+    i = place_index(table, &n, "new:two", 1);
+    CHECK(i == 9 && strcmp(table[5].key, "new:two"), "full: the look's place used longest ago goes, the snapped one stays (%d)", i);
+    for (i = 0; i < n; i++) table[i].snap = 1;
+    table[7].used = 0;
+    i = place_index(table, &n, "new:three", 1);
+    CHECK(i == 7, "full of snapped places: the one used longest ago goes (%d)", i);
+    {
+        int m = n;
+        int k = place_index(table, &m, "new:three", 0);
+        place_remove(table, &m, k);
+        CHECK(m == n - 1 && place_index(table, &m, "new:three", 0) == -1 && place_index(table, &m, "new:two", 0) >= 0,
+              "forgotten (Shift-click): out of the table, the others kept");
+        place_remove(table, &m, -1);
+        place_remove(table, &m, m);
+        CHECK(m == n - 1, "nothing out for an index that isn't one");
+    }
+
+    /* ---- 0.10: centring ---- */
+    {
+        struct place_area a;
+        short l, t;
+        place_area_init(&a, 1920, 1080, 23);
+        CHECK(a.l == 0 && a.t == 24 && a.r == 1920 && a.b == 1080, "the area: the screen less its bar (%d %d %d %d)", a.l, a.t, a.r, a.b);
+        place_centre(&a, 1920, 1080, 500, 300, 0, 0, 0, 0, &l, &t);
+        CHECK(l == 710 && t == 24 + (1056 - 300) / 2, "centred in the area (%d %d)", l, t);
+        /* GFOpenDock's shelf along the bottom (the lab: 460,991 1000 x 89) */
+        place_area_reserve(&a, 1920, 1080, 460, 991, 1000, 89);
+        CHECK(a.b == 991 && a.t == 24, "the dock's depth off the bottom (%d)", a.b);
+        place_centre(&a, 1920, 1080, 860, 600, 0, 0, 0, 0, &l, &t);
+        CHECK(l == 530 && t == 24 + (967 - 600) / 2, "a drawer centred above the dock (%d %d)", l, t);
+        /* a popup near the dock and a window in the middle are not docks */
+        {
+            struct place_area b = a;
+            place_area_reserve(&b, 1920, 1080, 900, 940, 120, 30);
+            place_area_reserve(&b, 1920, 1080, 600, 400, 700, 300);
+            CHECK(b.b == a.b && b.t == a.t && b.l == a.l && b.r == a.r, "a bubble and a window in the middle: no change");
+        }
+        /* docks on the left and the right, and one at the top */
+        {
+            struct place_area b;
+            place_area_init(&b, 1920, 1080, 23);
+            place_area_reserve(&b, 1920, 1080, 0, 200, 90, 600);
+            place_area_reserve(&b, 1920, 1080, 1830, 200, 90, 600);
+            CHECK(b.l == 90 && b.r == 1830, "side docks (%d %d)", b.l, b.r);
+            place_area_init(&b, 1920, 1080, 23);
+            place_area_reserve(&b, 1920, 1080, 400, 24, 1100, 80);
+            CHECK(b.t == 104, "a dock under the bar (%d)", b.t);
+            /* a full-width backdrop strip half the screen tall is not a dock */
+            place_area_init(&b, 1920, 1080, 23);
+            place_area_reserve(&b, 1920, 1080, 0, 500, 1920, 580);
+            CHECK(b.b == 1080, "half the screen: not a dock (%d)", b.b);
+        }
+        /* bigger than the area: its top left, and never off the screen */
+        place_area_init(&a, 640, 256, 10);
+        place_centre(&a, 640, 256, 600, 250, 0, 0, 0, 0, &l, &t);
+        CHECK(l == 20 && t == 6, "taller than the area: kept on the screen (%d %d)", l, t);
+        place_centre(&a, 640, 256, 300, 100, 0, 0, 0, 0, &l, &t);
+        CHECK(l == 170 && t == 11 + (245 - 100) / 2, "PAL: centred under the bar (%d %d)", l, t);
+        /* over a parent window, kept in the area */
+        place_area_init(&a, 1920, 1080, 23);
+        place_centre(&a, 1920, 1080, 300, 120, 100, 120, 700, 500, &l, &t);
+        CHECK(l == 300 && t == 310, "a dialog over its window (the lab's 300,310) (%d %d)", l, t);
+        place_centre(&a, 1920, 1080, 300, 120, 1800, 1000, 100, 60, &l, &t);
+        CHECK(l == 1620 && t == 960, "over a window at the corner: kept on the screen (%d %d)", l, t);
+        place_centre(&a, 1920, 1080, 300, 120, 0, 0, 100, 40, &l, &t);
+        CHECK(l == 0 && t == 24, "over a window at the top: kept under the bar (%d %d)", l, t);
+        /* the rules */
+        CHECK(place_too_big(&a, 1920, 1080, 1920, 1080) && place_too_big(&a, 1920, 1080, 800, 1080) &&
+              place_too_big(&a, 1920, 1080, 0, 300) && !place_too_big(&a, 1920, 1080, 1919, 1000),
+              "as big as the screen either way, or no size: left alone");
+        CHECK(!place_asked(0, 0, 0, 23) && !place_asked(1, 0, 0, 23) && !place_asked(1, 0, 24, 23) && !place_asked(1, 0, 12, 10),
+              "no corner, 0,0 and just under the bar: Intuition's default, centred");
+        CHECK(!place_asked(1, 40, 33, 23) && !place_asked(1, 64, 88, 23) && !place_asked(1, 5, 0, 23),
+              "a step in from the top left (GFOpenPrefs' 40,33): a default, centred");
+        CHECK(place_asked(1, 300, 200, 23) && place_asked(1, 0, 120, 23) && place_asked(1, 65, 30, 23) && place_asked(1, 30, 89, 23) &&
+              place_asked(1, 480, 180, 23) && place_asked(1, -4, 30, 23),
+              "a corner worked out (MultiView's and ASL's centred 480,180, anywhere further in): the program's own, left there");
+    }
+
     printf("test_places: %d checks, %d failed\n", checks, fails);
     return fails != 0;
 }
