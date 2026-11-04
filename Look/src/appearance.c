@@ -1645,6 +1645,10 @@ int appearance_main(int tab)
     advanced = read_view();
     strcpy(status_text, damaged ? "This file can't be read whole, so nothing in it is changed." : p->hint);
     if (ap == AP_POINTER && advanced && !damaged) strcpy(status_text, "Choose a pointer, click a colour, then its pixels.");
+    /* no pointer sets on the disk (an open-ROM install has no SYS:Prefs/Presets/Pointers): say so, not an empty list */
+    if (ap == AP_POINTER && !advanced && !damaged) list_drawer(POINTER_SETS, &sets);   /* pointer_make reads it again */
+    if (ap == AP_POINTER && !advanced && !damaged && !sets.n)
+        strcpy(status_text, "No pointer sets are installed (SYS:Prefs/Presets/Pointers). View > Advanced draws one.");
     while ((r = gui_once()) == 99) ;
     pf_free(&cur); pf_free(&start); pf_free(&before);
     if (AslBase) CloseLibrary(AslBase);

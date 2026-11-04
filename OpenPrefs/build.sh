@@ -76,7 +76,7 @@ PRT="-I$P/Look/src -I$P/Printing/src"
 page "$P/Printing/src/printing.c" -Dmain=printing_main -Dversion=printing_version $PRT
 page "$P/Printing/src/pr_prefs.c" $PRT
 # the frame and the program, not moved: openprefs.c first, so its $VER is the file's first
-"$CC" $FRAME -o "$OUT/GFOpenPrefs" "$HERE/src/openprefs.c" "$HERE/src/op_apply.c" "$HERE/src/opframe.c" "$O"/app/*.o \
+"$CC" $FRAME -o "$OUT/GFOpenPrefs" "$HERE/src/openprefs.c" "$HERE/src/op_apply.c" "$HERE/src/opframe.c" "$HERE/src/op_why.c" "$O"/app/*.o \
   "$OGT/lib/ogt_theme.c"
 
 echo "$OUT/GFOpenPrefs ($(wc -c < "$OUT/GFOpenPrefs") bytes)"
