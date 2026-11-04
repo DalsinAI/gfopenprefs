@@ -12,7 +12,12 @@
  *   double-click  a double-click in a window's title bar (its drag bar)
  *                 brings it to the front, as ClickToFront does for a
  *                 double-click anywhere; one already in front stays
- *   wheel         the mouse wheel goes to the window under the pointer
+ *   wheel         (0.11, Dale 4 November 2026; wheel.h) the wheel scrolls the
+ *                 scroll focus: the scroller last pushed, or beside the place
+ *                 last clicked, in the active window (or, wheel.target pointer,
+ *                 the one beside the pointer in the window under it), moved as
+ *                 a drag of its knob moves it, for a program that doesn't know
+ *                 the wheel; one that does gets the wheel's raw keys alone
  *   places        a program's window opens where it was last left (0.7: it
  *                 opens there, placed before Intuition draws it; 0.9.2: also
  *                 when the program gives its own corner in its tags, and
@@ -79,6 +84,7 @@
 #include <graphics/clip.h>
 #include <libraries/commodities.h>
 #include <libraries/keymap.h>
+#include <devices/input.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/intuition.h>
@@ -95,8 +101,9 @@
 #include "../../Common/cogplace.h"
 #include "gestures.h"
 #include "places.h"
+#include "wheel.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.10.1 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.11 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"
@@ -112,7 +119,14 @@ struct GfxBase *GfxBase;
 /* ---- settings ------------------------------------------------------------ */
 
 static struct {
-    int snap, snap_dist, halves, switcher, wheel, places, places_wb, drawer_w, drawer_h, dblfront, edges, edge_ptr, drive_title, solid;
+    int snap, snap_dist, halves, switcher, places, places_wb, drawer_w, drawer_h, dblfront, edges, edge_ptr, drive_title, solid;
+    /* 0.11, the wheel (wheel.h): wheel.scroll on|off, wheel.target focus|pointer (Dale, 4 November 2026: the focus,
+     * on by default), wheel.lines (3), wheel.self <program> (programs left to scroll themselves). The old "wheel"
+     * line (the window under the pointer made active) is read no more: an install that has it gets the focus */
+    int wheel_mode;                              /* 0 off, 1 the scroll focus, 2 the window under the pointer */
+    int wheel_lines;
+    char wself[MAX_NEVER][32];
+    int nwself;
     int taller;                                  /* 0.8.2: extra rows in every window's title bar (default 4) */
     /* 0.10 (Dale, 4 November 2026): windows with no snapshot open centred; the snapshot gadget */
     int centre;                                  /* centre on: a window with no snapped place opens centred (off) */
@@ -150,7 +164,7 @@ static void read_prefs(void)
 {
     char *text = read_file(PREFS_ENV), *p, *line;
     memset(&cfg, 0, sizeof cfg);
-    cfg.snap = 1; cfg.snap_dist = 12; cfg.halves = 0; cfg.switcher = 1; cfg.wheel = 1; cfg.places = 1; cfg.dblfront = 1; cfg.edges = 1; cfg.edge_ptr = 1; cfg.drive_title = 1; cfg.taller = 4;
+    cfg.snap = 1; cfg.snap_dist = 12; cfg.halves = 0; cfg.switcher = 1; cfg.wheel_mode = 1; cfg.wheel_lines = 3; cfg.places = 1; cfg.dblfront = 1; cfg.edges = 1; cfg.edge_ptr = 1; cfg.drive_title = 1; cfg.taller = 4;
     cfg.centre = 0; cfg.centre_asked = 1; cfg.centre_custom = 0; cfg.centre_over = 1; cfg.gadget = -1;
     strcpy(cfg.key, "lcommand tab");
     if (!text) return;
@@ -166,7 +180,10 @@ static void read_prefs(void)
         else if (!strcmp(line, "snap.halves")) cfg.halves = on_off(v);
         else if (!strcmp(line, "switcher")) cfg.switcher = on_off(v);
         else if (!strcmp(line, "switcher.key")) { strncpy(cfg.key, v, sizeof cfg.key - 1); }
-        else if (!strcmp(line, "wheel")) cfg.wheel = on_off(v);
+        else if (!strcmp(line, "wheel.scroll")) cfg.wheel_mode = on_off(v) ? (cfg.wheel_mode ? cfg.wheel_mode : 1) : 0;
+        else if (!strcmp(line, "wheel.target")) { if (cfg.wheel_mode) cfg.wheel_mode = !strncmp(v, "pointer", 7) ? 2 : 1; }
+        else if (!strcmp(line, "wheel.lines")) cfg.wheel_lines = atoi(v);
+        else if (!strcmp(line, "wheel.self") && cfg.nwself < MAX_NEVER) strncpy(cfg.wself[cfg.nwself++], v, 31);
         else if (!strcmp(line, "doubleclick.front")) cfg.dblfront = on_off(v);
         else if (!strcmp(line, "edges")) cfg.edges = on_off(v);
         else if (!strcmp(line, "edges.pointer")) cfg.edge_ptr = on_off(v);
@@ -185,6 +202,8 @@ static void read_prefs(void)
     }
     if (cfg.snap_dist < 2) cfg.snap_dist = 2;
     if (cfg.snap_dist > 64) cfg.snap_dist = 64;
+    if (cfg.wheel_lines < 1) cfg.wheel_lines = 1;
+    if (cfg.wheel_lines > 30) cfg.wheel_lines = 30;
     if (cfg.taller < 0) cfg.taller = 0;
     if (cfg.taller > 16) cfg.taller = 16;
     FreeVec(text);
@@ -271,9 +290,15 @@ static void taller_off(void)
 static struct Task *me;
 static struct cogplace cog;                      /* 0.8.1: the cog's request, public by name (cogplace.h) */
 static ULONG sig_button, sig_wheel;
-#define WHEEL_RING 16
-static struct InputEvent wheel_ring[WHEEL_RING];
-static volatile int wheel_in, wheel_out;
+/* 0.11, the wheel (wheel.h). The handler's side: the wheel's events the main task is to see (held: taken out
+ * of the stream, for the main task to send on), the class of the windows asked so far (WC_SELF, WC_EMULATE:
+ * the main task writes it, the handler reads it), and the last left press, for the scroll focus. */
+#define WQ 32
+static struct wq { struct InputEvent ev; struct Window *w; UBYTE held; } wq[WQ];
+static volatile int wq_in, wq_out;
+#define WCLS 12
+static struct { struct Window *w; UBYTE cls; } wcls[WCLS];
+static volatile struct { struct Screen *s; WORD x, y; ULONG gen; } wclick;
 static volatile int pass_wheel;                 /* events we put back: let them through */
 static volatile int on = 1;
 
@@ -445,6 +470,25 @@ static int target_at(struct Screen *s, WORD x, WORD y, struct Window **wp)
     return t;
 }
 
+static int wcls_of(struct Window *w)
+{
+    int i;
+    for (i = 0; i < WCLS; i++) if (wcls[i].w == w) return wcls[i].cls;
+    return WC_UNKNOWN;
+}
+
+static void wq_put(struct InputEvent *ie, struct Window *w, int held)
+{
+    if (((wq_in + 1) & (WQ - 1)) == wq_out) return;   /* full: this one goes on as it came */
+    wq[wq_in].ev = *ie;
+    wq[wq_in].ev.ie_NextEvent = NULL;
+    wq[wq_in].w = w;
+    wq[wq_in].held = (UBYTE)held;
+    wq_in = (wq_in + 1) & (WQ - 1);
+    if (held) ie->ie_Class = IECLASS_NULL;     /* the main task sends it on */
+    Signal(me, sig_wheel);
+}
+
 static int over_active(void)
 {
     struct Window *w = IntuitionBase->ActiveWindow;
@@ -584,6 +628,10 @@ static void custom(CxMsg *msg, CxObj *co)
                 if (hw != hover_win || e != hover_edges) { hover_win = hw; hover_edges = e; Signal(me, sig_hover); }
             }
             if (ie->ie_Code == IECODE_LBUTTON && s) {
+                if (cfg.wheel_mode == 1) {          /* 0.11: the scroll focus is where the press is (wheel_click) */
+                    wclick.s = s; wclick.x = s->MouseX; wclick.y = s->MouseY; wclick.gen++;
+                    Signal(me, sig_wheel);
+                }
                 if (press_begin(ie, s)) continue;
             } else if (ie->ie_Code == (IECODE_LBUTTON | IECODE_UP_PREFIX)) {
                 press_end(ie);
@@ -598,17 +646,23 @@ static void custom(CxMsg *msg, CxObj *co)
                 grab_last = ie->ie_TimeStamp.tv_secs;
                 Signal(me, sig_grab);
             }
-        } else if (cfg.wheel && (ie->ie_Class == IECLASS_RAWKEY || ie->ie_Class == IECLASS_NEWMOUSE_) &&
+        } else if (cfg.wheel_mode && (ie->ie_Class == IECLASS_RAWKEY || ie->ie_Class == IECLASS_NEWMOUSE_) &&
                    (ie->ie_Code & 0x7F) >= RAWKEY_WHEEL_UP && (ie->ie_Code & 0x7F) <= RAWKEY_WHEEL_RIGHT) {
+            /* 0.11 (wheel.h): a window asked already goes on at once; the wheel's raw keys go to it either way, and a
+             * step is moved for one that doesn't know the wheel. Any other (not asked yet; the window under the
+             * pointer, not the active one) is held for the main task, which sends it on. */
+            struct Window *aw = IntuitionBase->ActiveWindow;
+            int c;
             if (pass_wheel) { pass_wheel--; continue; }
-            if (over_active()) continue;
-            if (((wheel_in + 1) & (WHEEL_RING - 1)) != wheel_out) {
-                wheel_ring[wheel_in] = *ie;
-                wheel_ring[wheel_in].ie_NextEvent = NULL;
-                wheel_in = (wheel_in + 1) & (WHEEL_RING - 1);
-                Signal(me, sig_wheel);
+            if (aw && (cfg.wheel_mode == 1 || over_active())) {
+                c = wcls_of(aw);
+                if (c == WC_SELF) continue;
+                if (c == WC_EMULATE) {
+                    if (ie->ie_Class == IECLASS_RAWKEY && !(ie->ie_Code & IECODE_UP_PREFIX)) wq_put(ie, aw, 0);
+                    continue;
+                }
             }
-            ie->ie_Class = IECLASS_NULL;           /* it goes on after the window under the pointer is active */
+            wq_put(ie, aw, 1);
         }
     }
 }
@@ -639,22 +693,6 @@ static int is_window(struct Window *w)
             if (x == w) { found = 1; break; }
     UnlockIBase(lock);
     return found;
-}
-
-static void wheel(void)
-{
-    while (wheel_out != wheel_in) {
-        struct InputEvent ev = wheel_ring[wheel_out];
-        struct Screen *s = IntuitionBase->FirstScreen;
-        struct Window *w = s ? window_at(s, s->MouseX, s->MouseY) : NULL;
-        wheel_out = (wheel_out + 1) & (WHEEL_RING - 1);
-        if (w && w != IntuitionBase->ActiveWindow && !(w->Flags & WFLG_BACKDROP)) {
-            ActivateWindow(w);
-            Delay(1);                              /* Intuition makes it active on its next event */
-        }
-        pass_wheel++;
-        AddIEvents(&ev);
-    }
 }
 
 /* Snapping: the nearest of the screen's and the other windows' edges. */
@@ -1157,6 +1195,343 @@ static int never(const char *prog)
     for (i = 0; i < cfg.nnever; i++)
         if (!stricmp(cfg.never[i], prog)) return 1;
     return 0;
+}
+
+/* ---- the wheel (0.11, wheel.h): the main task's side ------------------------------------------- */
+
+static struct MsgPort *wport;                   /* our IntuiMessages come back here */
+static struct IOStdReq *wio;                    /* input.device: the held events sent on */
+static int wout;                                /* IntuiMessages out */
+static struct { struct Window *w; struct Gadget *g[2]; } wfoc[WCLS];   /* each window's scroll focus: [0] down, [1] across */
+static int wfoc_next, wcls_next;
+static ULONG wclick_done;
+static struct { struct Window *w; struct Gadget *g; unsigned dir; int sign, could; LONG before; int armed; } probe;
+
+static void wcls_set(struct Window *w, int c)
+{
+    int i;
+    for (i = 0; i < WCLS; i++) if (wcls[i].w == w) break;
+    if (i == WCLS) { i = wcls_next; wcls_next = (wcls_next + 1) % WCLS; }
+    Forbid();                                   /* the handler reads the pair */
+    wcls[i].w = w; wcls[i].cls = (UBYTE)c;
+    Permit();
+}
+
+/* windows gone: their class and focus forgotten, so a new window at the same place starts afresh */
+static void wheel_prune(void)
+{
+    int i;
+    for (i = 0; i < WCLS; i++) {
+        if (wcls[i].w && !is_window(wcls[i].w)) { Forbid(); wcls[i].w = NULL; Permit(); }
+        if (wfoc[i].w && !is_window(wfoc[i].w)) wfoc[i].w = NULL;
+    }
+    if (probe.armed && !is_window(probe.w)) probe.armed = 0;
+}
+
+static int wself(struct Window *w)
+{
+    char prog[48];
+    int i;
+    if (!cfg.nwself) return 0;
+    program_of(w, prog, sizeof prog);
+    for (i = 0; i < cfg.nwself; i++) if (!stricmp(cfg.wself[i], prog)) return 1;
+    return 0;
+}
+
+/* A gadget that is a scroller: WS_VERT, WS_HORIZ or both; 0 not one. A plain prop (GadTools' scrollers, sliders
+ * and lists' scrollers are plain props too), or a BOOPSI one that answers PGA_Top, PGA_Total and PGA_Visible
+ * (propgclass, and classes built on it). */
+static unsigned scroller_of(struct Gadget *g)
+{
+    if (g->Flags & GFLG_DISABLED) return 0;
+    switch (g->GadgetType & GTYP_GTYPEMASK) {
+    case GTYP_PROPGADGET: {
+        struct PropInfo *pi = (struct PropInfo *)g->SpecialInfo;
+        if (!pi) return 0;
+        return ((pi->Flags & FREEVERT) ? WS_VERT : 0) | ((pi->Flags & FREEHORIZ) ? WS_HORIZ : 0);
+    }
+    case GTYP_CUSTOMGADGET: {
+        ULONG v = 0;
+        if (!GetAttr(PGA_Top, (Object *)g, &v) || !GetAttr(PGA_Total, (Object *)g, &v) || !GetAttr(PGA_Visible, (Object *)g, &v)) return 0;
+        if (GetAttr(PGA_Freedom, (Object *)g, &v)) return v == FREEHORIZ ? WS_HORIZ : WS_VERT;
+        return g->Width > g->Height ? WS_HORIZ : WS_VERT;
+    }
+    }
+    return 0;
+}
+
+/* The window's scrollers, their boxes in the window's own pixels (from its outer top left) */
+#define WMAXG 48
+static int scrollers(struct Window *w, struct wheel_box *b, struct Gadget **gs)
+{
+    struct Gadget *g;
+    int n = 0;
+    ULONG lock = LockIBase(0);
+    for (g = w->FirstGadget; g && n < WMAXG; g = g->NextGadget) {
+        unsigned f = scroller_of(g);
+        WORD W = w->Width, H = w->Height, ox = 0, oy = 0;
+        if (!f) continue;
+        if ((w->Flags & WFLG_GIMMEZEROZERO) && !(g->Activation & (GACT_RIGHTBORDER | GACT_LEFTBORDER | GACT_TOPBORDER | GACT_BOTTOMBORDER))) {
+            W = w->GZZWidth; H = w->GZZHeight; ox = w->BorderLeft; oy = w->BorderTop;
+        }
+        b[n].l = g->LeftEdge + ((g->Flags & GFLG_RELRIGHT) ? W - 1 : 0) + ox;
+        b[n].t = g->TopEdge + ((g->Flags & GFLG_RELBOTTOM) ? H - 1 : 0) + oy;
+        b[n].w = g->Width + ((g->Flags & GFLG_RELWIDTH) ? W : 0);
+        b[n].h = g->Height + ((g->Flags & GFLG_RELHEIGHT) ? H : 0);
+        if (((g->Activation & GACT_RIGHTBORDER) && (f & WS_VERT)) || ((g->Activation & GACT_BOTTOMBORDER) && (f & WS_HORIZ))) f |= WS_BORDER;
+        b[n].flags = f;
+        gs[n++] = g;
+    }
+    UnlockIBase(lock);
+    return n;
+}
+
+static int has_gadget(struct Window *w, struct Gadget *want)
+{
+    struct Gadget *g;
+    ULONG lock = LockIBase(0);
+    for (g = w->FirstGadget; g && g != want; g = g->NextGadget) ;
+    UnlockIBase(lock);
+    return g != NULL;
+}
+
+/* A left press came (the handler's wclick): in the window it made active, the scroller pushed or beside it is
+ * the scroll focus, down and across; a press beside none leaves the focus as it was */
+static void wheel_click(void)
+{
+    struct wheel_box b[WMAXG];
+    struct Gadget *gs[WMAXG];
+    struct Screen *s = wclick.s;
+    WORD x = wclick.x, y = wclick.y;
+    struct Window *w;
+    int n, d, i, k;
+    if (!s || !(w = window_at(s, x, y)) || w != IntuitionBase->ActiveWindow) return;
+    if (!(n = scrollers(w, b, gs))) return;
+    for (k = 0; k < WCLS; k++) if (wfoc[k].w == w) break;
+    if (k == WCLS) { k = wfoc_next; wfoc_next = (wfoc_next + 1) % WCLS; wfoc[k].w = w; wfoc[k].g[0] = wfoc[k].g[1] = NULL; }
+    for (d = 0; d < 2; d++)
+        if ((i = wheel_pick(b, n, x - w->LeftEdge, y - w->TopEdge, d ? WS_HORIZ : WS_VERT)) >= 0) wfoc[k].g[d] = gs[i];
+}
+
+/* The scroller a step moves in w: the focus (or, under the pointer, the one beside it), else the window's main one */
+static struct Gadget *wheel_target(struct Window *w, unsigned dir, int at_pointer)
+{
+    struct wheel_box b[WMAXG];
+    struct Gadget *gs[WMAXG];
+    int n = scrollers(w, b, gs), i = -1, k;
+    if (!n) return NULL;
+    if (at_pointer) i = wheel_pick(b, n, w->MouseX, w->MouseY, dir);
+    else
+        for (k = 0; k < WCLS; k++)
+            if (wfoc[k].w == w && wfoc[k].g[dir == WS_HORIZ])
+                for (i = 0; i < n; i++) if (gs[i] == wfoc[k].g[dir == WS_HORIZ] && (b[i].flags & dir)) return gs[i];
+    if (i < 0 || i >= n) i = wheel_main(b, n, dir);
+    return i >= 0 ? gs[i] : NULL;
+}
+
+/* g's view, down or across, in pixels: its box as scrollers() finds it */
+static int view_of(struct Window *w, struct Gadget *g, unsigned dir)
+{
+    struct wheel_box b[WMAXG];
+    struct Gadget *gs[WMAXG];
+    int n = scrollers(w, b, gs), i;
+    for (i = 0; i < n && gs[i] != g; i++) ;
+    return i < n ? (dir == WS_HORIZ ? b[i].w : b[i].h) : (dir == WS_HORIZ ? g->Width : g->Height);
+}
+
+static int boopsi(struct Gadget *g) { return (g->GadgetType & GTYP_GTYPEMASK) == GTYP_CUSTOMGADGET; }
+
+/* Where a scroller is now (a plain prop's pot, a BOOPSI one's top), and whether it could move up (*up) or down */
+static LONG wheel_state(struct Gadget *g, unsigned dir, int *up, int *down)
+{
+    if (boopsi(g)) {
+        ULONG top = 0, total = 0, vis = 0;
+        GetAttr(PGA_Top, (Object *)g, &top); GetAttr(PGA_Total, (Object *)g, &total); GetAttr(PGA_Visible, (Object *)g, &vis);
+        *up = top > 0; *down = (LONG)top < (LONG)total - (LONG)vis;
+        return (LONG)top;
+    } else {
+        struct PropInfo *pi = (struct PropInfo *)g->SpecialInfo;
+        UWORD pot = dir == WS_HORIZ ? pi->HorizPot : pi->VertPot, body = dir == WS_HORIZ ? pi->HorizBody : pi->VertBody;
+        *up = body < MAXBODY && pot > 0; *down = body < MAXBODY && pot < MAXPOT;
+        return pot;
+    }
+}
+
+/* An IntuiMessage to w's program, as Intuition sends it while the knob is dragged; it comes back to wport */
+static void wheel_imsg(struct Window *w, ULONG cls, UWORD code, UWORD qual, struct Gadget *g)
+{
+    struct ExtIntuiMessage *m;
+    if (!wport || !w->UserPort || !(w->IDCMPFlags & cls)) return;
+    if (!(m = AllocVec(sizeof *m, MEMF_PUBLIC | MEMF_CLEAR))) return;
+    m->eim_IntuiMessage.ExecMessage.mn_Node.ln_Type = NT_MESSAGE;
+    m->eim_IntuiMessage.ExecMessage.mn_ReplyPort = wport;
+    m->eim_IntuiMessage.ExecMessage.mn_Length = sizeof(struct IntuiMessage);
+    m->eim_IntuiMessage.Class = cls;
+    m->eim_IntuiMessage.Code = code;
+    m->eim_IntuiMessage.Qualifier = qual;
+    m->eim_IntuiMessage.IAddress = g;
+    m->eim_IntuiMessage.MouseX = w->MouseX;
+    m->eim_IntuiMessage.MouseY = w->MouseY;
+    CurrentTime(&m->eim_IntuiMessage.Seconds, &m->eim_IntuiMessage.Micros);
+    m->eim_IntuiMessage.IDCMPWindow = w;
+    wout++;
+    PutMsg(w->UserPort, &m->eim_IntuiMessage.ExecMessage);
+}
+
+/* A drag's messages: down (GACT_IMMEDIATE), a move (GACT_FOLLOWMOUSE), up (GACT_RELVERIFY), each only where the
+ * window asked for its class */
+static void wheel_drag(struct Window *w, struct Gadget *g, UWORD code, UWORD qual)
+{
+    if (g->Activation & GACT_IMMEDIATE) wheel_imsg(w, IDCMP_GADGETDOWN, code, qual, g);
+    if (g->Activation & GACT_FOLLOWMOUSE) wheel_imsg(w, IDCMP_MOUSEMOVE, code, qual, g);
+    if (g->Activation & GACT_RELVERIFY) wheel_imsg(w, IDCMP_GADGETUP, code, qual, g);
+}
+
+/* One step (sign) on scroller g of w, cfg.wheel_lines lines: as a drag of its knob would move it, and the
+ * program told as a drag tells it */
+static void wheel_scroll(struct Window *w, struct Gadget *g, unsigned dir, int sign, UWORD qual)
+{
+    LONG lines = (LONG)cfg.wheel_lines * sign;
+    if (!is_window(w) || !has_gadget(w, g)) return;
+    if (boopsi(g)) {
+        /* propgclass and its kin: OM_UPDATE, as an interconnected gadget would send it; the gadget draws itself and
+         * notifies its target (IDCMP_IDCMPUPDATE for a program that takes ICTARGET_IDCMP) */
+        ULONG top = 0, total = 0, vis = 0;
+        struct TagItem tags[3];
+        struct opUpdate up;
+        LONG nt;
+        struct RastPort *rp = w->RPort;
+        int line = rp && rp->TxHeight > 0 ? rp->TxHeight : 8;
+        GetAttr(PGA_Top, (Object *)g, &top); GetAttr(PGA_Total, (Object *)g, &total); GetAttr(PGA_Visible, (Object *)g, &vis);
+        if (dir == WS_HORIZ && rp && rp->TxWidth > 0) line = rp->TxWidth;
+        /* a top counted in items or in pixels: lines into its units by what its view shows */
+        lines *= wheel_units((LONG)vis, view_of(w, g, dir), line);
+        if ((nt = wheel_top((LONG)top, (LONG)total, (LONG)vis, lines)) == (LONG)top) return;
+        tags[0].ti_Tag = PGA_Top; tags[0].ti_Data = (ULONG)nt;
+        tags[1].ti_Tag = GA_ID; tags[1].ti_Data = g->GadgetID;
+        tags[2].ti_Tag = TAG_DONE;
+        up.MethodID = OM_UPDATE; up.opu_AttrList = tags; up.opu_GInfo = NULL; up.opu_Flags = 0;
+        DoGadgetMethodA(g, w, NULL, (Msg)&up);
+        if (log_path[0]) {
+            char line[96];
+            ULONG now = 0;
+            GetAttr(PGA_Top, (Object *)g, &now);
+            snprintf(line, sizeof line, "wheel: top %lu -> %lu (asked %ld of %lu, %lu shown)\n", (unsigned long)top,
+                     (unsigned long)now, (long)nt, (unsigned long)total, (unsigned long)vis);
+            place_log(line);
+        }
+        return;
+    }
+    /* a plain prop, GadTools' scrollers, sliders and lists' scrollers too: the knob moved, then the drag's messages
+     * (GT_GetIMsg reads the knob for its own: a scroller's top, a slider's level, a list's place) */
+    {
+        struct PropInfo *pi = (struct PropInfo *)g->SpecialInfo;
+        struct RastPort *rp = w->RPort;
+        int view, line, line_h;
+        UWORD pot, np;
+        view = view_of(w, g, dir);
+        line = rp ? (dir == WS_HORIZ ? rp->TxWidth : rp->TxHeight) : 8;
+        if (line < 1) line = 8;
+        line_h = line;
+        pot = dir == WS_HORIZ ? pi->HorizPot : pi->VertPot;
+        np = (UWORD)wheel_pot(pot, dir == WS_HORIZ ? pi->HorizBody : pi->VertBody, view, line, (int)lines);
+        if (np == pot) return;
+        NewModifyProp(g, w, NULL, pi->Flags, dir == WS_HORIZ ? np : pi->HorizPot, dir == WS_HORIZ ? pi->VertPot : np,
+                      pi->HorizBody, pi->VertBody, 1);
+        if (log_path[0]) {
+            char line[96];
+            snprintf(line, sizeof line, "wheel: pot %u -> %u (asked %u; view %d, line %d)\n", (unsigned)pot,
+                     (unsigned)(dir == WS_HORIZ ? pi->HorizPot : pi->VertPot), (unsigned)np, view, line_h);
+            place_log(line);
+        }
+        wheel_drag(w, g, 0, qual);
+    }
+}
+
+/* A held event on to Intuition and the rest, past our handler */
+static void wheel_send_on(struct InputEvent *ev)
+{
+    struct InputEvent e = *ev;
+    if (!wio) return;
+    e.ie_NextEvent = NULL;
+    pass_wheel++;
+    wio->io_Command = IND_WRITEEVENT;
+    wio->io_Data = &e;
+    wio->io_Length = sizeof e;
+    DoIO((struct IORequest *)wio);
+}
+
+static void wheel_activate(struct Window *w)
+{
+    if (w && w != IntuitionBase->ActiveWindow && !(w->Flags & WFLG_BACKDROP)) {
+        ActivateWindow(w);
+        Delay(1);                              /* Intuition makes it active on its next event */
+    }
+}
+
+static void wheel(void)
+{
+    if (wclick.gen != wclick_done) { wclick_done = wclick.gen; wheel_prune(); wheel_click(); }
+    while (wq_out != wq_in) {
+        struct wq e = wq[wq_out];
+        struct Window *w = e.w;
+        unsigned dir = WS_VERT;
+        int sign, c, pointer = cfg.wheel_mode == 2, up = 0, down = 0;
+        struct Gadget *g;
+        UWORD code = e.ev.ie_Code;
+        wq_out = (wq_out + 1) & (WQ - 1);
+        sign = wheel_step(code & 0x7F, e.ev.ie_Qualifier, &dir);   /* its step's way, for the let-go too */
+        if (pointer) {
+            struct Screen *s = IntuitionBase->FirstScreen;
+            w = s ? window_at(s, s->MouseX, s->MouseY) : NULL;
+        }
+        if (!w || !is_window(w) || !sign) { if (e.held) wheel_send_on(&e.ev); continue; }
+        c = wcls_of(w);
+        if (c != WC_SELF && wself(w)) wcls_set(w, c = WC_SELF);
+        g = c == WC_SELF ? NULL : wheel_target(w, dir, pointer);
+        if (!g) {                              /* the program's own wheel, or nothing here to move: as it came */
+            if (e.held) { if (pointer) wheel_activate(w); wheel_send_on(&e.ev); }
+            continue;
+        }
+        if (c == WC_EMULATE) {
+            if (e.held && w == IntuitionBase->ActiveWindow) wheel_send_on(&e.ev);
+            if (e.ev.ie_Class == IECLASS_RAWKEY && !(code & IECODE_UP_PREFIX)) wheel_scroll(w, g, dir, sign, e.ev.ie_Qualifier);
+            continue;
+        }
+        /* not asked yet: the step goes to the program as it came; did its scroller move by itself? */
+        if (pointer) wheel_activate(w);
+        if (!probe.armed || probe.w != w) {
+            probe.armed = 1; probe.w = w; probe.g = g; probe.dir = dir; probe.sign = sign;
+            probe.before = wheel_state(g, dir, &up, &down);
+            probe.could = sign > 0 ? down : up;
+        }
+        wheel_send_on(&e.ev);
+        if (e.ev.ie_Class == IECLASS_RAWKEY && (code & IECODE_UP_PREFIX)) {   /* the step's last event */
+            LONG now;
+            Delay(4);                          /* 80 ms for the program to take it */
+            probe.armed = 0;
+            if (!is_window(w) || !has_gadget(w, probe.g)) continue;
+            now = wheel_state(probe.g, probe.dir, &up, &down);
+            c = wheel_probe(now != probe.before, probe.could);
+            if (c != WC_UNKNOWN) wcls_set(w, c);
+            if (log_path[0]) {                 /* ENV:OpenWindowsLog: what the wheel made of the window */
+                char prog[48], line[160];
+                program_of(w, prog, sizeof prog);
+                snprintf(line, sizeof line, "wheel %s \"%.40s\": %s (scroller %ld -> %ld)\n", prog, w->Title ? (char *)w->Title : "",
+                         c == WC_SELF ? "scrolls itself" : c == WC_EMULATE ? "moved by GFOpenWindows" : "at its end, asked again later",
+                         (long)probe.before, (long)now);
+                place_log(line);
+            }
+            if (c == WC_EMULATE) wheel_scroll(w, probe.g, probe.dir, probe.sign, e.ev.ie_Qualifier);
+        }
+    }
+}
+
+/* Our IntuiMessages back from the programs */
+static void wheel_replies(void)
+{
+    struct Message *m;
+    while (wport && (m = GetMsg(wport))) { FreeVec(m); wout--; }
 }
 
 static void read_places(void)
@@ -2189,7 +2564,7 @@ static void watch(void)
 /* ---- the commodity --------------------------------------------------------------------------- */
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenWindows", (STRPTR)"GFOpenWindows 0.10.1", (STRPTR)"Snapping, edges, Amiga+Tab, wheel, window places, centring",
+    NB_VERSION, (STRPTR)"GFOpenWindows", (STRPTR)"GFOpenWindows 0.11", (STRPTR)"Snapping, edges, Amiga+Tab, wheel, window places, centring",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 static CxObj *broker, *hot_fwd, *hot_back;
@@ -2242,6 +2617,9 @@ int main(void)
     { BYTE hsig = AllocSignal(-1); if (hsig >= 0) sig_hover = 1UL << hsig; }
     { BYTE ssig = AllocSignal(-1); if (ssig >= 0) sig_snap = 1UL << ssig; }   /* 0.10: a click on a snapshot gadget */
     pointers_on();
+    /* 0.11, the wheel: a port for our IntuiMessages' replies, input.device for the held events */
+    if ((wport = CreateMsgPort()) && (wio = (struct IOStdReq *)CreateIORequest(wport, sizeof *wio)) &&
+        OpenDevice((STRPTR)"input.device", 0, (struct IORequest *)wio, 0)) { DeleteIORequest((struct IORequest *)wio); wio = NULL; }
     if (!(port = CreateMsgPort())) goto out;
     nb.nb_Port = port;
     if (!(broker = CxBroker(&nb, NULL))) goto out;    /* already running: NBU_UNIQUE */
@@ -2267,6 +2645,7 @@ int main(void)
 
     while (!quit) {
         ULONG got = Wait((1UL << port->mp_SigBit) | sig_button | sig_wheel | sig_grab | sig_hover | sig_snap | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F |
+                         (wport ? 1UL << wport->mp_SigBit : 0) |
                          (timer ? 1UL << tport->mp_SigBit : 0));
         CxMsg *m;
         if (got & SIGBREAKF_CTRL_C) quit = 1;
@@ -2278,6 +2657,7 @@ int main(void)
         }
         if (got & sig_snap) snap_do();
         if (got & sig_wheel) wheel();
+        wheel_replies();
         if (got & sig_grab) resize();
         if (got & sig_hover) hover();
         if (got & sig_button) gestures_done();
@@ -2320,6 +2700,7 @@ int main(void)
             WaitIO((struct IORequest *)tr);
             resize_watch();
             if (on) watch();
+            wheel_prune();
             tr->tr_node.io_Command = TR_ADDREQUEST; tr->tr_time.tv_secs = 1; tr->tr_time.tv_micro = 0;
             SendIO((struct IORequest *)tr);
         }
@@ -2345,6 +2726,13 @@ out:
     pointers_off();
     if (gsig >= 0) FreeSignal(gsig);
     if (wsig >= 0) FreeSignal(wsig);
+    if (wport) {
+        /* our IntuiMessages still out: back within two seconds, or left where they are (a program not reading) */
+        int k;
+        for (k = 0; wout > 0 && k < 100; k++) { wheel_replies(); if (wout > 0) Delay(1); }
+        if (wio) { CloseDevice((struct IORequest *)wio); DeleteIORequest((struct IORequest *)wio); }
+        if (!wout) DeleteMsgPort(wport);
+    }
     if (bsig >= 0) FreeSignal(bsig);
     if (CxBase) CloseLibrary(CxBase);
     if (LayersBase) CloseLibrary(LayersBase);

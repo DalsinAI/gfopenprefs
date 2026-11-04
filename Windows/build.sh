@@ -18,5 +18,7 @@ mkdir -p "$OUT"
 LATE=""
 if "$CC" -fno-late-combine-instructions -S -o /dev/null -x c /dev/null 2>/dev/null; then LATE="-fno-late-combine-instructions"; fi
 "$CC" -noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common $LATE -o "$OUT/Windows" "$HERE/src/windows.c"
-"$CC" -noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common $LATE -o "$OUT/GFOpenWindows" "$HERE/src/openwindows.c" "$HERE/src/gestures.c" "$HERE/src/places.c"
+"$CC" -noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common $LATE -o "$OUT/GFOpenWindows" "$HERE/src/openwindows.c" "$HERE/src/gestures.c" "$HERE/src/places.c" "$HERE/src/wheel.c"
 echo "$OUT/Windows ($(wc -c < "$OUT/Windows") bytes), $OUT/GFOpenWindows ($(wc -c < "$OUT/GFOpenWindows") bytes)"
+# 0.11: WheelTest (tests/amiga/wheeltest.c), the scrollers the wheel moves for a program that doesn't know it
+"$CC" -noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common $LATE -o "$OUT/WheelTest" "$HERE/tests/amiga/wheeltest.c"

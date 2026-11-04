@@ -1,5 +1,5 @@
 #!/bin/sh
-# GFOpenWindows' gesture table (src/gestures.c) and places (src/places.c) built
+# GFOpenWindows' gesture table (src/gestures.c), places (src/places.c) and wheel (src/wheel.c) built
 # for the host and run.
 #   Windows/tests/run.sh          needs a host C compiler (cc or gcc)
 # MIT, Copyright (c) 2026 AmiCradle Team.
@@ -11,3 +11,5 @@ ${CC:-cc} -std=gnu99 -O1 -g -Wall -Wextra -Werror -o "$OUT/test_gestures" "$HERE
 "$OUT/test_gestures"
 ${CC:-cc} -std=gnu99 -O1 -g -Wall -Wextra -Werror -DPLACES_HOST -o "$OUT/test_places" "$HERE/test_places.c" "$HERE/../src/places.c"
 "$OUT/test_places"
+${CC:-cc} -std=gnu99 -O1 -g -Wall -Wextra -Werror -o "$OUT/test_wheel" "$HERE/test_wheel.c" "$HERE/../src/wheel.c"
+"$OUT/test_wheel"
