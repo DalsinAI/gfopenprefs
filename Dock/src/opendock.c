@@ -54,7 +54,7 @@
 #include "obmsg.h"
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenDock 0.6.12 (4.11.2026) GFOpenPrefs, AmiCradle Team";   /* 0.6.12: a Shell command button has the Shell's icon (NewShell) or its C: icon; 0.6.11: wakes once a second at rest, ten times only while the pointer is over it; 0.6.10: no look at the tasks while none start or end; 0.6.9: running programs after a line; 0.6.8: one look at the tasks per check; 0.6.7: its editor is GFOpenPrefs DOCK, never ROM: */
+const char version[] __attribute__((used)) = "$VER: GFOpenDock 0.6.13 (4.11.2026) GFOpenPrefs, AmiCradle Team";   /* 0.6.13: a Shell button, and a running Shell, on a disk with no SYS:System/Shell have the Shell picture in SYS:Prefs/Presets/GFOpenDock; 0.6.12: a Shell command button has the Shell's icon (NewShell) or its C: icon; 0.6.11: wakes once a second at rest, ten times only while the pointer is over it; 0.6.10: no look at the tasks while none start or end; 0.6.9: running programs after a line; 0.6.8: one look at the tasks per check; 0.6.7: its editor is GFOpenPrefs DOCK, never ROM: */
 
 #define PREFS_ENV "ENV:GFOpenDock/Dock"
 #define PREFS_ENVARC "ENVARC:GFOpenDock/Dock"
@@ -213,10 +213,18 @@ static void load_icons(void)
              * the icon beside it in C: when there is one (Instance-32's "Shell" button showed the tool picture) */
             if (b->kind != OD_WB && strchr(prog, ':') == NULL && strchr(prog, '/') == NULL) {
                 char c[300];
-                if (!strcasecmp(prog, "NewShell") || !strcasecmp(prog, "NewCLI"))
+                /* 0.6.13: a disk with no SYS:System/Shell (the open ROM's, Instance-40: NewShell is the ROM's) has the
+                 * Shell picture GFOpenUp's GFOpenDock part puts in SYS:Prefs/Presets/GFOpenDock */
+                if (!strcasecmp(prog, "NewShell") || !strcasecmp(prog, "NewCLI")) {
                     icons[i] = screen_icon("SYS:System/Shell", 0);
+                    if (!icons[i]) icons[i] = screen_icon("SYS:Prefs/Presets/GFOpenDock/Shell", 0);
+                }
                 if (!icons[i]) { snprintf(c, sizeof c, "C:%s", prog); icons[i] = screen_icon(c, 0); }
             }
+            /* 0.6.13: a running Shell is shown as SYS:System/Shell, and a button may name it: on a disk without it
+             * (the open ROM's) the Shell picture in SYS:Prefs/Presets/GFOpenDock too */
+            if (!icons[i] && !strcasecmp(prog, "SYS:System/Shell"))
+                icons[i] = screen_icon("SYS:Prefs/Presets/GFOpenDock/Shell", 0);
             /* 0.6.12: a drawer with no icon of its own (Instance-40's SYS:Prefs) has the drawer's default, not a tool's */
             if (!icons[i] && b->kind == OD_WB) {
                 BPTR l = Lock((STRPTR)prog, ACCESS_READ);
