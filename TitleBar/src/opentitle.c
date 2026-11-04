@@ -92,6 +92,11 @@
  *   or leave behind when another window's title is shown (a drawer's menu turned the logo into a white block on the
  *   see-through bar). The logo window stays for an Intuition that doesn't take it. Cleared again as GFOpenTitle quits.
  *
+ * 0.7.9 (4 November 2026, Dale, 20:50: "the title-bar clock shows Wed 4 Nov twice", "white blobs"): GFOpenTitle also
+ *   holds a public port named "OpenTitle", the name from before the GF rename, which the ROM's own title-bar items
+ *   (OpenKick's OpenBar) look for to step aside. With only "GFOpenTitle" there, OpenBar drew its clock, network,
+ *   speaker and cog a second time over the bar, in a white box.
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -141,7 +146,7 @@
 #include "obmsg.h"
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.7.8 (3.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.7.9 (4.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -2195,6 +2200,36 @@ static ULONG window_sigs(void)
     return m | os_sigs();
 }
 
+/* 0.7.9 (4 November 2026): a second public port under the name from before the GF rename. The ROM's own
+ * title-bar items (OpenKick's OpenBar, amicradle-guest common/openbar) hide while a title program runs, and
+ * the OpenKick ROMs up to full32 look for it only as "OpenTitle": with GFOpenTitle's port alone, OpenBar drew
+ * its clock, network, speaker and cog a second time over the bar, in a white box (Instance-32 after GFOpenUp
+ * 0.8.15, Dale, 4 November 2026, 20:50). Nothing is sent to it; it is only there to be found. */
+#define TB_OLD_PORT "OpenTitle"
+static struct MsgPort *old_port;
+
+static struct MsgPort *old_name_port(const char *name)
+{
+    struct MsgPort *p, *there;
+    Forbid();
+    there = FindPort((STRPTR)name);
+    Permit();
+    if (there || !(p = CreateMsgPort())) return NULL;  /* an OpenTitle from before the rename runs: it's its name */
+    p->mp_Node.ln_Name = (char *)name;
+    p->mp_Node.ln_Pri = -128;                  /* found by name only, after any other port of that name */
+    AddPort(p);
+    return p;
+}
+
+static void old_name_port_end(struct MsgPort *p)
+{
+    struct Message *m;
+    if (!p) return;
+    RemPort(p);
+    while ((m = GetMsg(p))) ReplyMsg(m);
+    DeleteMsgPort(p);
+}
+
 int main(void)
 {
     struct MsgPort *port, *tport = NULL;
@@ -2217,6 +2252,7 @@ int main(void)
     port->mp_Node.ln_Name = (char *)TB_PORT;
     port->mp_Node.ln_Pri = 0;
     AddPort(port);
+    old_port = old_name_port(TB_OLD_PORT);     /* 0.7.9: the ROM's OpenBar steps aside for it */
     ts_reply = CreateMsgPort();
     if ((tport = CreateMsgPort()) && (tr = (struct timerequest *)CreateIORequest(tport, sizeof *tr)))
         timer = !OpenDevice((STRPTR)TIMERNAME, UNIT_VBLANK, (struct IORequest *)tr, 0);
@@ -2362,6 +2398,7 @@ int main(void)
     }
     os_poll(0);                                /* the other screens' cogs closed */
     RemPort(port);                             /* no new icons from here on */
+    old_name_port_end(old_port);
     port_events(port);
     ts_end();
     close_all();
