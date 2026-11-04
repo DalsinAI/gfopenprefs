@@ -102,8 +102,9 @@
 #include "gestures.h"
 #include "places.h"
 #include "wheel.h"
+#include "centre_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.11 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.12 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"
@@ -129,12 +130,13 @@ static struct {
     int nwself;
     int taller;                                  /* 0.8.2: extra rows in every window's title bar (default 4) */
     /* 0.10 (Dale, 4 November 2026): windows with no snapshot open centred; the snapshot gadget */
-    int centre;                                  /* centre on: a window with no snapped place opens centred (off) */
+    int centre;                                  /* centre on: a window with no snapped place opens centred (on since 0.12,
+                                                    centre_prefs.h) */
     int centre_asked;                            /* centre.asked on: one whose program gives its own corner is left there (on) */
     int centre_custom;                           /* centre.custom on: windows on screens that aren't public too (off) */
     int centre_over;                             /* centre.parent on: a window opened while one of its program's own is
                                                     active is centred over that one (requesters, dialogs) (on) */
-    int gadget;                                  /* snapshot.gadget on|off; -1 (no line): as centre */
+    int gadget;                                  /* snapshot.gadget on|off; -1 (no line, or one from before 0.12): as centre */
     char key[48];
     char never[MAX_NEVER][32];
     int nnever;
@@ -163,9 +165,10 @@ static int on_off(const char *s) { return !strncmp(s, "on", 2); }
 static void read_prefs(void)
 {
     char *text = read_file(PREFS_ENV), *p, *line;
+    int cver = 0, cline = -1, gline = -1;        /* 0.12: centre.v, centre and snapshot.gadget as written (centre_prefs.h) */
     memset(&cfg, 0, sizeof cfg);
     cfg.snap = 1; cfg.snap_dist = 12; cfg.halves = 0; cfg.switcher = 1; cfg.wheel_mode = 1; cfg.wheel_lines = 3; cfg.places = 1; cfg.dblfront = 1; cfg.edges = 1; cfg.edge_ptr = 1; cfg.drive_title = 1; cfg.taller = 4;
-    cfg.centre = 0; cfg.centre_asked = 1; cfg.centre_custom = 0; cfg.centre_over = 1; cfg.gadget = -1;
+    cfg.centre = 1; cfg.centre_asked = 1; cfg.centre_custom = 0; cfg.centre_over = 1; cfg.gadget = -1;
     strcpy(cfg.key, "lcommand tab");
     if (!text) return;
     for (p = text; *p; ) {
@@ -192,14 +195,16 @@ static void read_prefs(void)
         else if (!strcmp(line, "title.taller")) cfg.taller = atoi(v);
         else if (!strcmp(line, "places")) cfg.places = on_off(v);
         else if (!strcmp(line, "places.drawers")) cfg.places_wb = on_off(v);
-        else if (!strcmp(line, "centre")) cfg.centre = on_off(v);
+        else if (!strcmp(line, "centre")) cline = on_off(v);
+        else if (!strcmp(line, "centre.v")) cver = atoi(v);
         else if (!strcmp(line, "centre.asked")) cfg.centre_asked = on_off(v);
         else if (!strcmp(line, "centre.custom")) cfg.centre_custom = on_off(v);
         else if (!strcmp(line, "centre.parent")) cfg.centre_over = on_off(v);
-        else if (!strcmp(line, "snapshot.gadget")) cfg.gadget = on_off(v);
+        else if (!strcmp(line, "snapshot.gadget")) gline = on_off(v);
         else if (!strcmp(line, "never") && cfg.nnever < MAX_NEVER) strncpy(cfg.never[cfg.nnever++], v, 31);
         else if (!strcmp(line, "drawer")) { cfg.drawer_w = atoi(v); if (strchr(v, ' ')) cfg.drawer_h = atoi(strchr(v, ' ') + 1); }
     }
+    centre_prefs_resolve(cver, cline, gline, &cfg.centre, &cfg.gadget);
     if (cfg.snap_dist < 2) cfg.snap_dist = 2;
     if (cfg.snap_dist > 64) cfg.snap_dist = 64;
     if (cfg.wheel_lines < 1) cfg.wheel_lines = 1;

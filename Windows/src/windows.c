@@ -36,8 +36,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../Common/looktabs.h"
+#include "centre_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: Windows 0.7 (4.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: Windows 0.8 (4.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PREFS_ENVARC "ENVARC:GFOpenPrefs/Windows"
@@ -60,8 +61,8 @@ struct wprefs {
     /* Intuition's gradient title bars on true-colour public screens (gradient on|off; amicradle-guest
      * docs/design/gradient-title-bars.md); it takes effect when the Workbench opens next */
     int gradient;
-    /* GFOpenWindows 0.10: windows with no snapshot open centred (centre, off unless chosen), its three rules
-     * (centre.asked, centre.parent, centre.custom) and the snapshot gadget (snapshot.gadget; -1, no line: as
+    /* GFOpenWindows 0.10: windows with no snapshot open centred (centre; on since 0.12, centre_prefs.h), its three
+     * rules (centre.asked, centre.parent, centre.custom) and the snapshot gadget (snapshot.gadget; -1, no line: as
      * centre) */
     int centre, centre_asked, centre_over, centre_custom, gadget;
     char key[48];
@@ -111,7 +112,7 @@ static void defaults(struct wprefs *p)
     p->snap = 1; p->snap_dist = 12; p->switcher = 1; p->wheel_target = 0; p->wheel_lines = 3; p->places = 1; p->dblfront = 1; p->edges = 1; p->drive_title = 1;
     p->composite = 1; p->shadows = 1; p->shadow_size = 8; p->shadow_strength = 40; p->drag_opacity = 75; p->inactive_opacity = 100;
     p->gradient = 1;
-    p->centre = 0; p->centre_asked = 1; p->centre_over = 1; p->centre_custom = 0; p->gadget = -1;
+    p->centre = 1; p->centre_asked = 1; p->centre_over = 1; p->centre_custom = 0; p->gadget = -1;   /* 0.8: on (centre_prefs.h) */
     strcpy(p->key, "lcommand tab");
 }
 
@@ -121,6 +122,7 @@ static void defaults(struct wprefs *p)
 static void parse(struct wprefs *p, char *text)
 {
     char *s, *line;
+    int cver = 0, cline = -1, gline = -1;    /* 0.8: centre.v, centre and snapshot.gadget as written (centre_prefs.h) */
     defaults(p);
     if (!text) return;
     for (s = text; *s; ) {
@@ -155,17 +157,19 @@ static void parse(struct wprefs *p, char *text)
         else if (!strcmp(line, "inactive.opacity")) p->inactive_opacity = atoi(v);
         else if (!strcmp(line, "places")) p->places = !strncmp(v, "on", 2);
         else if (!strcmp(line, "places.drawers")) p->places_wb = !strncmp(v, "on", 2);
-        else if (!strcmp(line, "centre")) p->centre = !strncmp(v, "on", 2);
+        else if (!strcmp(line, "centre")) cline = !strncmp(v, "on", 2);
+        else if (!strcmp(line, "centre.v")) cver = atoi(v);
         else if (!strcmp(line, "centre.asked")) p->centre_asked = !strncmp(v, "on", 2);
         else if (!strcmp(line, "centre.parent")) p->centre_over = !strncmp(v, "on", 2);
         else if (!strcmp(line, "centre.custom")) p->centre_custom = !strncmp(v, "on", 2);
-        else if (!strcmp(line, "snapshot.gadget")) p->gadget = !strncmp(v, "on", 2);
+        else if (!strcmp(line, "snapshot.gadget")) gline = !strncmp(v, "on", 2);
         else if (!strcmp(line, "never")) {
             if (p->never[0] && strlen(p->never) + 2 < sizeof p->never) strcat(p->never, ", ");
             strncat(p->never, v, sizeof p->never - strlen(p->never) - 1);
         }
         else if (!strcmp(line, "drawer")) { p->drawer_w = atoi(v); if (strchr(v, ' ')) p->drawer_h = atoi(strchr(v, ' ') + 1); }
     }
+    centre_prefs_resolve(cver, cline, gline, &p->centre, &p->gadget);
 }
 
 static void make_text(const struct wprefs *p, char *out, int size)
@@ -185,8 +189,9 @@ static void make_text(const struct wprefs *p, char *out, int size)
         p->solid ? "on" : "off", p->composite ? "on" : "off", p->shadows ? "on" : "off", p->shadow_size,
         p->shadow_strength, p->drag_opacity, p->inactive_opacity, p->gradient ? "on" : "off");
     /* GFOpenWindows 0.10: centring and the snapshot gadget (no snapshot.gadget line while it follows centring) */
-    len += snprintf(out + len, size - len, "centre %s\ncentre.asked %s\ncentre.parent %s\ncentre.custom %s\n",
-                    p->centre ? "on" : "off", p->centre_asked ? "on" : "off", p->centre_over ? "on" : "off",
+    /* 0.8: "centre.v 2" marks them as chosen here, so GFOpenWindows 0.12 keeps them (centre_prefs.h) */
+    len += snprintf(out + len, size - len, "centre %s\ncentre.v %d\ncentre.asked %s\ncentre.parent %s\ncentre.custom %s\n",
+                    p->centre ? "on" : "off", CENTRE_PREFS_V, p->centre_asked ? "on" : "off", p->centre_over ? "on" : "off",
                     p->centre_custom ? "on" : "off");
     if (p->gadget >= 0) len += snprintf(out + len, size - len, "snapshot.gadget %s\n", p->gadget ? "on" : "off");
     for (k = 0; k < 2; k++) {               /* the never lines, then (0.11) the wheel.self ones */

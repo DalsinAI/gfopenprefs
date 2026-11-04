@@ -235,11 +235,17 @@ open in the centre of the screen until their location is stored via snap", and
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| `centre on` | A window with no snapped place opens centred in the screen's free area: the screen less its title bar and less GFOpenDock's shelf (any borderless window of the dock's task lying along an edge, noted once a second). Placed before it opens, through the same patch and copies of the program's tags as a kept place (no jump). Kept wholly on the screen | **off**: nothing changes for anyone who hasn't chosen it |
+| `centre on` | A window with no snapped place opens centred in the screen's free area: the screen less its title bar and less GFOpenDock's shelf (any borderless window of the dock's task lying along an edge, noted once a second). Placed before it opens, through the same patch and copies of the program's tags as a kept place (no jump). Kept wholly on the screen | **on** since GFOpenWindows 0.12 (was off in 0.10 and 0.11) |
 | `centre.asked on` | A window whose program gives a corner of its own is left there. "Its own" is any corner but 0,0, the left edge under the screen's bar, or a step of up to 64 pixels in from that corner (`place_asked`) | on |
 | `centre.parent on` | A window a program opens while one of its own windows is active (a dialog, a requester) is centred over that window, kept in the free area | on |
 | `centre.custom on` | Windows on screens that aren't public (a game's or a demo's own) are centred too | off |
 | `snapshot.gadget on/off` | The snapshot gadget in title bars. With no line it follows `centre` | as `centre` |
+| `centre.v 2` | Written by the editor from Windows 0.8 beside `centre` and `snapshot.gadget`: those two lines are a choice. Without it they are read as never set (`centre_prefs.h`) | - |
+
+**On by default (GFOpenWindows 0.12, Windows 0.8; Dale, 4 November 2026).** Centring and the snapshot gadget are on
+for new installs and upgrades. The editor of 0.10 and 0.11 (Windows 0.7, in GFOpenUp 0.8.14) wrote `centre off` on
+every Use or Save whether or not it had been touched, so a `centre` or `snapshot.gadget` line without `centre.v 2`
+is taken as never set, and both are on. A choice saved from Windows 0.8 on carries the mark and is kept.
 
 The editor: "Open new windows in the centre of the screen" and "Snapshot gadget in
 title bars (Shift-click forgets)" in both views, the three rules under the first in
