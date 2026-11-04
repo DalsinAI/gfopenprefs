@@ -42,6 +42,7 @@
 
 #define LT_OP 1
 #include "looktabs.h"
+#include "op_why.h"
 
 struct Window *lt_win;
 int lt_next = -1;
@@ -90,6 +91,9 @@ static char lt_note[160];
 static int lt_refused, lt_refused_now, lt_made_tree;
 static char lt_made[240];
 static struct RDArgs *lt_myargs;
+
+static int lt_opened;                      /* the page in hand reached its window (lt_open) */
+static char lt_missing[200];               /* the libraries it couldn't open: "iffparse.library version 39" */
 
 static int lt_pos(int sec) { int i; for (i = 0; i < LT_N; i++) if (lt_order[i] == sec) return i; return 0; }
 
@@ -314,6 +318,7 @@ struct Window *lt_open(struct Screen *scr, int left, int top, int W, int H, stru
     }
     lt_rp = lt_win->RPort;
     lt_draw(lt_win, -1);
+    lt_opened = 1;
     return lt_win;
 }
 
@@ -382,6 +387,46 @@ void lt_shutdown(void)
     if (lt_win) { CloseWindow(lt_win); lt_win = NULL; }
     lt_rp = NULL;
     lt_free_frame();
+}
+
+/* ---- a page that can't start ------------------------------------------------------------------ */
+
+/* A page's OpenLibrary failed (opshift.h): noted, each library once */
+void lt_libfail(CONST_STRPTR name, ULONG version)
+{
+    op_note_lib(lt_missing, sizeof lt_missing, (const char *)name, (unsigned long)version);
+}
+
+/* Before each page */
+void lt_page_begin(void)
+{
+    lt_opened = 0;
+    lt_missing[0] = 0;
+}
+
+/* The page just run ended without reaching its window and without a click on another section or Ctrl-C:
+ * it couldn't start */
+int lt_page_failed_to_start(int rc)
+{
+    return rc >= RETURN_ERROR && !lt_opened && lt_next < 0 && !lt_broken;
+}
+
+/* Say why a page couldn't start: a requester on the window when there is one, else on the default public
+ * screen, and a line on the Shell when GFOpenPrefs was started from one */
+void lt_page_say(int page, int rc, int shell)
+{
+    static char text[400];
+    struct EasyStruct es = { sizeof(struct EasyStruct), 0, (STRPTR)"GFOpenPrefs", (STRPTR)"%s", (STRPTR)"OK" };
+    ULONG args[1];
+    const char *name = page >= 0 && page < LT_N ? lt_label[page] : "That section";
+    op_why(text, sizeof text, name, rc, lt_missing);
+    if (shell) {
+        if (lt_missing[0]) Printf((STRPTR)"%s: %s can't open: it needs %s, which isn't installed (LIBS:)\n", (LONG)lt_prog,
+                                  (LONG)name, (LONG)lt_missing);
+        else Printf((STRPTR)"%s: %s couldn't open (return code %ld)\n", (LONG)lt_prog, (LONG)name, (LONG)rc);
+    }
+    args[0] = (ULONG)text;
+    EasyRequestArgs(lt_win, &es, NULL, args);
 }
 
 void lt_seen(struct IntuiMessage *m)

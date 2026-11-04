@@ -42,6 +42,33 @@ if set(labels) != want or len({l.lower() for l in labels}) != len(labels):
     sys.exit(1)
 print(f'ok   {len(labels)} page names, the user\'s, each one')
 EOF
+# a page that can't start (a library it needs isn't there) is named with that library and version, and the window
+# stays (Instance-40, 4 November 2026: no iffparse.library, nine pages ended GFOpenPrefs with no word)
+HCC=${HOSTCC:-cc}
+if command -v "$HCC" >/dev/null 2>&1; then
+  W=$(mktemp -d)
+  if "$HCC" -std=c99 -Wall -Werror -I"$HERE/src" -o "$W/why_test" "$HERE/tests/why_test.c" "$HERE/src/op_why.c" && "$W/why_test"; then :; else fail=1; fi
+  rm -rf "$W"
+else
+  echo "skipped why_test: no host compiler ($HCC)"
+fi
+python3 - "$HERE/src/openprefs.c" "$HERE/src/opshift.h" <<'EOF' || fail=1
+import re, sys
+src = open(sys.argv[1]).read()
+sh = open(sys.argv[2]).read()
+rw = src[src.index('static int run_window('):]
+rw = rw[:rw.index('\n}\n')]
+bad = []
+if 'lt_page_failed_to_start(rc)' not in rw or 'lt_page_say(' not in rw:
+    bad.append('run_window does not check for a page that can\'t start')
+if not re.search(r'continue;', rw):
+    bad.append('run_window does not stay on the window after a page that can\'t start')
+if not re.search(r'#define OpenLibrary\(n, v\) lt_openlib', sh) or 'lt_libfail(name, version)' not in sh:
+    bad.append('opshift.h does not note the pages\' failed OpenLibrary')
+if bad:
+    print('FAIL ' + '; '.join(bad)); sys.exit(1)
+print('ok   a page that can\'t start is named on a requester and the window stays')
+EOF
 STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32-gcc16}
 if [ ! -x "$STOVE/prefix/bin/m68k-amigaos-gcc" ]; then echo "skipped the build: no stove at $STOVE"; exit $fail; fi
 OGT=${OGT:-$P/../gfopengadtools}
@@ -86,4 +113,14 @@ for o in "$T/out/obj/app/"*.o; do
   fi
 done
 if [ -z "$nowait" ]; then echo "ok   every page waits through the frame (Ctrl-C ends GFOpenPrefs)"; else echo "FAIL pages that wait on their own:$nowait"; fail=1; fi
+# every page object that opens a library notes a failure for the frame (opshift.h lt_openlib): pf_amiga.o is the
+# iffparse.library the nine pages need; an object that opens none has no OpenLibrary call to note
+nolib=""
+for o in "$T/out/obj/app/"*.o; do
+  case $(basename "$o") in pf_amiga.o|appearance.o|menus.o|dockprefs.o|openinput.o|gamepads.o|opendatetime.o|opentypes.o|\
+    opensystem.o|windows.o|sp_amiga.o)
+    "$NM" "$o" | grep -q -E ' U _?lt_libfail$' || nolib="$nolib $(basename "$o")" ;;
+  esac
+done
+if [ -z "$nolib" ]; then echo "ok   every page's OpenLibrary notes a failure for the frame"; else echo "FAIL pages whose failed OpenLibrary goes unsaid:$nolib"; fail=1; fi
 exit $fail

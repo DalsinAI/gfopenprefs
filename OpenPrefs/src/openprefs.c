@@ -45,7 +45,7 @@
 #include "looktabs.h"
 #include "openprefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (25.10.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct Library *UtilityBase;
 
@@ -56,6 +56,9 @@ unsigned long __stack = 32768;
 extern const char *lt_args, *lt_pubname, *lt_prog;
 void lt_shutdown(void);
 void lt_report(void);
+void lt_page_begin(void);                      /* opframe.c: a page that can't start */
+int lt_page_failed_to_start(int rc);
+void lt_page_say(int page, int rc, int shell);
 
 /* The sections by name: GFOpenPrefs SECTION, GFOpenLook PAGE */
 static const struct { const char *name; int page; } sections[] = {
@@ -144,16 +147,34 @@ int op_page(int page, int argc, char **argv)
     return RETURN_FAIL;
 }
 
+static int from_shell;                         /* started from a Shell: a page that can't start says so there too */
+
 /* The window from page on: the first page with the arguments given (argc 0: none, as from Workbench), then
- * whichever section is picked */
+ * whichever section is picked. A page that can't start (a library it needs isn't there: Instance-40, 4 November
+ * 2026, had no iffparse.library and nine pages closed the window with no word) is named on a requester with what
+ * it needs, and the window stays: on the page before it, or Theme when it was the first. Given its own
+ * arguments (GFOpenPrefs SOUND USE, GFOpenSound USE) it says so and ends, as there was no window to stay on. */
 static int run_window(int page, int argc, char **argv)
 {
-    int rc = RETURN_OK, first = 1;
+    int rc = RETURN_OK, first = 1, last = -1, args;
     for (;;) {
+        args = first && (lt_args || argc > 1);
         lt_next = -1;
+        lt_page_begin();
         rc = op_page(page, first ? argc : 0, first ? argv : NULL);
         first = 0;
         lt_args = NULL;
+        if (args) {                            /* no window to stay on: a Shell command's own ending */
+            if (rc >= RETURN_FAIL && lt_page_failed_to_start(rc)) lt_page_say(page, rc, 1);
+            break;
+        }
+        if (lt_page_failed_to_start(rc)) {
+            lt_page_say(page, rc, from_shell);
+            if (last >= 0 && last != page) { page = last; continue; }
+            if (page != LT_LOOK) { page = LT_LOOK; continue; }
+            break;
+        }
+        last = page;
         if (lt_next < 0 || lt_next >= LT_N) break;
         page = lt_next;
     }
@@ -206,7 +227,11 @@ int main(int argc, char **argv)
     int rc = RETURN_OK, page = N_OPENPREFS;
     unsigned i;
     (void)version;
-    if (!(UtilityBase = OpenLibrary((STRPTR)"utility.library", 39))) return RETURN_FAIL;
+    if (!(UtilityBase = OpenLibrary((STRPTR)"utility.library", 39))) {
+        if (argc > 0) PutStr((STRPTR)"GFOpenPrefs needs utility.library version 39\n");
+        return RETURN_FAIL;
+    }
+    from_shell = argc > 0;
     if (argc > 0) name = argv[0];
     else if (argv) {                           /* from Workbench: the icon's name (GFOpenPrefs, or an old name) */
         struct WBStartup *wb = (struct WBStartup *)argv;
