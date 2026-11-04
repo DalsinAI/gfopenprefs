@@ -96,7 +96,7 @@
 #include "gestures.h"
 #include "places.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.10 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.10.1 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"
@@ -805,7 +805,6 @@ static const char *const shape_d2[16] = {                  /* the bottom left co
     ".XoooooX........", ".XXXXXXX........", "................", "................",
 };
 enum { PTR_H, PTR_V, PTR_D1, PTR_D2, PTR_COUNT };
-static struct BitMap *ptr_bm[PTR_COUNT];
 static Object *ptr_obj[PTR_COUNT];
 
 static void make_pointer(int i, const char *const rows[16])
@@ -823,10 +822,13 @@ static void make_pointer(int i, const char *const rows[16])
         *(UWORD *)(bm->Planes[0] + y * bm->BytesPerRow) = p0;
         *(UWORD *)(bm->Planes[1] + y * bm->BytesPerRow) = p1;
     }
-    ptr_bm[i] = bm;
     ptr_obj[i] = NewObject(NULL, (STRPTR)"pointerclass", POINTERA_BitMap, (ULONG)bm, POINTERA_XOffset, -7, POINTERA_YOffset, -7,
                            POINTERA_WordWidth, 1, POINTERA_XResolution, POINTERXRESN_SCREENRES,
                            POINTERA_YResolution, POINTERYRESN_SCREENRESASPECT, TAG_DONE);
+    /* pointerclass keeps its own copy of the picture: the bitmap (Chip RAM)
+     * may go once NewObject returns, as its autodoc allows (0.10.1, Team 5's
+     * chip audit: the four held 256 bytes of Chip RAM for good) */
+    FreeBitMap(bm);
 }
 
 static void pointers_on(void)
@@ -842,8 +844,7 @@ static void pointers_off(void)
     int i;
     for (i = 0; i < PTR_COUNT; i++) {
         if (ptr_obj[i]) DisposeObject(ptr_obj[i]);
-        if (ptr_bm[i]) FreeBitMap(ptr_bm[i]);
-        ptr_obj[i] = NULL; ptr_bm[i] = NULL;
+        ptr_obj[i] = NULL;
     }
 }
 
@@ -2188,7 +2189,7 @@ static void watch(void)
 /* ---- the commodity --------------------------------------------------------------------------- */
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenWindows", (STRPTR)"GFOpenWindows 0.10", (STRPTR)"Snapping, edges, Amiga+Tab, wheel, window places, centring",
+    NB_VERSION, (STRPTR)"GFOpenWindows", (STRPTR)"GFOpenWindows 0.10.1", (STRPTR)"Snapping, edges, Amiga+Tab, wheel, window places, centring",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 static CxObj *broker, *hot_fwd, *hot_back;
