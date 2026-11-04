@@ -37,7 +37,7 @@
 #include <stdlib.h>
 #include "../../Common/looktabs.h"
 
-static const char version[] __attribute__((used)) = "$VER: Windows 0.6.8 (18.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: Windows 0.7 (4.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PREFS_ENVARC "ENVARC:GFOpenPrefs/Windows"
@@ -55,6 +55,10 @@ struct wprefs {
     /* Intuition's gradient title bars on true-colour public screens (gradient on|off; amicradle-guest
      * docs/design/gradient-title-bars.md); it takes effect when the Workbench opens next */
     int gradient;
+    /* GFOpenWindows 0.10: windows with no snapshot open centred (centre, off unless chosen), its three rules
+     * (centre.asked, centre.parent, centre.custom) and the snapshot gadget (snapshot.gadget; -1, no line: as
+     * centre) */
+    int centre, centre_asked, centre_over, centre_custom, gadget;
     char key[48];
     char never[160];
 };
@@ -102,8 +106,12 @@ static void defaults(struct wprefs *p)
     p->snap = 1; p->snap_dist = 12; p->switcher = 1; p->wheel = 1; p->places = 1; p->dblfront = 1; p->edges = 1; p->drive_title = 1;
     p->composite = 1; p->shadows = 1; p->shadow_size = 8; p->shadow_strength = 40; p->drag_opacity = 75; p->inactive_opacity = 100;
     p->gradient = 1;
+    p->centre = 0; p->centre_asked = 1; p->centre_over = 1; p->centre_custom = 0; p->gadget = -1;
     strcpy(p->key, "lcommand tab");
 }
+
+/* the snapshot gadget as it is: its own line, or with none as centring */
+#define GADGET(p) ((p)->gadget >= 0 ? (p)->gadget : (p)->centre)
 
 static void parse(struct wprefs *p, char *text)
 {
@@ -136,6 +144,11 @@ static void parse(struct wprefs *p, char *text)
         else if (!strcmp(line, "inactive.opacity")) p->inactive_opacity = atoi(v);
         else if (!strcmp(line, "places")) p->places = !strncmp(v, "on", 2);
         else if (!strcmp(line, "places.drawers")) p->places_wb = !strncmp(v, "on", 2);
+        else if (!strcmp(line, "centre")) p->centre = !strncmp(v, "on", 2);
+        else if (!strcmp(line, "centre.asked")) p->centre_asked = !strncmp(v, "on", 2);
+        else if (!strcmp(line, "centre.parent")) p->centre_over = !strncmp(v, "on", 2);
+        else if (!strcmp(line, "centre.custom")) p->centre_custom = !strncmp(v, "on", 2);
+        else if (!strcmp(line, "snapshot.gadget")) p->gadget = !strncmp(v, "on", 2);
         else if (!strcmp(line, "never")) {
             if (p->never[0] && strlen(p->never) + 2 < sizeof p->never) strcat(p->never, ", ");
             strncat(p->never, v, sizeof p->never - strlen(p->never) - 1);
@@ -158,6 +171,11 @@ static void make_text(const struct wprefs *p, char *out, int size)
         p->dblfront ? "on" : "off", p->edges ? "on" : "off", p->edge_ptr ? "on" : "off", p->drive_title ? "on" : "off",
         p->solid ? "on" : "off", p->composite ? "on" : "off", p->shadows ? "on" : "off", p->shadow_size,
         p->shadow_strength, p->drag_opacity, p->inactive_opacity, p->gradient ? "on" : "off");
+    /* GFOpenWindows 0.10: centring and the snapshot gadget (no snapshot.gadget line while it follows centring) */
+    len += snprintf(out + len, size - len, "centre %s\ncentre.asked %s\ncentre.parent %s\ncentre.custom %s\n",
+                    p->centre ? "on" : "off", p->centre_asked ? "on" : "off", p->centre_over ? "on" : "off",
+                    p->centre_custom ? "on" : "off");
+    if (p->gadget >= 0) len += snprintf(out + len, size - len, "snapshot.gadget %s\n", p->gadget ? "on" : "off");
     strcpy(never, p->never);
     for (n = never; *n && len < size - 40; n = e) {
         while (*n == ' ' || *n == ',') n++;
@@ -183,7 +201,8 @@ static void tell(void)
     Forbid();
     if ((p = FindPort((STRPTR)"GFOpenWindows")) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
     Permit();
-    if (!p && (cur.snap || cur.switcher || cur.wheel || cur.places || cur.drawer_w || cur.dblfront || cur.edges || cur.drive_title)) {
+    if (!p && (cur.snap || cur.switcher || cur.wheel || cur.places || cur.drawer_w || cur.dblfront || cur.edges || cur.drive_title ||
+               cur.centre || GADGET(&cur))) {
         BPTR in = Open((STRPTR)"NIL:", MODE_OLDFILE), out = Open((STRPTR)"NIL:", MODE_NEWFILE);
         /* asynchronous: both handles are the new process's, closed when it ends */
         if (!in || !out || SystemTags((STRPTR)TOOL, SYS_Input, in, SYS_Output, out, SYS_Asynch, TRUE, SYS_UserShell, TRUE,
@@ -208,6 +227,7 @@ static int put_in_place(int save)
 /* ---- the window ---------------------------------------------------------------------- */
 
 enum { G_SNAP, G_DIST, G_HALVES, G_SWITCH, G_KEY, G_WHEEL, G_DBLFRONT, G_EDGES, G_SOLID, G_DRIVETITLE, G_COMP, G_GRAD, G_PLACES, G_DRAWERS, G_NEVER, G_FORGET, G_DRAWW, G_DRAWH,
+       G_CENTRE, G_SGAD, G_CASKED, G_CPARENT, G_CCUSTOM,
        G_STATUS, G_SAVE, G_USE, G_CANCEL, G_COUNT };
 static struct Gadget *gad[G_COUNT];
 static struct Window *win;
@@ -267,6 +287,11 @@ static void show(void)
     SET(G_DRAWERS, GTCB_Checked, cur.places_wb, GA_Disabled, !cur.places);
     SET(G_DRAWW, GTIN_Number, cur.drawer_w);
     SET(G_DRAWH, GTIN_Number, cur.drawer_h);
+    SET(G_CENTRE, GTCB_Checked, cur.centre);
+    SET(G_SGAD, GTCB_Checked, GADGET(&cur));
+    SET(G_CASKED, GTCB_Checked, cur.centre_asked, GA_Disabled, !cur.centre);
+    SET(G_CPARENT, GTCB_Checked, cur.centre_over, GA_Disabled, !cur.centre);
+    SET(G_CCUSTOM, GTCB_Checked, cur.centre_custom, GA_Disabled, !cur.centre);
 }
 
 static void forget_places(void)
@@ -335,7 +360,9 @@ static int gui_once(void)
     {
         static const char *const longs[] = { "Double-click a title bar to bring the window to the front",
                                              "Resize a window from any edge but its title bar",
-                                             "Drag windows with their contents, not an outline", "Drive windows titled with the name only", NULL };
+                                             "Drag windows with their contents, not an outline", "Drive windows titled with the name only",
+                                             "Open new windows in the centre of the screen",
+                                             "Snapshot gadget in title bars (Shift-click forgets)", NULL };
         int k, t, most = 0;
         comp_off(scr);
         if ((t = TextLength(&scr->RastPort, (STRPTR)compoff_text, strlen(compoff_text))) > most) most = t;
@@ -353,7 +380,7 @@ static int gui_once(void)
     if (compact && W < 620) W = 620;
     /* the paired columns are measured, and the window widens only when they need it (a 600-wide screen keeps it) */
     if (pair) {
-        static const char *const right[] = { "Wheel under pointer", "Workbench drawers too", NULL };
+        static const char *const right[] = { "Wheel under pointer", "Workbench drawers too", "Centre new windows", NULL };
         int k, t, left, need;
         left = 10 + 26 + 8 + TextLength(&scr->RastPort, (STRPTR)"Transparency and shadows", 24);
         if (left < X + 26) left = X + 26;
@@ -383,7 +410,8 @@ static int gui_once(void)
     if (compact) {
         static const char *const left[] = { "Snap to edges", "Window switcher", "Remember places", "Never for", NULL };
         static const char *const right[] = { "Fill a half", "Wheel under pointer", "Workbench drawers too", "Drawers at least", NULL };
-        int k, t, x1 = 0, x2 = 0, mid = (W - 20) / 2 + 10, st = lh + 2, iw = TextLength(&scr->RastPort, (STRPTR)"0000", 4) + 12;
+        /* rows lh + 1 apart (0.10: lh + 2 before the centring row came, which then made 257 lines in Topaz 8) */
+        int k, t, x1 = 0, x2 = 0, mid = (W - 20) / 2 + 10, st = lh + 1, iw = TextLength(&scr->RastPort, (STRPTR)"0000", 4) + 12;
         for (k = 0; left[k]; k++) if ((t = TextLength(&scr->RastPort, (STRPTR)left[k], strlen(left[k]))) > x1) x1 = t;
         for (k = 0; right[k]; k++) if ((t = TextLength(&scr->RastPort, (STRPTR)right[k], strlen(right[k]))) > x2) x2 = t;
         x1 += 10 + 10; x2 += mid + 10;
@@ -405,6 +433,10 @@ static int gui_once(void)
         row += st;
         G(CHECKBOX_KIND, G_COMP, LX, row, 26, lh, "Transparency and shadows", PLACETEXT_RIGHT, GTCB_Scaled, TRUE);
         G(CHECKBOX_KIND, G_GRAD, mid + 10, row, 26, lh, "Gradient title bars", PLACETEXT_RIGHT, GTCB_Scaled, TRUE);
+        row += st;
+        /* 0.10: centring and the snapshot gadget; centring's three rules are kept as written here (the big view has them) */
+        G(CHECKBOX_KIND, G_CENTRE, LX, row, 26, lh, "Centre new windows", PLACETEXT_RIGHT, GTCB_Scaled, TRUE);
+        G(CHECKBOX_KIND, G_SGAD, mid + 10, row, 26, lh, "Snapshot gadget", PLACETEXT_RIGHT, GTCB_Scaled, TRUE);
         row += st + 4;
         G(CHECKBOX_KIND, G_PLACES, x1, row, 26, lh, "Remember places", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
         G(BUTTON_KIND, G_FORGET, x1 + 34, row, mid - 12 - (x1 + 34), lh, "Forget all", 0, GA_Disabled, FALSE);
@@ -422,6 +454,8 @@ static int gui_once(void)
     if (advanced) { G(CHECKBOX_KIND, G_HALVES, X, row, 26, lh, "Fill a half", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 10; }
     G(CHECKBOX_KIND, G_SWITCH, X, row, 26, lh, "Window switcher", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
     if (advanced) G(STRING_KIND, G_KEY, X + 100, row, 160, lh, "key", PLACETEXT_LEFT, GTST_MaxChars, 46);
+    /* 0.10: on a small screen, centring beside the switcher (the snapshot gadget follows it; Advanced has its own switch) */
+    if (pair) G(CHECKBOX_KIND, G_CENTRE, x2, row, 26, lh, "Centre new windows", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
     row += lh + (advanced ? 10 : sp);
     if (!pair) { G(CHECKBOX_KIND, G_WHEEL, X, row, 26, lh, "Wheel under pointer", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + sp; }
     /* a long label: the box in the column with its words after it */
@@ -442,6 +476,24 @@ static int gui_once(void)
     /* Intuition's gradient title bars on true-colour screens (gradient on|off); as above, from the next Workbench */
     G(CHECKBOX_KIND, G_GRAD, pair ? mid + 10 : LX, row, 26, lh, "Gradient title bars", PLACETEXT_RIGHT, GTCB_Scaled, TRUE);
     row += lh + (advanced ? 10 : sp);
+    if (!pair) {
+        /* GFOpenWindows 0.10: windows centred until snapped, and the snapshot gadget; Advanced has centring's rules */
+        G(CHECKBOX_KIND, G_CENTRE, LX, row, 26, lh, "Open new windows in the centre of the screen", PLACETEXT_RIGHT, GTCB_Scaled, TRUE);
+        row += lh + sp;
+        if (advanced) {
+            G(CHECKBOX_KIND, G_CASKED, LX + 30, row, 26, lh, "Leave windows where their program puts them", PLACETEXT_RIGHT,
+              GTCB_Scaled, TRUE);
+            row += lh + sp;
+            G(CHECKBOX_KIND, G_CPARENT, LX + 30, row, 26, lh, "Centre requesters over their window", PLACETEXT_RIGHT, GTCB_Scaled, TRUE);
+            row += lh + sp;
+            G(CHECKBOX_KIND, G_CCUSTOM, LX + 30, row, 26, lh, "Centre on games' and demos' own screens too", PLACETEXT_RIGHT,
+              GTCB_Scaled, TRUE);
+            row += lh + sp;
+        }
+        G(CHECKBOX_KIND, G_SGAD, LX, row, 26, lh, "Snapshot gadget in title bars (Shift-click forgets)", PLACETEXT_RIGHT,
+          GTCB_Scaled, TRUE);
+        row += lh + (advanced ? 10 : sp);
+    }
     G(CHECKBOX_KIND, G_PLACES, X, row, 26, lh, "Remember places", PLACETEXT_LEFT, GTCB_Scaled, TRUE);
     if (advanced) G(BUTTON_KIND, G_FORGET, X + 120, row, 140, lh, "Forget all", 0, GA_Disabled, FALSE);
     if (!pair) row += lh + sp;
@@ -526,6 +578,14 @@ static int gui_once(void)
                 case G_COMP: cur.composite = sel; break;
                 case G_GRAD: cur.gradient = sel; break;
                 case G_PLACES: cur.places = sel; show(); break;
+                case G_CENTRE:
+                    cur.centre = sel; show();     /* the gadget follows unless it was set on its own */
+                    if (sel) status("New windows open centred until snapped with the gadget by the depth gadget.");
+                    break;
+                case G_SGAD: cur.gadget = sel; break;
+                case G_CASKED: cur.centre_asked = sel; break;
+                case G_CPARENT: cur.centre_over = sel; break;
+                case G_CCUSTOM: cur.centre_custom = sel; break;
                 case G_DRAWERS: cur.places_wb = sel; break;
                 case G_NEVER: strncpy(cur.never, str, sizeof cur.never - 1); break;
                 case G_FORGET: forget_places(); break;
