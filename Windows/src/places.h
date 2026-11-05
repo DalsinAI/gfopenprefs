@@ -26,6 +26,17 @@ struct TagItem { unsigned long ti_Tag, ti_Data; };
 #define WA_MaxHeight   (WA_Dummy + 0x12)
 #define WA_InnerWidth  (WA_Dummy + 0x13)
 #define WA_InnerHeight (WA_Dummy + 0x14)
+#define WFLG_SIZEGADGET   0x0001UL
+#define WFLG_DRAGBAR      0x0002UL
+#define WFLG_DEPTHGADGET  0x0004UL
+#define WFLG_CLOSEGADGET  0x0008UL
+#define WFLG_BACKDROP     0x0100UL
+#define WFLG_BORDERLESS   0x0800UL
+#define GTYP_GTYPEMASK    0x0007
+#define GTYP_BOOLGADGET   0x0001
+#define GTYP_CUSTOMGADGET 0x0005
+#define GACT_RELVERIFY    0x0001
+#define GACT_TOGGLESELECT 0x0100
 #else
 #include <utility/tagitem.h>
 #include <intuition/intuition.h>
@@ -119,5 +130,14 @@ void place_centre(const struct place_area *a, short sw, short sh, short w, short
                   short pl, short pt, short pw, short ph, short *l, short *t);
 /* 1 when centring leaves the window as it is: as big as the screen (or its area) either way */
 int place_too_big(const struct place_area *a, short sw, short sh, short w, short h);
+
+/* 0.12.1 (Dale, 5 November 2026: no snapshot gadget on system requesters): 1 for a window shaped as the
+ * requesters Intuition opens inside itself (EasyRequest, BuildEasyRequest, AutoRequest, BuildSysRequest), which
+ * the patch never sees open: a drag bar and a depth gadget, no close or size gadget, not a backdrop or
+ * borderless, no menus, and only buttons of its own (1 to PLACE_SYSREQ_GADS boolean or BOOPSI gadgets that
+ * answer on release, none a toggle). flags is Window.Flags; types and activation are its own (not system)
+ * gadgets' GadgetType and Activation, n of them. */
+#define PLACE_SYSREQ_GADS 16
+int place_sysreq(unsigned long flags, int menus, int n, const unsigned short *types, const unsigned short *activation);
 
 #endif

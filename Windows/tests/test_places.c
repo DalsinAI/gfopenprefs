@@ -389,6 +389,31 @@ int main(void)
               "a corner worked out (MultiView's and ASL's centred 480,180, anywhere further in): the program's own, left there");
     }
 
+    {   /* 0.12.1: system requesters get no snapshot gadget */
+        const unsigned long req = WFLG_DRAGBAR | WFLG_DEPTHGADGET | 0x1000UL | 0x20000UL;   /* + ACTIVATE, NOCAREREFRESH */
+        unsigned short bt[3] = { GTYP_BOOLGADGET, GTYP_BOOLGADGET, GTYP_BOOLGADGET }, ba[3] = { GACT_RELVERIFY, GACT_RELVERIFY, GACT_RELVERIFY };
+        unsigned short rt[2] = { GTYP_BOOLGADGET | 0x1000, GTYP_CUSTOMGADGET }, sg[2] = { GTYP_BOOLGADGET, 0x0004 /* string */ };
+        unsigned short tg[2] = { GACT_RELVERIFY, GACT_RELVERIFY | GACT_TOGGLESELECT }, many[PLACE_SYSREQ_GADS + 1];
+        int k;
+        for (k = 0; k <= PLACE_SYSREQ_GADS; k++) many[k] = k < 3 ? bt[k] : GTYP_BOOLGADGET;
+        CHECK(place_sysreq(req, 0, 3, bt, ba), "EasyRequest's window (Retry | Assign | Cancel): a requester");
+        CHECK(place_sysreq(req, 0, 1, bt, ba), "one button (Continue): a requester");
+        CHECK(place_sysreq(req, 0, 2, rt, ba), "REQGADGET-typed and BOOPSI buttons: a requester");
+        CHECK(!place_sysreq(req | WFLG_CLOSEGADGET, 0, 3, bt, ba), "a close gadget: a program's window");
+        CHECK(!place_sysreq(req | WFLG_SIZEGADGET, 0, 3, bt, ba), "a size gadget: a program's window");
+        CHECK(!place_sysreq(req & ~WFLG_DRAGBAR, 0, 3, bt, ba) && !place_sysreq(req & ~WFLG_DEPTHGADGET, 0, 3, bt, ba),
+              "no drag bar or no depth gadget: not one");
+        CHECK(!place_sysreq(req | WFLG_BACKDROP, 0, 3, bt, ba) && !place_sysreq(req | WFLG_BORDERLESS, 0, 3, bt, ba),
+              "backdrop or borderless: not one");
+        CHECK(!place_sysreq(req, 1, 3, bt, ba), "menus: a program's window");
+        CHECK(!place_sysreq(req, 0, 0, bt, ba), "no gadgets of its own: not one");
+        CHECK(!place_sysreq(req, 0, 2, sg, ba), "a string gadget: a program's dialog");
+        CHECK(!place_sysreq(req, 0, 2, bt, tg), "a toggle: not one");
+        CHECK(!place_sysreq(req, 0, PLACE_SYSREQ_GADS + 1, many, many) && place_sysreq(req, 0, PLACE_SYSREQ_GADS, many,
+              (unsigned short[PLACE_SYSREQ_GADS]){ [0 ... PLACE_SYSREQ_GADS - 1] = GACT_RELVERIFY }),
+              "more buttons than a requester has: not one");
+    }
+
     printf("test_places: %d checks, %d failed\n", checks, fails);
     return fails != 0;
 }
