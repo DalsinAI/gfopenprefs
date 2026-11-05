@@ -104,7 +104,7 @@
 #include "wheel.h"
 #include "centre_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.12 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.12.1 (5.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"
@@ -2216,6 +2216,20 @@ static int key_snapped(const char *key)
     return s;
 }
 
+/* 0.12.1: 1 when w is shaped as a system requester Intuition opened itself (place_sysreq): its own gadgets */
+static int sysreq_window(struct Window *w)
+{
+    UWORD types[PLACE_SYSREQ_GADS], act[PLACE_SYSREQ_GADS];
+    struct Gadget *x;
+    int n = 0;
+    for (x = w->FirstGadget; x; x = x->NextGadget) {
+        if (x->GadgetType & GTYP_SYSGADGET) continue;
+        if (n == PLACE_SYSREQ_GADS) return 0;
+        types[n] = x->GadgetType; act[n] = x->Activation; n++;
+    }
+    return place_sysreq(w->Flags, w->MenuStrip != NULL, n, types, act);
+}
+
 /* The snapshot gadget onto w, when it is one to have it. from_look 0: on the opening task, from the patch,
  * just after the window opened; 1: on the main task, for a window that opened without the patch seeing it. */
 static void snap_attach(struct Window *w, int from_look)
@@ -2227,6 +2241,9 @@ static void snap_attach(struct Window *w, int from_look)
     int pos, dpos = -1, k, ok = 0, wb, drawer;
     if (!snap_accept || !snap_class || (w->Flags & (WFLG_BACKDROP | WFLG_BORDERLESS))) return;
     if (!screen_public(s)) return;
+    /* 0.12.1: never onto a system requester (Team 5's lab, 5 November 2026: the look gave a dos requester over a
+     * Shell one); the patch never sees those open, so only the look's windows are asked */
+    if (from_look && sysreq_window(w)) return;
     if (from_look) program_of(w, prog, sizeof prog);
     else program_of_task(FindTask(NULL), prog, sizeof prog);
     wb = place_workbench(prog, (w->Flags & WFLG_WBENCHWINDOW) != 0);

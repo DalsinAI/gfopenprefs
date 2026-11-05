@@ -252,3 +252,18 @@ void place_order(const struct place *pl, int n, int *order)
         order[j] = k;
     }
 }
+
+/* 0.12.1: a system requester's shape (places.h) */
+int place_sysreq(unsigned long flags, int menus, int n, const unsigned short *types, const unsigned short *activation)
+{
+    int i;
+    if ((flags & (WFLG_DRAGBAR | WFLG_DEPTHGADGET)) != (WFLG_DRAGBAR | WFLG_DEPTHGADGET)) return 0;
+    if (flags & (WFLG_CLOSEGADGET | WFLG_SIZEGADGET | WFLG_BACKDROP | WFLG_BORDERLESS)) return 0;
+    if (menus || n < 1 || n > PLACE_SYSREQ_GADS) return 0;
+    for (i = 0; i < n; i++) {
+        int t = types[i] & GTYP_GTYPEMASK;
+        if (t != GTYP_BOOLGADGET && t != GTYP_CUSTOMGADGET) return 0;
+        if (!(activation[i] & GACT_RELVERIFY) || (activation[i] & GACT_TOGGLESELECT)) return 0;
+    }
+    return 1;
+}
