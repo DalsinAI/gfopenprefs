@@ -24,6 +24,12 @@
 #define IC_CORRECT_RATIO  0x00000020UL
 #define IC_OFFSCRNWIN     0x00008000UL    /* windows may be dragged off the screen */
 
+/* GFOpen's own settings in the chunk's reserved longs (GFOpenIntuition's prefs_core.h): the first is IC_GFOI when
+ * the second holds GFOpen's flags; IC_GF_REQCORNER puts the system requesters at the screen's top left, where OS
+ * 3.2.3 does, instead of centred over their window. A file another editor wrote has 0 there: centred. */
+#define IC_GFOI           0x47464F49UL    /* 'GFOI' */
+#define IC_GF_REQCORNER   0x00000001UL
+
 /* the qualifiers that drag a screen with the mouse (devices/inputevent.h) */
 #define IC_Q_LSHIFT   0x0001
 #define IC_Q_CONTROL  0x0008
@@ -35,6 +41,7 @@ typedef struct ic_prefs {
     int metadrag;                 /* IC_Q_ bits */
     uint32_t flags;               /* IC_ bits, and any others the file has */
     char keys[4];                 /* Amiga-key shortcuts: Workbench to front, front screen to back, OK, Cancel */
+    int centre_requesters;        /* system requesters centred over their window (1, the default), or 3.2.3's corner */
 } ic_prefs;
 
 void ic_defaults(ic_prefs *p);

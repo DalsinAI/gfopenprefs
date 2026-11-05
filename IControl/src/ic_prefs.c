@@ -20,6 +20,7 @@ void ic_defaults(ic_prefs *p)
     p->keys[1] = 'M';
     p->keys[2] = 'V';
     p->keys[3] = 'B';
+    p->centre_requesters = 1;
 }
 
 int ic_get(const pf_file *f, ic_prefs *out)
@@ -33,6 +34,7 @@ int ic_get(const pf_file *f, ic_prefs *out)
     out->metadrag = (int16_t)pf_get16(d + 18);
     out->flags = pf_get32(d + 20);
     memcpy(out->keys, d + 24, 4);
+    out->centre_requesters = !(pf_get32(d) == IC_GFOI && (pf_get32(d + 4) & IC_GF_REQCORNER));
     return 1;
 }
 
@@ -48,6 +50,14 @@ int ic_put(pf_file *f, const ic_prefs *in)
     pf_put16(p + 18, (uint16_t)in->metadrag);
     pf_put32(p + 20, in->flags);
     memcpy(p + 24, in->keys, 4);
+    /* GFOpen's requester flag: marked as GFOpen's when it is set; centred (the default) leaves a file that has no
+     * mark as it was */
+    if (!in->centre_requesters) {
+        pf_put32(p, IC_GFOI);
+        pf_put32(p + 4, pf_get32(p + 4) | IC_GF_REQCORNER);
+    } else if (pf_get32(p) == IC_GFOI) {
+        pf_put32(p + 4, pf_get32(p + 4) & ~IC_GF_REQCORNER);
+    }
     ok = i >= 0 ? pf_set(f, i, p, n) : pf_add(f, IC_ICTL, p, n);
     free(p);
     return ok;

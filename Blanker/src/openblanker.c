@@ -39,16 +39,17 @@
 #include <proto/intuition.h>
 #include <proto/graphics.h>
 #include <proto/commodities.h>
+#include <proto/diskfont.h>
 #include "openfont_text.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.2 (24.10.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.4 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
-struct Library *CxBase, *OpenFontTextBase;
+struct Library *CxBase, *OpenFontTextBase, *DiskfontBase;
 
 static struct Task *me;
 static volatile ULONG idle_ticks;      /* seconds since the last key or mouse */
@@ -123,16 +124,57 @@ static void set_level(int level)   /* 0..256: how far the pens have come up from
     }
 }
 
-static struct TextFont *font(const char *name, int px)
+/* 1.3: the font at the size asked for, or none. gfopenfont.library 1.5 and
+ * openfont.library 1.4 can't draw OS 3.2's Intellifont outlines (CGTriumvirate
+ * and CGTimes are .type files) and gave back whatever size of the font was
+ * already in memory: a 13-pixel CGTriumvirate for an 83-pixel title, or none,
+ * and the credits came out in topaz (Instance-32, 4 November 2026). A font
+ * that isn't the size asked for is put back, and diskfont.library, which has
+ * the system's bullet.library draw them, is asked next; topaz 8 is the last. */
+static struct TextFont *sized(struct TextFont *f, int px)
 {
-    struct TextAttr ta;
-    struct TextFont *f;
-    if (px < 8) px = 8;
-    ta.ta_Name = (STRPTR)name; ta.ta_YSize = (UWORD)px; ta.ta_Style = FS_NORMAL; ta.ta_Flags = FPF_DISKFONT;
-    f = OpenFontTextBase ? openfont_text_font(OpenFontTextBase, &ta) : NULL;     /* an outline font: made at this size */
-    if (!f) { ta.ta_Name = (STRPTR)"topaz.font"; ta.ta_YSize = 8; ta.ta_Flags = FPF_ROMFONT; f = OpenFont(&ta); }
+    if (f && f->tf_YSize != px) { CloseFont(f); f = NULL; }
     return f;
 }
+
+/* one font at the size asked for. OS 3.2's own outlines (a name without a drawer: CGTriumvirate, CGTimes) from
+ * diskfont.library first, which has the system's bullet.library draw them as the system does (gfopenfont.library
+ * 1.6 and 1.7 hand them to bullet.library too, but gave their space no width: Instance-32's copy showed
+ * "JayMiner"); ours (FONTS:GFOpenBlanker/...) from gfopenfont.library first, which reads their OT_YSizeFactor. */
+static struct TextFont *try_font(const char *name, int px)
+{
+    struct TextAttr ta;
+    struct TextFont *f = NULL;
+    int ours = strchr(name, ':') != NULL, i;
+    ta.ta_Name = (STRPTR)name; ta.ta_YSize = (UWORD)px; ta.ta_Style = FS_NORMAL; ta.ta_Flags = FPF_DISKFONT;
+    for (i = 0; i < 2 && !f; i++) {
+        if ((i == 0) == ours) {
+            if (OpenFontTextBase) f = sized(openfont_text_font(OpenFontTextBase, &ta), px);   /* an outline font: made at this size */
+        } else {
+            if (!DiskfontBase) DiskfontBase = OpenLibrary((STRPTR)"diskfont.library", 36);
+            if (DiskfontBase) f = sized(OpenDiskFont(&ta), px);
+        }
+    }
+    return f;
+}
+
+/* 1.4: the first of a list of fonts there is at the size asked for. OS 3.2's CGTriumvirate and CGTimes come first
+ * (Instance-32); a disk without them (the open ROM's, Instance-40, had the credits in topaz) has DejaVu Sans and
+ * DejaVu Serif in FONTS:GFOpenBlanker, which GFOpenUp's GFOpenBlanker part brings: free (DejaVu fonts 2.37), drawn
+ * by gfopenfont.library, their .otags' OT_YSizeFactor fitting ascent and descent to the size (gfopenfont.library
+ * 1.7). topaz 8 is the last. */
+static struct TextFont *font(const char *const *names, int px)
+{
+    struct TextAttr ta;
+    struct TextFont *f = NULL;
+    if (px < 8) px = 8;
+    for (; *names && !f; names++) f = try_font(*names, px);
+    if (!f) { ta.ta_Name = (STRPTR)"topaz.font"; ta.ta_YSize = 8; ta.ta_Style = FS_NORMAL; ta.ta_Flags = FPF_ROMFONT; f = OpenFont(&ta); }
+    return f;
+}
+
+static const char *const sans[] = { "CGTriumvirate.font", "FONTS:GFOpenBlanker/DejaVuSans.font", NULL };
+static const char *const serif[] = { "CGTimes.font", "FONTS:GFOpenBlanker/DejaVuSerif.font", "FONTS:GFOpenBlanker/DejaVuSans.font", NULL };
 
 static void style_of(int style, struct TextFont **f, int *pen, int *soft)
 {
@@ -248,12 +290,12 @@ static int open_show(void)
     if (!scr) return 0;
     {
         int H = scr->Height;
-        f_title = font("CGTriumvirate.font", H / 13);
-        f_sans_big = font("CGTriumvirate.font", H / 15);
-        f_sans_mid = font("CGTriumvirate.font", H / 30);
-        f_sans_small = font("CGTriumvirate.font", H / 40);
-        f_serif = font("CGTimes.font", H / 22);
-        f_serif_small = font("CGTimes.font", H / 30);
+        f_title = font(sans, H / 13);
+        f_sans_big = font(sans, H / 15);
+        f_sans_mid = font(sans, H / 30);
+        f_sans_small = font(sans, H / 40);
+        f_serif = font(serif, H / 22);
+        f_serif_small = font(serif, H / 30);
     }
     SetRGB32(&scr->ViewPort, P_BG, c32(full[0][0]), c32(full[0][1]), c32(full[0][2]));
     set_level(0);
@@ -416,6 +458,7 @@ out:
     if (port) { struct Message *msg; if (port->mp_Node.ln_Name) RemPort(port); while ((msg = GetMsg(port))) ReplyMsg(msg); DeleteMsgPort(port); }
     if (rd) FreeArgs(rd);
     if (OpenFontTextBase) CloseLibrary(OpenFontTextBase);
+    if (DiskfontBase) CloseLibrary(DiskfontBase);
     if (CxBase) CloseLibrary(CxBase);
     if (GfxBase) CloseLibrary((struct Library *)GfxBase);
     if (IntuitionBase) CloseLibrary((struct Library *)IntuitionBase);

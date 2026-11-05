@@ -68,6 +68,10 @@ const char version[] __attribute__((used)) = "$VER: Look 0.5.1 (12.10.2026) GFOp
 #define PREFS_ENVARC "ENVARC:GFOpenGadTools/Look"
 #define THEME_DIR "SYS:Prefs/Presets/Themes"
 #define PROFILE_DIR "SYS:Prefs/Presets/GFOpenPrefs"
+/* the profiles' drawer before the rename of 1 November 2026 (Open* to GFOpen*): an install from then has its profiles
+ * there, and GFOpenUp put them nowhere since 0.8.2; read it when PROFILE_DIR has none (Instance-32, 4 November 2026) */
+#define PROFILE_DIR_OLD "SYS:Prefs/Presets/OpenPrefs"
+static const char *profile_dir = PROFILE_DIR;
 #define FONT_ENV "ENV:Sys/font.prefs"
 #define FONT_ENVARC "ENVARC:Sys/font.prefs"
 #define CTF_TOOL "SYS:Tools/Commodities/ClickToFront"
@@ -204,7 +208,7 @@ static void parse_look(struct look *l, const char *text)
                 } else if (!strcmp(w, "oldapp") && word(&p, v, sizeof v)) {
                     char f[8];
                     int x = word(&p, f, sizeof f) ? atoi(f) : 2;
-                    char one[48];
+                    char one[sizeof v + 8];   /* v, a space and 2 to 4: GCC 16 checks the room (-Werror=format-truncation) */
                     snprintf(one, sizeof one, "%s %d", v, x >= 2 && x <= 4 ? x : 2);
                     if (l->oldapps[0]) strncat(l->oldapps, ", ", sizeof l->oldapps - strlen(l->oldapps) - 1);
                     strncat(l->oldapps, one, sizeof l->oldapps - strlen(l->oldapps) - 1);
@@ -660,7 +664,7 @@ static void apply_profile(int i)
 {
     char path[160];
     char *text;
-    snprintf(path, sizeof path, PROFILE_DIR "/%s.profile", profile_names[i]);
+    snprintf(path, sizeof path, "%s/%s.profile", profile_dir, profile_names[i]);
     if (!(text = read_file(path, NULL))) { status("That profile can't be read."); return; }
     {
         int keep_auto = cur.profile_auto;
@@ -734,6 +738,8 @@ static int gui_once(void)
     profile_labels[nprofiles] = NULL;
     strcpy(status_text, cur.profile_auto ? "By machine is on: GFOpenLook uses the profile that fits this machine."
                                          : "Choose a theme. Test shows it for 15 seconds.");
+    /* no themes on the disk (an install without SYS:Prefs/Presets/Themes: GFOpenUp 0.8.2 to 0.8.13 put none there) */
+    if (!nthemes) strcpy(status_text, "No themes are installed (SYS:Prefs/Presets/Themes is empty): GFOpenUp puts them there.");
 
     g = CreateContext(&glist);
     memset(&ng, 0, sizeof ng);
@@ -1031,7 +1037,12 @@ int main(int argc, char **argv)
     advanced = args[3] ? 1 : read_view();
     if (rd) FreeArgs(rd);
     list_dir(THEME_DIR, ".theme", theme_names, MAX_THEMES, &nthemes);
+    profile_dir = PROFILE_DIR;
     list_dir(PROFILE_DIR, ".profile", profile_names, MAX_PROFILES, &nprofiles);
+    if (!nprofiles) {
+        profile_dir = PROFILE_DIR_OLD;
+        list_dir(PROFILE_DIR_OLD, ".profile", profile_names, MAX_PROFILES, &nprofiles);
+    }
     rc = gui();
     if (preview_loaded) ogt_theme_free(&preview_theme);
     return rc;

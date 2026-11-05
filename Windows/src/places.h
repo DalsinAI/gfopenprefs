@@ -26,6 +26,17 @@ struct TagItem { unsigned long ti_Tag, ti_Data; };
 #define WA_MaxHeight   (WA_Dummy + 0x12)
 #define WA_InnerWidth  (WA_Dummy + 0x13)
 #define WA_InnerHeight (WA_Dummy + 0x14)
+#define WFLG_SIZEGADGET   0x0001UL
+#define WFLG_DRAGBAR      0x0002UL
+#define WFLG_DEPTHGADGET  0x0004UL
+#define WFLG_CLOSEGADGET  0x0008UL
+#define WFLG_BACKDROP     0x0100UL
+#define WFLG_BORDERLESS   0x0800UL
+#define GTYP_GTYPEMASK    0x0007
+#define GTYP_BOOLGADGET   0x0001
+#define GTYP_CUSTOMGADGET 0x0005
+#define GACT_RELVERIFY    0x0001
+#define GACT_TOGGLESELECT 0x0100
 #else
 #include <utility/tagitem.h>
 #include <intuition/intuition.h>
@@ -34,7 +45,11 @@ struct TagItem { unsigned long ti_Tag, ti_Data; };
 #define PLACES_MAX 128                      /* 0.9.2: 64 before, and the file was full */
 #define PLACE_TAGS_MAX 512                  /* a program's tag list longer than this is opened as it asks */
 
-struct place { char key[64]; short l, t, w, h; unsigned long used; };
+/* snap (0.10): the place was stored by the snap gadget (the file's line ends " snap"). A snapped place is
+ * pinned: the look never moves it to where the window was later left, and with "centre on" it is the only
+ * kind of place there is (a window with none opens centred). Older GFOpenWindows read the line's four
+ * numbers and ignore the word. */
+struct place { char key[64]; short l, t, w, h; unsigned long used; unsigned char snap; };
 
 /* "program:title", the title cut at its first digit, bracket or quote (a count
  * or a file name in it still matches), at 30 characters, spaces off its end */
@@ -91,5 +106,38 @@ int place_parse(const char *line, struct place *pl);
  * written so, and read back with used = the line's number, so which places
  * were used last survives a restart (0.9.2) */
 void place_order(const struct place *pl, int n, int *order);
+/* Takes the entry at i out of the table (shift-click on the snap gadget: forget) */
+void place_remove(struct place *pl, int *n, int i);
+
+/* ---- centring (0.10, "centre on") ----
+ *
+ * The area a window is centred in: the screen less its title bar (bar: the screen's BarHeight, so
+ * bar + 1 rows) and less what a dock along an edge covers. Right and bottom are exclusive. */
+struct place_area { short l, t, r, b; };
+void place_area_init(struct place_area *a, short sw, short sh, short bar);
+/* A window (wl, wt, ww, wh) that stands along an edge of the screen (within 16 pixels of it, longer along
+ * the edge than across it) takes its depth off the area on that side: GFOpenDock's shelf. Others: nothing. */
+void place_area_reserve(struct place_area *a, short sw, short sh, short wl, short wt, short ww, short wh);
+/* A program asks for a corner of its own when it gives one that is not a default: 0,0, the left edge under the
+ * screen's title bar, or within PLACE_NEAR pixels of the screen's top left below the bar, which programs give to
+ * mean "anywhere" (GFOpenPrefs' editors 40,33; CON: 0,0). given 0: it gives no corner at all. */
+#define PLACE_NEAR 64
+int place_asked(int given, short l, short t, short bar);
+/* Where a w x h window goes, centred in the area, or centred over its parent (pw > 0: the parent's box
+ * pl, pt, pw, ph) and kept in the area. Kept wholly on the screen (sw, sh): when it is bigger than the area,
+ * the area's top left first, then the screen's. */
+void place_centre(const struct place_area *a, short sw, short sh, short w, short h,
+                  short pl, short pt, short pw, short ph, short *l, short *t);
+/* 1 when centring leaves the window as it is: as big as the screen (or its area) either way */
+int place_too_big(const struct place_area *a, short sw, short sh, short w, short h);
+
+/* 0.12.1 (Dale, 5 November 2026: no snapshot gadget on system requesters): 1 for a window shaped as the
+ * requesters Intuition opens inside itself (EasyRequest, BuildEasyRequest, AutoRequest, BuildSysRequest), which
+ * the patch never sees open: a drag bar and a depth gadget, no close or size gadget, not a backdrop or
+ * borderless, no menus, and only buttons of its own (1 to PLACE_SYSREQ_GADS boolean or BOOPSI gadgets that
+ * answer on release, none a toggle). flags is Window.Flags; types and activation are its own (not system)
+ * gadgets' GadgetType and Activation, n of them. */
+#define PLACE_SYSREQ_GADS 16
+int place_sysreq(unsigned long flags, int menus, int n, const unsigned short *types, const unsigned short *activation);
 
 #endif

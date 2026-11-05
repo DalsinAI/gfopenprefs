@@ -44,6 +44,10 @@
  * taller as it starts) its window is made again for the new height, as
  * GFOpenTitle 0.6.11's are.
  *
+ * 0.1.8 (4 November 2026): also a public port named "OpenSpeaker", the name from before the GF rename, which the
+ * ROM's own title-bar items (OpenKick's OpenBar) look for to leave the speaker to it (GFOpenTitle 0.7.9 does the same
+ * with "OpenTitle").
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -79,7 +83,10 @@
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 #include "../../Common/idlepace.h"           /* the tick slowed when nobody is there */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.1.7 (01.11.2026) GFOpenPrefs, AmiCradle Team";
+#define SP_OLD_PORT "OpenSpeaker"            /* 0.1.8: SP_SPEAKER_PORT before the GF rename */
+static struct MsgPort *old_port;
+
+const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.1.8 (04.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct Library *CyberGfxBase;
@@ -585,6 +592,13 @@ int main(void)
     if (!(broker = CxBroker(&nb, NULL))) goto out;
     port->mp_Node.ln_Name = (char *)SP_SPEAKER_PORT;       /* Sound prefs finds this task by it */
     AddPort(port);
+    Forbid();
+    if (!FindPort((STRPTR)SP_OLD_PORT) && (old_port = CreateMsgPort())) {  /* 0.1.8: the ROM's OpenBar finds it */
+        old_port->mp_Node.ln_Name = (char *)SP_OLD_PORT;
+        old_port->mp_Node.ln_Pri = -128;
+        AddPort(old_port);
+    }
+    Permit();
     if (!(cust = CxCustom(custom, 0))) goto out;
     AttachCxObj(broker, cust);
     if ((tport = CreateMsgPort()) && (tr = (struct timerequest *)CreateIORequest(tport, sizeof *tr)))
@@ -684,6 +698,12 @@ out:
     if (timer) { if (!CheckIO((struct IORequest *)tr)) AbortIO((struct IORequest *)tr); WaitIO((struct IORequest *)tr); CloseDevice((struct IORequest *)tr); }
     if (tr) DeleteIORequest((struct IORequest *)tr);
     if (tport) DeleteMsgPort(tport);
+    if (old_port) {
+        struct Message *m;
+        RemPort(old_port);
+        while ((m = GetMsg(old_port))) ReplyMsg(m);
+        DeleteMsgPort(old_port);
+    }
     if (port) {
         struct Message *m;
         if (port->mp_Node.ln_Name) RemPort(port);

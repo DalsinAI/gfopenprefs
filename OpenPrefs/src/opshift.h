@@ -154,6 +154,22 @@ static inline __attribute__((unused)) struct IntuiMessage *lt_getimsg(struct Msg
 #undef GT_GetIMsg
 #define GT_GetIMsg(p) lt_getimsg(p)
 
+/* ---- the libraries a page couldn't open ---- */
+/* A page's OpenLibrary that fails is noted (opframe.c lt_libfail), so a page that then can't start is named with
+ * the library and version it needs, on a requester, and GFOpenPrefs stays on its window instead of ending with no
+ * word (Instance-40, 4 November 2026: no iffparse.library on the open ROM's disk, and Screen Mode, Pointer, Fonts,
+ * Colours, Backdrops, Workbench, File Requesters, IControl and Printing closed the window). A library a page can do
+ * without (asl.library) is noted too, and named only if the page then fails. */
+void lt_libfail(CONST_STRPTR name, ULONG version);
+static inline __attribute__((unused)) struct Library *lt_openlib(CONST_STRPTR name, ULONG version)
+{
+    struct Library *l = __OpenLibrary_base(EXEC_BASE_NAME, name, version);
+    if (!l) lt_libfail(name, version);
+    return l;
+}
+#undef OpenLibrary
+#define OpenLibrary(n, v) lt_openlib((CONST_STRPTR)(n), (ULONG)(v))
+
 /* ---- Ctrl-C ends GFOpenPrefs: the page's waits take it ---- */
 ULONG lt_wait(ULONG sigs);
 struct Message *lt_waitport(struct MsgPort *port);

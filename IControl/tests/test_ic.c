@@ -50,6 +50,26 @@ int main(void)
         CHECK(g.ch[1].len == 38 && g.ch[1].data[20] == 0x80 && g.ch[1].data[23] == 0x1a && g.ch[1].data[29] == 2 &&
               g.ch[1].data[33] == 0x5a && g.ch[1].data[37] == 1, "3.2's fields kept, the versioned bit too");
     }
+    {
+        /* Centre requesters (Dale, 5 November 2026): on by default and in a file with no GFOpen mark; off writes
+         * 'GFOI' and bit 0 of the next long, on again clears the bit; the rest of the chunk as it was */
+        static const uint8_t off[8] = { 'G', 'F', 'O', 'I', 0, 0, 0, 1 };
+        CHECK(p.centre_requesters == 1 && r.centre_requesters == 1, "centred by default and with no mark");
+        CHECK(!memcmp(g.ch[1].data, "\0\0\0\0\0\0\0\0", 8), "centred: the reserved longs untouched");
+        r.centre_requesters = 0;
+        CHECK(ic_put(&g, &r) && !memcmp(g.ch[1].data, off, 8) && g.ch[1].len == 38 && g.ch[1].data[33] == 0x5a,
+              "off: GFOpen's mark and flag");
+        ic_get(&g, &r);
+        CHECK(r.centre_requesters == 0 && r.timeout == 100, "off read back");
+        r.centre_requesters = 1;
+        CHECK(ic_put(&g, &r) && !memcmp(g.ch[1].data, "GFOI\0\0\0\0", 8), "on again: the flag cleared");
+        ic_get(&g, &r);
+        CHECK(r.centre_requesters == 1, "on read back");
+        g.ch[1].data[0] = 'X';
+        g.ch[1].data[7] = 1;
+        ic_get(&g, &r);
+        CHECK(r.centre_requesters == 1, "the bit without GFOpen's mark: centred");
+    }
     pf_free(&f);
     pf_free(&g);
     printf("%s: %d checks, %d failed\n", fails ? "FAIL" : "ok", checks, fails);
