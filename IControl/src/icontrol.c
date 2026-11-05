@@ -8,10 +8,14 @@
  *     (Workbench to front, front screen to back, a requester's OK and Cancel)
  *   - avoid flicker, preserve colours, mode promotion, menu snap, the text gadget filter, and windows dragged
  *     off the screen
+ *   - centre requesters: the system requesters (EasyRequest, dos's "Please insert volume", RequestChoice) open
+ *     centred over the window they belong to, or on the screen; off, at the screen's top left, as on OS 3.2.3
+ *     (GFOpen's own flag in the chunk's reserved longs, ic_prefs.h; Dale, 5 November 2026)
  *
  * Save writes ENV:Sys/icontrol.prefs and ENVARC:; Use writes ENV: only; Cancel changes nothing. Every chunk
  * and byte this section doesn't edit is kept as the file had it (ic_prefs.c), OS 3.2's longer chunk too.
- * On the open ROM, intuition's prefs task reads the file but doesn't act on it yet; on OS 3.2.3, IPrefs does.
+ * On the open ROM, intuition's prefs task applies it when the file changes (no reboot); on OS 3.2.3, IPrefs does,
+ * and ignores the requester setting.
  *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
@@ -68,7 +72,7 @@ static void say_shell(const char *s) { Printf((STRPTR)"GFOpenIControl: %s\n", (U
 /* ---- the window ------------------------------------------------------------------------------------ */
 
 enum { G_TIMEOUT = 1, G_TIMETEXT, G_SHIFT, G_CTRL, G_ALT, G_AMIGA, G_KFRONT, G_KBACK, G_KOK, G_KCANCEL,
-       G_FLICKER, G_COLOURS, G_PROMOTE, G_SNAP, G_FILTER, G_OFFSCREEN, G_STATUS, G_SAVE, G_USE, G_CANCEL, G_COUNT };
+       G_FLICKER, G_COLOURS, G_PROMOTE, G_SNAP, G_FILTER, G_OFFSCREEN, G_CENTRE, G_STATUS, G_SAVE, G_USE, G_CANCEL, G_COUNT };
 
 static const struct { int id; int qual; const char *label; } drags[4] = {
     { G_SHIFT, IC_Q_LSHIFT, "Shift" }, { G_CTRL, IC_Q_CONTROL, "Ctrl" }, { G_ALT, IC_Q_LALT, "Alt" },
@@ -205,6 +209,9 @@ static int gui(void)
           GTCB_Checked, (ic.flags & switches[i].flag) != 0, GTCB_Scaled, TRUE);
         if (i & 1) row += lh + 4;
     }
+    G(CHECKBOX_KIND, G_CENTRE, X, row, cbw, lh, "Centre requesters", PLACETEXT_RIGHT,
+      GTCB_Checked, ic.centre_requesters != 0, GTCB_Scaled, TRUE);
+    row += lh + 4;
     row += 6;
     G(TEXT_KIND, G_STATUS, 12, row, W - 24, lh, NULL, 0, GTTX_Text, (ULONG)status_text, GTTX_Border, TRUE);
     row += lh + 6;
@@ -266,6 +273,7 @@ static int gui(void)
                     if (drags[i].id == id) ic.metadrag = on ? (ic.metadrag | drags[i].qual) : (ic.metadrag & ~drags[i].qual);
                 for (i = 0; i < 6; i++)
                     if (switches[i].id == id) ic.flags = on ? (ic.flags | switches[i].flag) : (ic.flags & ~switches[i].flag);
+                if (id == G_CENTRE) ic.centre_requesters = on;
                 switch (id) {
 #ifdef LT_ONE
                 default: {                          /* another section: the page's changes kept, as Use, when it has any */
