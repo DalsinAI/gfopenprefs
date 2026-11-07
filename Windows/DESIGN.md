@@ -248,7 +248,7 @@ every Use or Save whether or not it had been touched, so a `centre` or `snapshot
 is taken as never set, and both are on. A choice saved from Windows 0.8 on carries the mark and is kept.
 
 The editor: "Open new windows in the centre of the screen" and "Snapshot gadget in
-title bars (Shift-click forgets)" in both views, the three rules under the first in
+title bars (click again to unsnap)" in both views (0.12.2; "Shift-click forgets" before), the three rules under the first in
 Advanced ("Leave windows where their program puts them", "Centre requesters over
 their window", "Centre on games' and demos' own screens too"). In the two-column
 views of a 640 x 256 screen: "Centre new windows" (and "Snapshot gadget" in
@@ -298,7 +298,8 @@ centred, any other is where its icon says.
 left of the depth gadget and of the zoom gadget where there is one, as MUI's
 snapshot gadget sits beside the system gadgets (MorphOS' `WA_ExtraGadget_Snapshot`;
 gfopenmui `zune/classes/window.c`). A click stores the window's place and size as
-a snapped place; Shift and a click forgets it (MUI's unsnapshot,
+a snapped place; a click on a snapped window's pin forgets it (0.12.2, Dale, 5 Nov 2026: "snap pin doesn't
+unsnap when pressed"; the pin is a toggle), and so does Shift and a click (MUI's unsnapshot,
 `MUIM_Window_Snapshot` with 0; the public MUI documents found don't say which
 modifier MUI's own gadget uses for it, so Shift is our choice and can change).
 The pin shows which: standing and hollow (a light inside in the shine pen), nothing

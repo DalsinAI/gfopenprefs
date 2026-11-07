@@ -384,7 +384,7 @@ static int gui_once(void)
                                              "Resize a window from any edge but its title bar",
                                              "Drag windows with their contents, not an outline", "Drive windows titled with the name only",
                                              "Open new windows in the centre of the screen",
-                                             "Snapshot gadget in title bars (Shift-click forgets)", NULL };
+                                             "Snapshot gadget in title bars (click again to unsnap)", NULL };
         int k, t, most = 0;
         comp_off(scr);
         if ((t = TextLength(&scr->RastPort, (STRPTR)compoff_text, strlen(compoff_text))) > most) most = t;
@@ -518,7 +518,7 @@ static int gui_once(void)
               GTCB_Scaled, TRUE);
             row += lh + sp;
         }
-        G(CHECKBOX_KIND, G_SGAD, LX, row, 26, lh, "Snapshot gadget in title bars (Shift-click forgets)", PLACETEXT_RIGHT,
+        G(CHECKBOX_KIND, G_SGAD, LX, row, 26, lh, "Snapshot gadget in title bars (click again to unsnap)", PLACETEXT_RIGHT,
           GTCB_Scaled, TRUE);
         row += lh + (advanced ? 10 : sp);
     }

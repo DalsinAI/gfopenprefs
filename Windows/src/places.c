@@ -267,3 +267,10 @@ int place_sysreq(unsigned long flags, int menus, int n, const unsigned short *ty
     }
     return 1;
 }
+
+/* 0.12.2: a click on the snapshot gadget (places.h) */
+int place_pin_click(int inside, int snapped, int shift)
+{
+    if (!inside) return PLACE_PIN_NONE;
+    return shift || snapped ? PLACE_PIN_FORGET : PLACE_PIN_SNAP;
+}

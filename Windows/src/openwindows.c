@@ -104,7 +104,7 @@
 #include "wheel.h"
 #include "centre_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.12.1 (5.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.12.2 (7.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"
@@ -2011,8 +2011,8 @@ static int places_patch_off(void)
  *
  * Dale, 4 November 2026: "we need a snap icon similar to the way MUI does it". A gadget in the title bar,
  * left of the depth and zoom gadgets, as MUI's snapshot gadget sits by MorphOS' (WA_ExtraGadget_Snapshot):
- * a click keeps the window's place and size (a snapped place, "snap" in WindowPlaces), Shift and a click
- * forgets it (MUI's unsnapshot). Its pin shows which: hollow and standing, nothing kept; solid
+ * a click keeps the window's place and size (a snapped place, "snap" in WindowPlaces); a click on a snapped
+ * window's pin forgets it (0.12.2), and so does Shift and a click (MUI's unsnapshot). Its pin shows which: hollow and standing, nothing kept; solid
  * and pushed in, snapped. With centring on, a window that is not snapped opens centred.
  *
  * - On a window with a drag bar and a depth gadget, not a backdrop or borderless one, on a public screen, of
@@ -2150,7 +2150,9 @@ static ULONG snap_dispatch(struct IClass *cl __asm("a0"), Object *o __asm("a2"),
         d = INST_DATA(cl, o);
         if (ie && ie->ie_Class == IECLASS_RAWMOUSE) {
             if (ie->ie_Code == SELECTUP) {
-                d->act = !inside ? 0 : d->forget || (ie->ie_Qualifier & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)) ? 2 : 1;
+                /* 0.12.2: a toggle: a pushed-in pin unsnaps (place_pin_click) */
+                d->act = (UBYTE)place_pin_click(inside, d->snapped,
+                                                d->forget || (ie->ie_Qualifier & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)));
                 return GMR_NOREUSE;
             }
             if (ie->ie_Code == MENUDOWN) { d->act = 0; return GMR_NOREUSE; }
@@ -2333,7 +2335,7 @@ static int snap_off(void)
     return snap_class == NULL;
 }
 
-/* A click on a gadget: the window's place snapped, or (Shift) forgotten; both files written at once */
+/* A click on a gadget: the window's place snapped, or forgotten (a snapped pin, or Shift); both files written at once */
 static void snap_do(void)
 {
     char key[64], line[160];
