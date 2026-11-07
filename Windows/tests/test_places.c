@@ -414,6 +414,15 @@ int main(void)
               "more buttons than a requester has: not one");
     }
 
+    {   /* 0.12.2: the pin is a toggle (Dale: "snap pin doesn't unsnap when pressed") */
+        CHECK(place_pin_click(1, 0, 0) == PLACE_PIN_SNAP, "a click on a standing pin: snapped");
+        CHECK(place_pin_click(1, 1, 0) == PLACE_PIN_FORGET, "a click on a pushed-in pin: unsnapped");
+        CHECK(place_pin_click(1, 1, 1) == PLACE_PIN_FORGET && place_pin_click(1, 0, 1) == PLACE_PIN_FORGET,
+              "Shift and a click: forgotten, snapped or not (0.10's way, kept)");
+        CHECK(place_pin_click(0, 0, 0) == PLACE_PIN_NONE && place_pin_click(0, 1, 0) == PLACE_PIN_NONE &&
+              place_pin_click(0, 1, 1) == PLACE_PIN_NONE, "released off the gadget: nothing");
+    }
+
     printf("test_places: %d checks, %d failed\n", checks, fails);
     return fails != 0;
 }

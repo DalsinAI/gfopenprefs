@@ -106,7 +106,7 @@ int place_parse(const char *line, struct place *pl);
  * written so, and read back with used = the line's number, so which places
  * were used last survives a restart (0.9.2) */
 void place_order(const struct place *pl, int n, int *order);
-/* Takes the entry at i out of the table (shift-click on the snap gadget: forget) */
+/* Takes the entry at i out of the table (the snap gadget: a click on a snapped pin, or Shift and a click: forget) */
 void place_remove(struct place *pl, int *n, int i);
 
 /* ---- centring (0.10, "centre on") ----
@@ -139,5 +139,15 @@ int place_too_big(const struct place_area *a, short sw, short sh, short w, short
  * gadgets' GadgetType and Activation, n of them. */
 #define PLACE_SYSREQ_GADS 16
 int place_sysreq(unsigned long flags, int menus, int n, const unsigned short *types, const unsigned short *activation);
+
+/* 0.12.2 (Dale, 5 November 2026: "snap pin doesn't unsnap when pressed"): what a click on the snapshot gadget
+ * does. inside: released over the gadget; snapped: the window's pin is pushed in; shift: Shift held at the press
+ * or the release. 0 nothing (released off it), 1 snap (keep the place and size), 2 forget (unsnap). The pin is a
+ * toggle: a click on a pushed-in pin unsnaps it, as a click on a standing one snaps it; Shift and a click
+ * forgets either way (0.10's way to unsnap, kept). */
+#define PLACE_PIN_NONE 0
+#define PLACE_PIN_SNAP 1
+#define PLACE_PIN_FORGET 2
+int place_pin_click(int inside, int snapped, int shift);
 
 #endif
