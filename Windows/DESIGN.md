@@ -294,6 +294,13 @@ centred, any other is where its icon says.
   left alone (`centre.custom`, off). A game that opens a backdrop on its own
   screen (BurgerSpace in the lab) is left alone on both counts.
 
+**Sizing at Intuition's priority (0.12.3).** A press on an edge, a corner or the size gadget sizes the window from
+GFOpenWindows' own task, not Intuition's input task. `ChangeWindowBox` sends the program its NEWSIZE and then goes on
+repairing the window, its gadgets included, under the window's layer lock. At priority 0 the program could run in
+between and free those gadgets: GFOpenView kept its old toolbar on the window, and once this task stopped on a bad
+gadget with the lock held and the program waiting behind it (Dale, 8 Nov 2026). So the sizing call runs at 20, the
+input task's priority, as Intuition's own sizing does.
+
 **The snapshot gadget.** A gadget in the title bar of every window it can serve,
 left of the depth gadget and of the zoom gadget where there is one, as MUI's
 snapshot gadget sits beside the system gadgets (MorphOS' `WA_ExtraGadget_Snapshot`;

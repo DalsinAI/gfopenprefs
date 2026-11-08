@@ -104,7 +104,7 @@
 #include "wheel.h"
 #include "centre_prefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.12.2 (7.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.12.3 (8.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"
@@ -736,13 +736,26 @@ static void snap(struct Window *w)
     if (dx || dy) MoveWindow(w, dx, dy);
 }
 
+/* 0.12.3: a window sized from this task, at Intuition's own priority. Intuition's sizing on the input task (20) is done
+ * before the program runs; here, the program's NEWSIZE arrived while ChangeWindowBox was still repairing the window on
+ * this task, and the program's gadgets were redrawn as it freed them: its old gadgets left on the window, or this task
+ * stopped by a bad gadget with the window's layer locked and the program waiting behind it (GFOpenView, Dale, 8 November
+ * 2026: "redraw error ... then it freezes"). */
+static void window_box(struct Window *w, WORD l, WORD t, WORD wd, WORD ht)
+{
+    struct Task *self = FindTask(NULL);
+    BYTE pri = SetTaskPri(self, 20);
+    ChangeWindowBox(w, l, t, wd, ht);
+    SetTaskPri(self, pri);
+}
+
 static void halves(struct Window *w, WORD px)
 {
     struct Screen *s = w->WScreen;
     WORD top = s->BarHeight + 1, half = s->Width / 2;
     if (!(w->Flags & WFLG_SIZEGADGET)) return;
     if (half < w->MinWidth || s->Height - top < w->MinHeight) return;
-    ChangeWindowBox(w, px <= 1 ? 0 : s->Width - half, top, half, s->Height - top);
+    window_box(w, px <= 1 ? 0 : s->Width - half, top, half, s->Height - top);
 }
 
 /* ---- the gestures' actions (0.9, the main task) ------------------------------------------------- */
@@ -1097,7 +1110,7 @@ static void resize(void)
             rs_gen_done = rs_gen;
             ol_clear();                                          /* the outline goes first, then the one size */
             if (wd != w->Width || ht != w->Height || l != w->LeftEdge)
-                ChangeWindowBox(w, l, t, wd, ht);
+                window_box(w, l, t, wd, ht);
             resize_end();
             continue;
         }
@@ -2561,7 +2574,7 @@ static void watch(void)
                 if (l + wd > now[i].sw) l = now[i].sw - wd;
                 if (t + ht > now[i].sh) t = now[i].sh - ht;
                 if (wd != now[i].wd || ht != now[i].ht) {
-                    if (is_window(now[i].w)) ChangeWindowBox(now[i].w, l, t, wd, ht);
+                    if (is_window(now[i].w)) window_box(now[i].w, l, t, wd, ht);
                     now[i].l = l; now[i].t = t; now[i].wd = wd; now[i].ht = ht;
                 }
             }
