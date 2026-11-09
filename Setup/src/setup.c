@@ -57,7 +57,7 @@
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
 #ifndef IN_OPENBENCH
-const char version[] __attribute__((used)) = "$VER: GFOpenUp-Setup 0.1.7 (1.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenUp-Setup 0.1.8 (9.11.2026) GFOpenPrefs, AmiCradle Team";
 #endif
 
 #define USER_STARTUP "S:User-Startup"
@@ -520,14 +520,17 @@ static const struct { int id; const char *label, *path, *args; } editors[] = {  
 };
 
 static struct Gadget *gad[G_COUNT];
-/* each page's gadgets, its Advanced-only gadgets, and the foot's */
-static struct Gadget *page_glist[P_COUNT], *adv_glist[P_COUNT], *nav_glist;
+/* the page's gadgets (made afresh for each page shown, make_page) and the foot's (Back and Later, always there) */
+static struct Gadget *page_glist, *nav_glist;
 static struct Window *win;
 static struct List profile_list, line_list;
 static struct Node profile_nodes[MAX_PROFILES], line_nodes[MAX_LINES];
 static int page, noshow, cx, cy, cw, ch;          /* the page's area */
 static int lists_on;                              /* the page's gadgets are in the window */
 static void refresh_lists(void);
+static APTR vi;                                   /* the layout make_page makes each page's gadgets with */
+static struct TextAttr *gfont;
+static int fh, lh, row, footy, bw, foot_l;
 
 #define SET(id, ...) GT_SetGadgetAttrs(gad[id], win, NULL, __VA_ARGS__, TAG_DONE)
 
@@ -581,19 +584,34 @@ static int say(struct RastPort *rp, int x, int y, int w, const char *text, int p
     return y;
 }
 
-static void draw_page(void)
+/* The page's words. DRAW_ALL: the whole page area is erased first, while its gadgets are out of the window (show_page)
+ * or to be drawn again after (a refresh). DRAW_HEAD and DRAW_ABOUT (9 Nov 2026): only the title and step, or only the
+ * Desktop page's words beside its list, erased and written again, the gadgets left alone. Up to 0.1.7 Simple or
+ * Advanced, and each click in the list of profiles, erased the whole page over its gadgets and drew them again with
+ * RefreshGList; on the GFOpenKick ROM (full38, a lab copy of Instance-40) RefreshGList doesn't draw a listview's
+ * lines again, so the list of profiles went blank at the first click. */
+enum { DRAW_ALL, DRAW_HEAD, DRAW_ABOUT };
+
+static void draw_page_part(int part)
 {
     struct RastPort *rp = win->RPort;
     struct DrawInfo *dri = GetScreenDrawInfo(win->WScreen);
     int text = dri ? dri->dri_Pens[TEXTPEN] : 1, hi = dri ? dri->dri_Pens[HIGHLIGHTTEXTPEN] : 2, y = cy;
     char step[32];
     int at, of;
-    EraseRect(rp, cx, cy, cx + cw - 1, cy + ch - 1);
+    if (part == DRAW_ALL) EraseRect(rp, cx, cy, cx + cw - 1, cy + ch - 1);
     count_steps(&at, &of);
     snprintf(step, sizeof step, "Step %d of %d", at, of);
-    y = say(rp, cx, y, cw, page_titles[page], hi);
-    y = say(rp, cx, y, cw, step, text) + 6;
-    switch (page) {
+    if (part == DRAW_HEAD) EraseRect(rp, cx, cy, cx + cw - 1, cy + 2 * (rp->TxHeight + 2) + 4);
+    if (part != DRAW_ABOUT) {
+        y = say(rp, cx, y, cw, page_titles[page], hi);
+        y = say(rp, cx, y, cw, step, text) + 6;
+    } else
+        y = cy + 2 * (rp->TxHeight + 2) + 6;     /* where the head ends, as say leaves it */
+    if (part == DRAW_ABOUT && page == P_DESKTOP)  /* beside the list, down to the tick below it */
+        EraseRect(rp, cx + 230, y, cx + cw - 1, row + 8 * (fh + 1) + 10);
+    if (part == DRAW_HEAD) { if (dri) FreeScreenDrawInfo(win->WScreen, dri); return; }
+    switch (part == DRAW_ABOUT && page != P_DESKTOP ? -1 : page) {
     case P_WELCOME:
         /* a long summary is cut short above the Simple and Advanced choice */
         say_limit = cy + ch - (rp->TxHeight + 6) - 2 * (rp->TxHeight + 6) - 14;
@@ -619,25 +637,92 @@ static void draw_page(void)
         break;
     }
     if (dri) FreeScreenDrawInfo(win->WScreen, dri);
-    refresh_lists();                              /* the erase went over them */
+    if (part == DRAW_ALL) refresh_lists();        /* the erase went over them */
 }
 
-static int adv_on;                                /* advanced, as when the lists went in */
+static void draw_page(void) { draw_page_part(DRAW_ALL); }
 
 static void refresh_lists(void)
 {
-    if (!lists_on) return;
-    if (page_glist[page]) RefreshGList(page_glist[page], win, NULL, -1);
-    if (adv_on && adv_glist[page]) RefreshGList(adv_glist[page], win, NULL, -1);
+    if (lists_on && page_glist) RefreshGList(page_glist, win, NULL, -1);
 }
 
+/* 9 Nov 2026: each page's gadgets are made when the page is shown and freed when it goes, never taken out of the
+ * window and put back. Up to 0.1.7 every page's gadgets were made once, at the start, the Desktop page's in two lists
+ * (its own, and the Advanced buttons), and went in and out of the window with AddGList and RemoveGList(-1). Taking the
+ * page's list out with -1 ("to the end") took the Advanced buttons with it and left the page's Next gadget linked to
+ * them; back on the page (Back, then Next), AddGList(-1) put the buttons in with the page's list and then once more on
+ * their own, and the window's gadgets went round in a ring that Intuition followed for ever. Dale's PiStorm card (GFOS,
+ * GFOpenKick full38, 9 Nov 2026): GFOpenUp Setup at step 2 of 5 (Advanced) locked the Amiga, the 68k flat out; a lab
+ * copy of Instance-40 locks the same way with 0.1.7 after Advanced, Next, Back, Next. Now the page's gadgets, the
+ * Advanced buttons with them, are one list made with CreateContext for that showing only; RemoveGList(-1) takes it
+ * all out (it is the window's last list), FreeGadgets frees it, and what was chosen on the page lives in its own
+ * variables, which the next list starts from. 1 when the page's gadgets were made. */
+#define G(kind, id, x, y, w, h, text, flags, ...) \
+    (ng.ng_LeftEdge = (x), ng.ng_TopEdge = (y), ng.ng_Width = (w), ng.ng_Height = (h), ng.ng_GadgetText = (STRPTR)(text), \
+     ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
+static int make_page(int p)
+{
+    struct NewGadget ng;
+    struct Gadget *g;
+    int i;
+    memset(&ng, 0, sizeof ng);
+    ng.ng_TextAttr = gfont;
+    ng.ng_VisualInfo = vi;
+    for (i = 0; i < G_COUNT; i++)                 /* the last page's gadgets are gone: none of them is named now */
+        if (i != G_BACK && i != G_CANCEL) gad[i] = NULL;
+    g = CreateContext(&page_glist);
+    switch (p) {
+    case P_WELCOME: {
+        static STRPTR views[] = { (STRPTR)"Simple: choose a theme and go", (STRPTR)"Advanced: every page and setting", NULL };
+        G(MX_KIND, G_VIEW, cx + 4, cy + ch - lh - 2 * (fh + 6) - 10, 17, fh + 1, NULL, PLACETEXT_RIGHT,
+          GTMX_Labels, (ULONG)views, GTMX_Active, advanced, GTMX_Spacing, 4, GTMX_Scaled, TRUE);
+        G(CHECKBOX_KIND, G_NOSHOW, cx, cy + ch - lh, 26, lh, "Don't show this at start again", PLACETEXT_RIGHT, GTCB_Scaled, TRUE,
+          GTCB_Checked, noshow);
+        break;
+    }
+    case P_DESKTOP:
+        G(LISTVIEW_KIND, G_PROFILES, cx, row + fh + 4, 210, 6 * (fh + 1) + 4, "Desktop profile", PLACETEXT_ABOVE,
+          GTLV_Labels, (ULONG)&profile_list, GTLV_ShowSelected, NULL, GTLV_Selected, (ULONG)profile_sel,
+          GTLV_MakeVisible, (ULONG)(profile_sel > 0 ? profile_sel : 0));
+        G(CHECKBOX_KIND, G_BYMACHINE, cx, row + 8 * (fh + 1) + 12, 26, lh, "Choose by machine at every start", PLACETEXT_RIGHT,
+          GTCB_Scaled, TRUE, GTCB_Checked, by_machine);
+        if (advanced)
+            for (i = 0; i < 5; i++)
+                G(BUTTON_KIND, editors[i].id, cx + (i % 3) * ((cw + 8) / 3), row + 8 * (fh + 1) + 20 + lh + (i / 3) * (lh + 6),
+                  (cw + 8) / 3 - 8, lh, editors[i].label, 0, GA_Disabled, !exists(found(editors[i].path)));
+        break;
+    case P_DEVICES:
+        for (i = 5; i < (int)(sizeof editors / sizeof editors[0]); i++)
+            G(BUTTON_KIND, editors[i].id, cx + ((i - 5) % 2) * (cw / 2), row + 3 * (fh + 2) + ((i - 5) / 2) * (lh + 6),
+              cw / 2 - 8, lh, editors[i].label, 0, GA_Disabled, !exists(found(editors[i].path)));
+        break;
+    case P_STARTUP:
+        G(LISTVIEW_KIND, G_LINES, cx, row + 3 * (fh + 2), cw, 7 * (fh + 1) + 4, NULL, 0,
+          GTLV_Labels, (ULONG)&line_list, GTLV_ShowSelected, NULL, GTLV_Selected, (ULONG)line_sel);
+        G(BUTTON_KIND, G_SWITCH, cx, row + 3 * (fh + 2) + 7 * (fh + 1) + 10, 200, lh, "_Switch on or off", 0,
+          GT_Underscore, '_', GA_Disabled, line_sel < 0);
+        break;
+    }
+    /* the foot's middle button: Next on every page but the last, which has Finish in its place */
+    if (p == P_DONE) G(BUTTON_KIND, G_FINISH, foot_l + bw + 10, footy, bw, lh, "_Finish", 0, GT_Underscore, '_');
+    else G(BUTTON_KIND, G_NEXT, foot_l + bw + 10, footy, bw, lh, "_Next", 0, GT_Underscore, '_');
+    if (!g) { FreeGadgets(page_glist); page_glist = NULL; return 0; }
+    return 1;
+}
+
+/* The page's gadgets out of the window and freed (add 0), or the page's made and put in (add 1). */
 static void put_lists(int add)
 {
     if (add == lists_on) return;
-    if (add) adv_on = advanced;
-    if (page_glist[page]) { if (add) AddGList(win, page_glist[page], -1, -1, NULL); else RemoveGList(win, page_glist[page], -1); }
-    if (adv_on && adv_glist[page]) { if (add) AddGList(win, adv_glist[page], -1, -1, NULL); else RemoveGList(win, adv_glist[page], -1); }
-    lists_on = add;
+    if (!add) {
+        if (page_glist) { RemoveGList(win, page_glist, -1); FreeGadgets(page_glist); page_glist = NULL; }
+        lists_on = 0;
+        return;
+    }
+    if (!make_page(page)) return;                 /* out of memory: the page has its words and the foot only */
+    AddGList(win, page_glist, -1, -1, NULL);
+    lists_on = 1;
     refresh_lists();
 }
 
@@ -648,7 +733,7 @@ static void show_page(int to)
     draw_page();
     put_lists(1);
     GT_RefreshWindow(win, NULL);
-    SET(G_BACK, GA_Disabled, page == 0);
+    GT_SetGadgetAttrs(gad[G_BACK], win, NULL, GA_Disabled, page == 0, TAG_DONE);
 }
 
 static int finish(void)
@@ -664,10 +749,10 @@ static int finish(void)
 static int gui(void)
 {
     struct Screen *scr = LockPubScreen(NULL);
-    APTR vi = scr ? GetVisualInfoA(scr, NULL) : NULL;
     struct Gadget *g;
     struct NewGadget ng;
-    int fh, lh, top, W = 560, H, L = 12, quit = 0, rc = RETURN_OK, i, row, wtop;
+    int top, W = 560, H, L = 12, quit = 0, rc = RETURN_OK, i, wtop;
+    vi = scr ? GetVisualInfoA(scr, NULL) : NULL;
     if (!vi) { if (scr) UnlockPubScreen(NULL, scr); return RETURN_FAIL; }
     fh = scr->Font->ta_YSize;
     lh = fh + 6;
@@ -678,62 +763,20 @@ static int gui(void)
     ch = 2 * (fh + 2) + 8 + 8 * (fh + 1) + 20 + lh + (lh + 6) + lh + 4;
     H = cy + ch + 10 + lh + 8;
     build_lists();
-    memset(&ng, 0, sizeof ng);
-    ng.ng_TextAttr = scr->Font;
-    ng.ng_VisualInfo = vi;
-#define G(kind, id, x, y, w, h, text, flags, ...) \
-    (ng.ng_LeftEdge = (x), ng.ng_TopEdge = (y), ng.ng_Width = (w), ng.ng_Height = (h), ng.ng_GadgetText = (STRPTR)(text), \
-     ng.ng_Flags = (flags), ng.ng_GadgetID = (id), g = gad[id] = CreateGadget(kind, g, &ng, __VA_ARGS__, TAG_DONE))
+    gfont = scr->Font;
     row = cy + 2 * (fh + 2) + 8;          /* below the page's title and step */
+    bw = (W - 2 * L - 20) / 3;
+    footy = H - lh - 8;
+    foot_l = L;
+    memset(&ng, 0, sizeof ng);
+    ng.ng_TextAttr = gfont;
+    ng.ng_VisualInfo = vi;
 
-    /* the pages' gadgets, one list each */
-    g = CreateContext(&page_glist[P_WELCOME]);
-    {
-        static STRPTR views[] = { (STRPTR)"Simple: choose a theme and go", (STRPTR)"Advanced: every page and setting", NULL };
-        G(MX_KIND, G_VIEW, cx + 4, cy + ch - lh - 2 * (fh + 6) - 10, 17, fh + 1, NULL, PLACETEXT_RIGHT,
-          GTMX_Labels, (ULONG)views, GTMX_Active, advanced, GTMX_Spacing, 4, GTMX_Scaled, TRUE);
-    }
-    G(CHECKBOX_KIND, G_NOSHOW, cx, cy + ch - lh, 26, lh, "Don't show this at start again", PLACETEXT_RIGHT, GTCB_Scaled, TRUE);
-
-    g = CreateContext(&page_glist[P_DESKTOP]);
-    G(LISTVIEW_KIND, G_PROFILES, cx, row + fh + 4, 210, 6 * (fh + 1) + 4, "Desktop profile", PLACETEXT_ABOVE,
-      GTLV_Labels, (ULONG)&profile_list, GTLV_ShowSelected, NULL, GTLV_Selected, (ULONG)profile_sel);
-    G(CHECKBOX_KIND, G_BYMACHINE, cx, row + 8 * (fh + 1) + 12, 26, lh, "Choose by machine at every start", PLACETEXT_RIGHT,
-      GTCB_Scaled, TRUE, GTCB_Checked, by_machine);
-    g = CreateContext(&adv_glist[P_DESKTOP]);
-    for (i = 0; i < 5; i++)
-        G(BUTTON_KIND, editors[i].id, cx + (i % 3) * ((cw + 8) / 3), row + 8 * (fh + 1) + 20 + lh + (i / 3) * (lh + 6),
-          (cw + 8) / 3 - 8, lh, editors[i].label, 0, GA_Disabled, !exists(found(editors[i].path)));
-
-    g = CreateContext(&page_glist[P_DEVICES]);
-    for (i = 5; i < (int)(sizeof editors / sizeof editors[0]); i++)
-        G(BUTTON_KIND, editors[i].id, cx + ((i - 5) % 2) * (cw / 2), row + 3 * (fh + 2) + ((i - 5) / 2) * (lh + 6),
-          cw / 2 - 8, lh, editors[i].label, 0, GA_Disabled, !exists(found(editors[i].path)));
-
-    g = CreateContext(&page_glist[P_STARTUP]);
-    G(LISTVIEW_KIND, G_LINES, cx, row + 3 * (fh + 2), cw, 7 * (fh + 1) + 4, NULL, 0,
-      GTLV_Labels, (ULONG)&line_list, GTLV_ShowSelected, NULL);
-    G(BUTTON_KIND, G_SWITCH, cx, row + 3 * (fh + 2) + 7 * (fh + 1) + 10, 200, lh, "_Switch on or off", 0,
-      GT_Underscore, '_', GA_Disabled, TRUE);
-
-    /* the buttons along the foot: Back and Later always there, Next on
-     * every page but the last, which has Finish in its place */
-    {
-        int bw = (W - 2 * L - 20) / 3, y = H - lh - 8, ok = 1;
-        for (int p = 0; p < P_COUNT; p++) {
-            struct Gadget *last = page_glist[p];
-            if (p == P_DONE) g = CreateContext(&page_glist[p]);
-            else { for (g = last; g && g->NextGadget; g = g->NextGadget) ; }
-            if (p == P_DONE) G(BUTTON_KIND, G_FINISH, L + bw + 10, y, bw, lh, "_Finish", 0, GT_Underscore, '_');
-            else G(BUTTON_KIND, G_NEXT, L + bw + 10, y, bw, lh, "_Next", 0, GT_Underscore, '_');
-            ok &= g != NULL;
-        }
-        g = CreateContext(&nav_glist);
-        G(BUTTON_KIND, G_BACK, L, y, bw, lh, "_Back", 0, GT_Underscore, '_', GA_Disabled, TRUE);
-        G(BUTTON_KIND, G_CANCEL, L + 2 * (bw + 10), y, bw, lh, "_Later", 0, GT_Underscore, '_');
-        if (!ok) g = NULL;
-    }
-    if (!g || !page_glist[P_WELCOME] || !page_glist[P_DESKTOP] || !adv_glist[P_DESKTOP] || !page_glist[P_DEVICES] || !page_glist[P_STARTUP]) { rc = RETURN_FAIL; goto out; }
+    /* the foot's Back and Later, always there; each page's gadgets (Next or Finish with them) come with it (make_page) */
+    g = CreateContext(&nav_glist);
+    G(BUTTON_KIND, G_BACK, L, footy, bw, lh, "_Back", 0, GT_Underscore, '_', GA_Disabled, TRUE);
+    G(BUTTON_KIND, G_CANCEL, L + 2 * (bw + 10), footy, bw, lh, "_Later", 0, GT_Underscore, '_');
+    if (!g) { rc = RETURN_FAIL; goto out; }
 
     {
         /* the whole window on the screen: higher up, over the screen bar if need be */
@@ -784,8 +827,8 @@ static int gui(void)
             } else if (cls == IDCMP_GADGETUP || cls == IDCMP_GADGETDOWN || cls == IDCMP_MOUSEMOVE) id = gg->GadgetID;
             switch (id) {
             case G_NOSHOW: noshow = (gg->Flags & GFLG_SELECTED) != 0; break;
-            case G_VIEW: advanced = code == 1; draw_page(); break;
-            case G_PROFILES: profile_sel = code; draw_page(); break;
+            case G_VIEW: advanced = code == 1; draw_page_part(DRAW_HEAD); break;           /* the steps' count */
+            case G_PROFILES: profile_sel = code; draw_page_part(DRAW_ABOUT); break;        /* what it is for */
             case G_BYMACHINE: by_machine = (gg->Flags & GFLG_SELECTED) != 0; break;
             case G_LINES: line_sel = code; SET(G_SWITCH, GA_Disabled, FALSE); break;
             case G_SWITCH:
@@ -821,7 +864,8 @@ out:
         put_lists(0);
         CloseWindow(win);
     }
-    for (i = 0; i < P_COUNT; i++) { FreeGadgets(page_glist[i]); FreeGadgets(adv_glist[i]); }
+    FreeGadgets(page_glist);                      /* (made, but never in a window: out of memory putting it in) */
+    page_glist = NULL;
     FreeGadgets(nav_glist);
     FreeVisualInfo(vi);
     UnlockPubScreen(NULL, scr);
@@ -874,13 +918,11 @@ int main(int argc, char **argv)
     page = P_WELCOME;
     noshow = 0;
     lists_on = 0;
-    adv_on = 0;
     say_limit = 0;
     win = NULL;
     nav_glist = NULL;
     memset(gad, 0, sizeof gad);
-    memset(page_glist, 0, sizeof page_glist);
-    memset(adv_glist, 0, sizeof adv_glist);
+    page_glist = NULL;
 #endif
     if (argc > 0) {                              /* from the Shell */
         LONG args[2] = { 0, 0 };

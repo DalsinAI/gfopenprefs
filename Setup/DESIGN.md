@@ -101,6 +101,31 @@ gets it back. This is what GFOpenUpTool does since gfopenup #179. Files on
 the RAM disk (ENV:, T:) are written in place as before. GFOpenBench's
 built-in GFOpenUp-Setup changes with GFOpenBench's next build.
 
+## 0.1.8 (9 November 2026)
+
+The Desktop page (step 2 of 5, Advanced) shown a second time locked the
+Amiga. Dale's PiStorm card (GFOS on GFOpenKick full38) sat with the 68k flat
+out at one address for over 75 seconds; a lab copy of Instance-40 locks the
+same way with 0.1.7 after Advanced, Next, Back, Next. Every page's gadgets
+were made once, the Desktop page's in two lists (the page's and the Advanced
+buttons), and went in and out of the window with AddGList and
+RemoveGList(-1). RemoveGList(-1) of the page's list took the buttons with
+it and left the page's Next linked to them, so the next AddGList(-1) put the
+buttons in twice and the window's gadgets became a ring. Now each page's
+gadgets, the Advanced buttons with them, are one list made when the page is
+shown and freed when it goes; the choices on a page (the profile, by
+machine, Simple or Advanced, don't show again, the startup line picked) are
+kept in their own variables and the next list starts from them.
+
+A click in the list of profiles, and Simple or Advanced, no longer erase the
+whole page: only the words beside the list, or the step count, are written
+again. On the GFOpenKick ROM RefreshGList doesn't draw a listview's lines
+again, so the list went blank at the first click.
+
+GFOpenBench's built-in GFOpenUp-Setup (the one SYS:WBStartup starts where
+GFOpenBench is the Workbench, as on GFOS) changes with GFOpenBench's next
+build: until then the hang stays there.
+
 ## Next
 
 GFOpenUp Picks (ticking programs to add) joins as a page once the Picks list
