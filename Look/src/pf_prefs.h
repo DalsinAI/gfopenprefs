@@ -30,11 +30,17 @@ int pf_font_put(pf_file *f, const pf_font *in);             /* 1, or 0 with no m
 
 /* The Team's standard font: GFOpenBench's design font, the one the system uses when the theme's isn't
  * installed (gfopengadtools ogt_open_font) and the one a fresh GFOpenUp disk names. "Standard" on the Fonts tab
- * puts it in for the screen or icon font, keeping that font's pens, mode and label style. */
+ * puts it in for the screen or icon font, keeping that font's pens, mode and label style. CGTriumvirate is
+ * OS 3.2.3's and never on an open disk: there the standard is PF_OPEN_STANDARD_FONT, AmiSans: TeX Gyre Heros (GUST
+ * Font License), the open Helvetica design closest to it, which GFOpenUp's GFOpenFont part brings and the
+ * GFOpenKick ROM's tall Workbench falls back to (amicradle-guest screen_core.h OI_TALL_FONT_OPEN). */
 #define PF_STANDARD_FONT "CGTriumvirate.font"
+#define PF_OPEN_STANDARD_FONT "AmiSans.font"
 #define PF_STANDARD_SIZE 13
-void pf_font_standard(pf_font *f);                           /* name, size, style 0, flags FPF_DISKFONT */
-int pf_font_is_standard(const pf_font *f);                   /* 1 when f is the standard font, size and plain style */
+/* name, size, style 0, flags FPF_DISKFONT: PF_STANDARD_FONT when have_os_font (FONTS: has it), else
+ * PF_OPEN_STANDARD_FONT */
+void pf_font_standard(pf_font *f, int have_os_font);
+int pf_font_is_standard(const pf_font *f);                   /* 1 when f is either standard font, size and plain style */
 
 /* ---- palette.prefs: PALT, struct PalettePrefs (400 bytes) ---- */
 #define PF_PALT PF_ID('P', 'A', 'L', 'T')
