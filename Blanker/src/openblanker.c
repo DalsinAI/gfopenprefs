@@ -96,7 +96,7 @@ static const card show[] = {
     { 220, { { GROUP, "THE GAMES WE BROUGHT HOME" }, { LIST, "The Ur-Quan Masters  \xB7  Chocolate Doom  \xB7  SDLPoP" }, { LIST, "NXEngine-evo  \xB7  OpenJazz" } } },
     { 240, { { GROUP, "AND THE COMMUNITY" }, { LIST, "everyone who kept an Amiga running, recapped a board," }, { LIST, "archived a disk, or wrote the README nobody thanked them for" } } },
     { 160, { { THANKS, "Thank you." }, { RULE, "" } } },
-    { 170, { { WORDMARK, "" }, { SMALL, "The AmiCradle team  \xB7  AmiCradle Team" } } },
+    { 170, { { WORDMARK, "" }, { SMALL, "The AmiCradle Team" } } },
 };
 #define NCARDS (int)(sizeof show / sizeof show[0])
 #define FADE 55      /* frames: about 1.1 s at 50 Hz */
@@ -248,10 +248,10 @@ static void draw_card(const card *c)
         if (L[i].style == WORDMARK) {
             int a, b;
             SetFont(rp, f_title); SetSoftStyle(rp, FSF_BOLD, AskSoftStyle(rp));
-            a = TextLength(rp, (STRPTR)"Amiga", 5); b = TextLength(rp, (STRPTR)"Chrome", 6);
+            a = TextLength(rp, (STRPTR)"Ami", 3); b = TextLength(rp, (STRPTR)"Cradle", 6);
             Move(rp, (W - a - b) / 2, y + f_title->tf_Baseline);
-            SetAPen(rp, P_RED); Text(rp, (STRPTR)"Amiga", 5);
-            SetAPen(rp, P_INK); Text(rp, (STRPTR)"Chrome", 6);
+            SetAPen(rp, P_RED); Text(rp, (STRPTR)"Ami", 3);
+            SetAPen(rp, P_INK); Text(rp, (STRPTR)"Cradle", 6);
             y += L[i].lh + L[i].gap;
             continue;
         }
