@@ -41,6 +41,7 @@
 #include <intuition/screens.h>
 #include <graphics/gfxmacros.h>
 #include <graphics/text.h>
+#include <graphics/layers.h>
 #include <libraries/commodities.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
@@ -70,7 +71,7 @@
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 #include "../../Common/idlepace.h"           /* the bar's tick slowed when nobody is there */
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenMenus 0.4.7 (01.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";   /* 0.4.7: the bar ticks every 500 ms after 2 s with no input, and at full speed again from the first input (Common/idlepace.h); 0.4.6: built -fno-late-combine-instructions (Menus/engine/build.sh: GCC 16.2.0-open3 stored wbclose.h's "OpenWBNotify" one byte late, so the semaphore was named ""); 0.4.5: no WORKBENCH port (GFOpenBench): the right button opens the window's own menus */
+static const char version[] __attribute__((used)) = "$VER: GFOpenMenus 0.4.8 (09.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";   /* 0.4.8: each panel is drawn off the screen and blitted to a window that opens without the pen-0 fill, so the menus no longer flicker as they open or as the highlight moves; 0.4.7: the bar ticks every 500 ms after 2 s with no input, and at full speed again from the first input (Common/idlepace.h); 0.4.6: built -fno-late-combine-instructions (Menus/engine/build.sh: GCC 16.2.0-open3 stored wbclose.h's "OpenWBNotify" one byte late, so the semaphore was named ""); 0.4.5: no WORKBENCH port (GFOpenBench): the right button opens the window's own menus */
 
 #define PREFS_ENV "ENV:GFOpenMenus/Menus"
 #define TRAY_DIR "ENV:GFOpenMenus/Tray"     /* one file per tray program: "width order" (GFOpenSpeaker, the clock) */
@@ -411,6 +412,9 @@ struct panel {
     int kind;                    /* 0 bar, 1 titles (pop-up), 2 items, 3 subitems */
     int menu, item;              /* what it shows */
     int hot;                     /* the highlighted entry, or -1 */
+    struct BitMap *bm;           /* 0.4.8: drawn here, off the screen, then copied to the window */
+    struct Layer_Info *li;
+    struct Layer *ly;            /* clips the drawing to the buffer; NULL: drawn in the window, as before */
 };
 
 static struct Screen *scr;
@@ -501,7 +505,10 @@ static void free_pens(void)
     nobtained = 0;
 }
 
-static struct Window *open_box(WORD x, WORD y, WORD w, WORD h)
+/* A panel's window. nofill (0.4.8): it is not cleared to pen 0 as it opens; what goes in it is
+ * drawn already (the buffer, or the shadow's one fill), so the pen-0 box that showed for a moment
+ * before the menu's own colours (a dark flash on a light theme, every time a menu opened) is gone. */
+static struct Window *open_box(WORD x, WORD y, WORD w, WORD h, int nofill)
 {
     if (x + w > scr->Width) x = scr->Width - w;
     if (y + h > scr->Height) y = scr->Height - h;
@@ -509,7 +516,54 @@ static struct Window *open_box(WORD x, WORD y, WORD w, WORD h)
     if (y < 0) y = 0;
     return OpenWindowTags(NULL, WA_CustomScreen, (ULONG)scr, WA_Left, x, WA_Top, y, WA_Width, w, WA_Height, h,
                           WA_Borderless, TRUE, WA_Activate, FALSE, WA_RMBTrap, TRUE, WA_SmartRefresh, TRUE,
-                          WA_NoCareRefresh, TRUE, WA_IDCMP, 0, TAG_DONE);
+                          WA_NoCareRefresh, TRUE, WA_IDCMP, 0,
+                          nofill ? WA_BackFill : TAG_IGNORE, (ULONG)LAYERS_NOBACKFILL, TAG_DONE);
+}
+
+/* ---- the panels' buffers (0.4.8) ---------------------------------------------------------------
+ *
+ * A panel is drawn into a bitmap of its own, like the screen's (a friend of it), and copied to its
+ * window in one blit: the whole panel as it opens, one entry as the highlight moves. Drawn in the
+ * window itself, each entry was filled and then written on, and each pop-up title change filled
+ * the whole panel and wrote it again, in sight; on an RTG screen at 1920x1080 that showed as the
+ * right-click menus flickering (Dale, 9 November 2026). A layer on the bitmap clips the drawing to
+ * it as the window's did. Without the memory for one, the panel is drawn in its window as before. */
+
+static void free_buffer(struct panel *p)
+{
+    if (p->ly) DeleteLayer(0, p->ly);
+    if (p->li) DisposeLayerInfo(p->li);
+    if (p->bm) { WaitBlit(); FreeBitMap(p->bm); }
+    p->ly = NULL; p->li = NULL; p->bm = NULL;
+}
+
+static int make_buffer(struct panel *p)
+{
+    struct BitMap *sbm = scr->RastPort.BitMap;
+    if (!(p->bm = AllocBitMap((ULONG)p->w, (ULONG)p->h, GetBitMapAttr(sbm, BMA_DEPTH), BMF_MINPLANES, sbm)) ||
+        !(p->li = NewLayerInfo()) ||
+        !(p->ly = CreateUpfrontLayer(p->li, p->bm, 0, 0, p->w - 1, p->h - 1, LAYERSIMPLE, NULL))) {
+        free_buffer(p);
+        return 0;
+    }
+    return 1;
+}
+
+/* Where a panel is drawn: its buffer, or its window. */
+static struct RastPort *panel_rp(struct panel *p)
+{
+    return p->ly ? p->ly->rp : p->win->RPort;
+}
+
+/* A box of the panel's buffer to its window (nothing to do when it was drawn there). */
+static void panel_show(struct panel *p, WORD x, WORD y, WORD w, WORD h)
+{
+    if (!p->ly || !p->win) return;
+    if (x < 0) { w += x; x = 0; }
+    if (y < 0) { h += y; y = 0; }
+    if (x + w > p->w) w = p->w - x;
+    if (y + h > p->h) h = p->h - y;
+    if (w > 0 && h > 0) BltBitMapRastPort(p->bm, x, y, p->win->RPort, x, y, w, h, 0xc0);
 }
 
 static void frame(struct RastPort *rp, WORD w, WORD h)
@@ -604,9 +658,9 @@ static void items_box(const struct citem *items, int n, WORD *minx, WORD *miny, 
     if (*minx > *maxx) { *minx = *miny = 0; *maxx = *maxy = 1; }
 }
 
-static void draw_panel(struct panel *p)
+static void paint_panel(struct panel *p)
 {
-    struct RastPort *rp = p->win->RPort;
+    struct RastPort *rp = panel_rp(p);
     SetFont(rp, font);
     if (p->kind == 0) {                      /* the bar's titles: the screen's title bar, or ours at an edge */
         const char *names[MAX_MENUS];
@@ -644,6 +698,13 @@ static void draw_panel(struct panel *p)
     }
 }
 
+/* The whole panel drawn, then shown in its window. */
+static void draw_panel(struct panel *p)
+{
+    paint_panel(p);
+    panel_show(p, 0, 0, p->w, p->h);
+}
+
 static void close_panel(int k)
 {
     while (npanels > k) {
@@ -651,6 +712,7 @@ static void close_panel(int k)
         if (p->win) CloseWindow(p->win);
         if (p->shadow) CloseWindow(p->shadow);
         p->win = p->shadow = NULL;
+        free_buffer(p);
     }
 }
 
@@ -665,13 +727,21 @@ static int open_panel(int kind, int menu, int item, WORD x, WORD y, WORD w, WORD
     if (x < 0) x = 0;
     if (y < 0) y = 0;
     p->x = x; p->y = y; p->w = w; p->h = h;
-    if (sh > 0 && (p->shadow = open_box(x + sh, y + sh, w, h))) {
+    /* 0.4.8: drawn before its window opens, so the window shows it whole from the start */
+    if (make_buffer(p)) paint_panel(p);
+    if (sh > 0 && (p->shadow = open_box(x + sh, y + sh, w, h, 1))) {
         SetAPen(p->shadow->RPort, pen[OM_C_SHADOW]);
         RectFill(p->shadow->RPort, 0, 0, w - 1, h - 1);
     }
-    if (!(p->win = open_box(x, y, w, h))) { if (p->shadow) CloseWindow(p->shadow); p->shadow = NULL; return 0; }
+    if (!(p->win = open_box(x, y, w, h, p->ly != NULL))) {
+        if (p->shadow) CloseWindow(p->shadow);
+        p->shadow = NULL;
+        free_buffer(p);
+        return 0;
+    }
     npanels++;
-    draw_panel(p);
+    if (p->ly) panel_show(p, 0, 0, w, h);
+    else draw_panel(p);
     return 1;
 }
 
@@ -749,9 +819,10 @@ static void draw_entry(struct panel *p, int i)
     const struct citem *items = p->kind == 2 ? cmenus[p->menu].items : cmenus[p->menu].items[p->item].subs;
     int n = p->kind == 2 ? cmenus[p->menu].nitems : cmenus[p->menu].items[p->item].nsubs;
     if (i < 0 || i >= n) return;
-    SetFont(p->win->RPort, font);
-    draw_item(p->win->RPort, &items[i], p->ox + items[i].left, p->oy + items[i].top, i == p->hot,
+    SetFont(panel_rp(p), font);
+    draw_item(panel_rp(p), &items[i], p->ox + items[i].left, p->oy + items[i].top, i == p->hot,
               item_enabled(p->menu, &items[i]) && (p->kind == 2 || item_enabled(p->menu, &cmenus[p->menu].items[p->item])));
+    panel_show(p, p->ox + items[i].left, p->oy + items[i].top, items[i].width, items[i].height);
 }
 
 /* The highlight moves to entry e: only the entry it leaves and the one it lands on are drawn again
@@ -1843,7 +1914,7 @@ out:
 /* ---- the commodity ----------------------------------------------------------------------------- */
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenMenus", (STRPTR)"GFOpenMenus 0.4.7", (STRPTR)"The GFOpen family's own menus",
+    NB_VERSION, (STRPTR)"GFOpenMenus", (STRPTR)"GFOpenMenus 0.4.8", (STRPTR)"The GFOpen family's own menus",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 
