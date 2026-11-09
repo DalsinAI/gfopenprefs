@@ -167,9 +167,14 @@ static void fonts(void)
     t = wb;
     t.special = 1; t.front = 3; strcpy(t.name, "topaz.font"); t.ysize = 8; t.style = 1; t.flags = 0x41;
     CHECK(!pf_font_is_standard(&t), "topaz 8 isn't the standard");
-    pf_font_standard(&t);
+    pf_font_standard(&t, 1);
     CHECK(pf_font_is_standard(&t) && !strcmp(t.name, "CGTriumvirate.font") && t.ysize == 13 && t.style == 0 &&
           t.flags == 2 && t.special == 1 && t.front == 3 && t.type == PF_WBFONT, "standard: %s %d", t.name, t.ysize);
+    /* an open disk (no CGTriumvirate): AmiSans (TeX Gyre Heros), the same size, style and flags */
+    strcpy(t.name, "topaz.font"); t.ysize = 8;
+    pf_font_standard(&t, 0);
+    CHECK(pf_font_is_standard(&t) && !strcmp(t.name, "AmiSans.font") && t.ysize == 13 && t.style == 0 &&
+          t.flags == 2 && t.special == 1 && t.front == 3, "open standard: %s %d", t.name, t.ysize);
     t.ysize = 12;
     CHECK(!pf_font_is_standard(&t), "another size isn't the standard");
     t.ysize = 13; t.style = 1;

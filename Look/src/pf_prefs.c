@@ -123,10 +123,10 @@ int pf_font_put(pf_file *f, const pf_font *in)
     PATCH_END(f, i, d, n);
 }
 
-void pf_font_standard(pf_font *f)
+void pf_font_standard(pf_font *f, int have_os_font)
 {
     memset(f->name, 0, sizeof f->name);
-    strcpy(f->name, PF_STANDARD_FONT);
+    strcpy(f->name, have_os_font ? PF_STANDARD_FONT : PF_OPEN_STANDARD_FONT);
     f->ysize = PF_STANDARD_SIZE;
     f->style = 0;
     f->flags = 0x02;              /* FPF_DISKFONT: loaded from FONTS:, as the OS's Font editor marks it */
@@ -134,7 +134,8 @@ void pf_font_standard(pf_font *f)
 
 int pf_font_is_standard(const pf_font *f)
 {
-    return f->ysize == PF_STANDARD_SIZE && f->style == 0 && !strcmp(f->name, PF_STANDARD_FONT);
+    return f->ysize == PF_STANDARD_SIZE && f->style == 0 &&
+           (!strcmp(f->name, PF_STANDARD_FONT) || !strcmp(f->name, PF_OPEN_STANDARD_FONT));
 }
 
 /* ---- palette.prefs ---------------------------------------------------------------------------------- */

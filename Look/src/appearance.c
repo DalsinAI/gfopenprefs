@@ -730,14 +730,17 @@ static void pick_font(int type, const char *title, int fixed)
     status("Use, Test or Save: the font is used when the Workbench screen opens again.");
 }
 
-/* The Team's standard font for the screen or the icons (pf_font_standard), its pens and mode kept */
+/* The Team's standard font for the screen or the icons (pf_font_standard), its pens and mode kept: OS 3.2.3's
+ * CGTriumvirate where FONTS: has it, else AmiSans, TeX Gyre Heros (an open disk) */
 static void standard_font(int type)
 {
     pf_font f;
+    BPTR l = Lock((STRPTR)"FONTS:" PF_STANDARD_FONT, ACCESS_READ);
+    if (l) UnLock(l);
     if (!pf_font_get(&cur, type, &f)) {
         f.front = 1; f.back = 0; f.drawmode = type == PF_WBFONT ? 0 : 1;
     }
-    pf_font_standard(&f);
+    pf_font_standard(&f, l != 0);
     if (!pf_font_put(&cur, &f)) { status("No memory for that."); return; }
     status("Use, Test or Save: the standard font is used when the Workbench screen opens again.");
 }
