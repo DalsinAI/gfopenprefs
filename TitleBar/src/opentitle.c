@@ -97,10 +97,20 @@
  *   (OpenKick's OpenBar) look for to step aside. With only "GFOpenTitle" there, OpenBar drew its clock, network,
  *   speaker and cog a second time over the bar, in a white box.
  *
+ * 0.7.10 (11 November 2026, Dale, 17:56: "look at the desktop, particularly the screen depth gadget and the speaker next
+ *   to it ... they appear 'stuck on'. Make them seem more integrated, with perhaps a wee bit more space. Also we need a
+ *   reboot / power cycle option, and a safe eject for USB"): every tray icon on one grid (Common/traygrid.h: a 16-pixel
+ *   box with 7 pixels each side, so the gaps are even and a little wider; the two network icons a cell each, where
+ *   the gap between them was half the others). The cog's list ends with an "Eject" row for each USB stick mounted
+ *   (gfopenusb's C:USBEject, then "safe to remove" in plain words) and the power menu: Reboot (warm, ColdReboot),
+ *   Restart the machine... and Power off... (asked first, then accontrol.device 1.5's ACCMD_POWER to the host).
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <exec/ports.h>
+#include <exec/io.h>
+#include <exec/errors.h>
 #include <dos/dos.h>
 #include <intuition/intuition.h>
 #include <intuition/intuitionbase.h>
@@ -144,9 +154,10 @@
 #include "cogplace.h"
 #include "barlogo.h"
 #include "obmsg.h"
+#include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.7.9 (4.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.7.10 (11.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -749,7 +760,7 @@ static WORD clock_width(void)
     const char *widest = prefs.date ? "Wed 28 Sep  00:00" : "00:00";
     InitRastPort(&rp);
     SetFont(&rp, dri->dri_Font);
-    return TextLength(&rp, (STRPTR)widest, strlen(widest)) + 10;
+    return TextLength(&rp, (STRPTR)widest, strlen(widest)) + 2 * TRAY_PAD;
 }
 
 static void draw_clock(int force)
@@ -767,13 +778,12 @@ static void draw_clock(int force)
     SetDrMd(rp, JAM1);
     h = ch - (bar_edge == OM_BAR_TITLE ? 1 : 0);
     w = TextLength(rp, (STRPTR)t, strlen(t));
-    Move(rp, cw - 6 - w, (h - rp->TxHeight) / 2 + rp->TxBaseline);
+    Move(rp, cw - TRAY_PAD - w, (h - rp->TxHeight) / 2 + rp->TxBaseline);
     Text(rp, (STRPTR)t, strlen(t));
     see_key(clock_w);
 }
 
-/* 0.7.3: the room each tray icon has on each side, so the gaps between them are even */
-#define TRAY_PAD 6
+/* 0.7.3: the room each tray icon has on each side, so the gaps between them are even (0.7.10: Common/traygrid.h) */
 
 /* 0.7.3: where the tray's row ends on the screen's title bar: the screen's depth gadget, its own width and
  * 2 pixels (2 bar heights before, which left a wide gap after the cog), or the width the bar draws it at */
@@ -879,7 +889,7 @@ static void net_poll(void)
     wifi_state = wifi_poll();
 }
 
-static WORD net_width(void) { return (wifi_state >= 0 ? 2 : 1) * (16 + TRAY_PAD) + TRAY_PAD; }   /* 16-pixel icons */
+static WORD net_width(void) { return (wifi_state >= 0 ? 2 : 1) * TRAY_CELL; }   /* 0.7.10: a cell each, as every tray icon */
 
 static void net_place(void)
 {
@@ -940,7 +950,7 @@ static void draw_net(int force)
     SetAPen(rp, bar_text());
     cy = (nh - (bar_edge == OM_BAR_TITLE ? 1 : 0)) / 2;
     draw_lan(rp, TRAY_PAD, cy, lan_state);
-    if (wifi_state >= 0) draw_wifi(rp, TRAY_PAD + 16 + TRAY_PAD, cy, wifi_state, wifi_signal);
+    if (wifi_state >= 0) draw_wifi(rp, TRAY_CELL + TRAY_PAD, cy, wifi_state, wifi_signal);
     see_key(net_w);
 }
 
@@ -1061,11 +1071,20 @@ static const char *const cog13[13] = {
     "####.....####", "..###...###..", "..#########..", ".###########.", ".##..###..##.", ".....###.....",
 };
 
+/* 0.7.10 (Dale, 11 November 2026: "we need a reboot / power cycle option. Also ... a safe eject for USB"): the
+ * cog's list ends with the power menu, and above it an "Eject" row for each USB stick mounted (usb_sticks()) */
+#define PW_REBOOT  1                           /* warm: the Amiga's own ColdReboot */
+#define PW_RESTART 2                           /* cold: the host starts the machine again (accontrol.device) */
+#define PW_OFF     3                           /* the card shuts down; on a PC the instance closes */
+#define USB_MAX    6                           /* the sticks the list shows */
+static struct { char dev[32], name[32], label[48]; } usb[USB_MAX];
+static int usb_n;
+
 /* The cog's list (0.7): GFOpenPrefs's sections (section: GFOpenPrefs SECTION; 0.7.1: by the pages' names, as
  * GFOpenPrefs lists them), then the other settings programs
  * that are there (needs, or path when NULL), as in GFOpenUpMenu's Tools > Preferences (gfopenup
  * src/openupmenu.c). */
-static const struct { const char *label, *path, *section, *needs; } cog_items[] = {
+static const struct { const char *label, *path, *section, *needs; int power; } cog_items[] = {
     { "Theme",         NULL, "THEME",    NULL },
     { "Screen Mode",   NULL, "SCREENMODE", NULL },
     { "Windows",       NULL, "WINDOWS",  NULL },
@@ -1088,12 +1107,20 @@ static const struct { const char *label, *path, *section, *needs; } cog_items[] 
     { "Tata",          "SYS:Prefs/GFOpenTata",     NULL, NULL },            /* 0.6: Tata's window, when Tata is installed */
     { NULL,            NULL, NULL,       NULL },                          /* a line */
     { "All Prefs...",  "SYS:Prefs",              NULL, NULL },
+    { NULL,            NULL, NULL,       NULL },                          /* a line; then the USB sticks (0.7.10) */
+    { "Reboot",        NULL, NULL, NULL, PW_REBOOT },                     /* 0.7.10: the power menu */
+    { "Restart the machine...", NULL, NULL, NULL, PW_RESTART },
+    { "Power off...",  NULL, NULL, NULL, PW_OFF },
 };
 #define COG_SECTIONS 15                        /* the first ones: GFOpenPrefs's */
 #define COG_ITEMS (int)(sizeof cog_items / sizeof cog_items[0])
 #define COG_PAD 10
-static int menu_idx[COG_ITEMS], menu_n;        /* what the list shows: indexes into cog_items */
-static WORD menu_y[COG_ITEMS + 1], menu_rh;
+static int menu_idx[COG_ITEMS + USB_MAX + 1], menu_n; /* what the list shows: indexes into cog_items, then usb[] */
+static WORD menu_y[COG_ITEMS + USB_MAX + 2], menu_rh;
+
+/* a row's words: a cog_items entry's, or past them a USB stick's "Eject" */
+static const char *row_label(int idx) { return idx < COG_ITEMS ? cog_items[idx].label : usb[idx - COG_ITEMS].label; }
+static void usb_sticks(void);
 static const char *menu_title;
 
 static int exists(const char *path)
@@ -1142,7 +1169,7 @@ static void cog_place(void)
 {
     WORD bh = scr->BarHeight + 1;
     int n, off = tray_before("Cog", COG_ORDER, &n);
-    gw = cog_size() + 2 * TRAY_PAD;
+    gw = TRAY_CELL;
     switch (bar_edge) {
     case OM_BAR_BOTTOM: gh = bh; gx = scr->Width - gw - off; gy = scr->Height - bh; break;
     case OM_BAR_LEFT:   gh = bh; gx = 0; gy = scr->Height - bh * (n + 1); break;
@@ -1221,7 +1248,7 @@ static void draw_menu(void)
     }
     SetDrMd(rp, JAM1);
     for (i = 0; i < menu_n; i++) {
-        const char *t = cog_items[menu_idx[i]].label;
+        const char *t = row_label(menu_idx[i]);
         WORD y0 = menu_y[i], y1 = menu_y[i + 1] - 1;
         if (!t) {
             if (pt_ok) {
@@ -1246,7 +1273,7 @@ static int menu_row(WORD my)
 {
     int i;
     for (i = 0; i < menu_n; i++)
-        if (my >= menu_y[i] && my < menu_y[i + 1]) return cog_items[menu_idx[i]].label ? i : -1;
+        if (my >= menu_y[i] && my < menu_y[i + 1]) return row_label(menu_idx[i]) ? i : -1;
     return -1;
 }
 
@@ -1272,14 +1299,21 @@ static void menu_open(void)
     H = 3;
     {
         const char *app = prefs_app();
+    usb_sticks();
     for (i = 0; i < COG_ITEMS; i++) {
         const char *t = cog_items[i].label;
-        if (t && (cog_items[i].section ? !app : !exists(cog_items[i].needs ? cog_items[i].needs : cog_items[i].path))) continue;
+        int k;
+        if (t && !cog_items[i].power && (cog_items[i].section ? !app : !exists(cog_items[i].needs ? cog_items[i].needs : cog_items[i].path))) continue;
         if (!t && !menu_n) continue;                   /* no line at the top */
-        menu_y[menu_n] = H;
-        menu_idx[menu_n++] = i;
-        if (t) { WORD tw = TextLength(&trp, (STRPTR)t, strlen(t)); if (tw > W) W = tw; }
-        H += t ? menu_rh : 6;
+        for (k = cog_items[i].power == PW_REBOOT ? -usb_n : 0; k <= 0; k++) {   /* 0.7.10: the sticks before Reboot */
+            int at = k < 0 ? COG_ITEMS + usb_n + k : i;
+            t = row_label(at);
+            menu_y[menu_n] = H;
+            menu_idx[menu_n++] = at;
+            if (t) { WORD tw = TextLength(&trp, (STRPTR)t, strlen(t)); if (tw > W) W = tw; }
+            H += t ? menu_rh : 6;
+            if (k == -1) { menu_y[menu_n] = H; menu_idx[menu_n++] = COG_ITEMS - 4; H += 6; }   /* a line after them */
+        }
     }
     }
     menu_y[menu_n] = H;
@@ -1348,10 +1382,129 @@ static void cog_start(const char *path)
     }
 }
 
+/* ---- 0.7.10: the USB sticks' Eject, and the power menu ------------------------------------------ */
+
+static void bstr_copy(BSTR b, char *out, int max)
+{
+    const UBYTE *p = BADDR(b);
+    int n = p ? p[0] : 0, i;
+    if (n > max - 1) n = max - 1;
+    for (i = 0; i < n; i++) out[i] = (char)p[1 + i];
+    out[n] = 0;
+}
+
+/* the USB sticks mounted now: DOS's drives on gfopenusbacfs.device (Cradle's folder sticks and the sticks the
+ * host mounted) or usbdisk.device (a stick on the Amiga's own USB), each with its volume's name when one is in */
+static void usb_sticks(void)
+{
+    struct DosList *dl, *e, *v;
+    usb_n = 0;
+    dl = LockDosList(LDF_DEVICES | LDF_VOLUMES | LDF_READ);
+    for (e = dl; usb_n < USB_MAX && (e = NextDosEntry(e, LDF_DEVICES)) != NULL; ) {
+        struct DeviceNode *dn = (struct DeviceNode *)e;
+        struct FileSysStartupMsg *fssm;
+        char exec_dev[40];
+        if ((ULONG)dn->dn_Startup <= 1024 || !dn->dn_Task) continue;     /* not a disk, or nothing mounted on it */
+        fssm = BADDR(dn->dn_Startup);
+        bstr_copy(fssm->fssm_Device, exec_dev, sizeof exec_dev);
+        if (strcmp(exec_dev, "gfopenusbacfs.device") && strcmp(exec_dev, "usbdisk.device")) continue;
+        bstr_copy(dn->dn_Name, usb[usb_n].dev, sizeof usb[usb_n].dev);
+        strcpy(usb[usb_n].name, usb[usb_n].dev);
+        for (v = dl; (v = NextDosEntry(v, LDF_VOLUMES)) != NULL; )
+            if (v->dol_Task == dn->dn_Task) { bstr_copy(v->dol_Name, usb[usb_n].name, sizeof usb[usb_n].name); break; }
+        snprintf(usb[usb_n].label, sizeof usb[usb_n].label, "Eject %s", usb[usb_n].name);
+        usb_n++;
+    }
+    UnLockDosList(LDF_DEVICES | LDF_VOLUMES | LDF_READ);
+}
+
+static LONG ask(const char *title, const char *text, const char *buttons)
+{
+    struct EasyStruct es;
+    es.es_StructSize = sizeof es;
+    es.es_Flags = 0;
+    es.es_Title = (UBYTE *)title;
+    es.es_TextFormat = (UBYTE *)text;
+    es.es_GadgetFormat = (UBYTE *)buttons;
+    return EasyRequestArgs(NULL, &es, NULL, NULL);
+}
+
+/* a stick let go (gfopenusb's C:USBEject: the volume stops, the host syncs and unmounts it), then in plain words
+ * whether it can be pulled out */
+static void usb_eject(int k)
+{
+    char cmd[80], said[160];
+    BPTR in, out;
+    LONG rc = -1, n = 0;
+    snprintf(cmd, sizeof cmd, "C:USBEject DRIVE=\"%s:\"", usb[k].dev);
+    in = Open((STRPTR)"NIL:", MODE_OLDFILE);
+    out = Open((STRPTR)"T:GFOpenTitle.eject", MODE_NEWFILE);
+    if (in && out) rc = SystemTags((STRPTR)cmd, SYS_Input, in, SYS_Output, out, SYS_UserShell, TRUE, NP_StackSize, 8192, TAG_DONE);
+    if (in) Close(in);
+    if (out) Close(out);
+    said[0] = 0;
+    if ((out = Open((STRPTR)"T:GFOpenTitle.eject", MODE_OLDFILE))) {
+        n = Read(out, said, sizeof said - 1);
+        Close(out);
+        said[n > 0 ? n : 0] = 0;
+        while (n > 0 && (said[n - 1] == '\n' || said[n - 1] == ' ')) said[--n] = 0;
+    }
+    DeleteFile((STRPTR)"T:GFOpenTitle.eject");
+    if (rc == 0) {
+        char t[80];
+        snprintf(t, sizeof t, "%s is safe to remove.", usb[k].name);
+        ask("USB", t, "OK");
+    } else if (rc == -1)
+        ask("USB", "C:USBEject isn't here (GFOpenUSB), so the stick can't be ejected from the bar.", "OK");
+    else
+        ask("USB", said[0] ? said : "The stick wasn't ejected.", "OK");
+}
+
+#define ACC_CMD_POWER   (CMD_NONSTD + 14)      /* accontrol.device 1.5's ACCMD_POWER (amicradle-guest accontrol.h) */
+#define ACC_ERR_NOPOWER 48
+
+/* the host restarts the machine (1) or powers it off (2): accontrol.device to the bridge */
+static void power_host(ULONG action)
+{
+    struct MsgPort *port = CreateMsgPort();
+    struct IOStdReq *io = port ? (struct IOStdReq *)CreateIORequest(port, sizeof *io) : NULL;
+    BYTE err = -1;
+    if (io && !OpenDevice((STRPTR)"accontrol.device", 0, (struct IORequest *)io, 0)) {
+        io->io_Command = ACC_CMD_POWER;
+        io->io_Offset = action;
+        err = DoIO((struct IORequest *)io);
+        CloseDevice((struct IORequest *)io);
+    }
+    if (io) DeleteIORequest((struct IORequest *)io);
+    if (port) DeleteMsgPort(port);
+    if (err == ACC_ERR_NOPOWER || err == -1 || err == IOERR_OPENFAIL)
+        ask("Power", action == 1 ? "This machine can't be restarted from here." : "This machine can't be powered off from here.", "OK");
+    else if (err)
+        ask("Power", action == 1 ? "The host didn't restart the machine." : "The host didn't power the machine off.", "OK");
+}
+
+static void power(int what)
+{
+    if (what == PW_REBOOT) {                   /* warm: the Amiga starts again, as Ctrl-Amiga-Amiga */
+        Delay(TICKS_PER_SECOND);               /* the disks' last writes first */
+        ColdReboot();
+    } else if (what == PW_RESTART) {
+        if (ask("Restart the machine", "Restart the machine from cold?\nWork not saved in open programs is lost.", "Restart|Cancel"))
+            power_host(1);
+    } else if (what == PW_OFF) {
+        if (ask("Power off", "Power the machine off?\nWork not saved in open programs is lost.", "Power off|Cancel"))
+            power_host(2);
+    }
+}
+
 static void menu_pick(int row)
 {
     const char *path;
+    int at;
     if (row < 0 || row >= menu_n) return;
+    at = menu_idx[row];
+    if (at >= COG_ITEMS) { menu_close(1); usb_eject(at - COG_ITEMS); return; }     /* 0.7.10 */
+    if (cog_items[at].power) { menu_close(1); power(cog_items[at].power); return; }
     if (cog_items[menu_idx[row]].section) {   /* 0.7: GFOpenPrefs at its section, by the cog */
         const char *section = cog_items[menu_idx[row]].section;
         menu_close(1);
@@ -1390,7 +1543,7 @@ static void menu_events(void)
             else if (code == 0x44 || code == 0x43) menu_pick(menu_hot);       /* Return, Enter */
             else if (code == 0x4C || code == 0x4D) {                          /* up, down */
                 do i = code == 0x4D ? (i + 1) % menu_n : (i <= 0 ? menu_n - 1 : i - 1);
-                while (!cog_items[menu_idx[i]].label);
+                while (!row_label(menu_idx[i]));
                 menu_hot = i;
                 draw_menu();
             }
@@ -1427,7 +1580,7 @@ static void ts_place(struct ts_icon *t)
 {
     WORD bh = scr->BarHeight + 1;
     int n, off = tray_before(t->name, t->order, &n);
-    t->bw = t->w + 2 * TRAY_PAD;
+    t->bw = TRAY_ROOM(t->w);
     switch (bar_edge) {
     case OM_BAR_BOTTOM: t->bh = bh; t->x = scr->Width - t->bw - off; t->y = scr->Height - bh; break;
     case OM_BAR_LEFT:   t->bh = bh; t->x = 0; t->y = scr->Height - bh * (n + 1); break;
@@ -1994,7 +2147,7 @@ static void os_poll(int on)
         for (i = 0; i < OS_MAX; i++) { if (os_cog[i].s == seen[j]) break; if (!os_cog[i].s && f < 0) f = i; }
         if (i < OS_MAX || f < 0 || !(s = LockPubScreen((STRPTR)names[j]))) continue;
         if (s == seen[j] && os_used(s, NULL)) {
-            WORD bh = s->BarHeight, gw = (bh - 2 >= 13 ? 13 : bh - 2 >= 11 ? 11 : 9) + 2 * TRAY_PAD;
+            WORD bh = s->BarHeight, gw = TRAY_CELL;
             os_cog[f].w = OpenWindowTags(NULL, WA_PubScreen, (ULONG)s, WA_Left, s->Width - 2 * bh - gw, WA_Top, 0,
                                          WA_Width, gw, WA_Height, bh, WA_Borderless, TRUE, WA_Activate, FALSE,
                                          WA_RMBTrap, TRUE, WA_SmartRefresh, TRUE, WA_IDCMP, IDCMP_MOUSEBUTTONS | IDCMP_REFRESHWINDOW,
