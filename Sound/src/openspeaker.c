@@ -25,6 +25,10 @@
  *                    to show it; Ctrl-C quits, Ctrl-F reads the settings
  *                    again and quits when the speaker is switched off)
  *
+ * 0.1.9 (Dale, 11 November 2026: the speaker looked thinner than its neighbours, its waves cramped): on the tray's
+ * grid (Common/traygrid.h, as GFOpenTitle 0.7.10), and drawn again 11 rows high as the network icons, its waves
+ * 1-pixel arcs as the Wi-Fi's, centred on the same row.
+ *
  * 0.1.7 (Dale, 1 November 2026: "yes" to the review's idle ticks): after 2 s with no input the tick is 1 s, not
  * 200 ms, and the first input brings it back at once (Common/idlepace.h); the 2 s checks and the save 2 s after
  * the wheel count time, not ticks, so they keep their times at either pace.
@@ -82,11 +86,12 @@
 #include "barpaint.h"
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 #include "../../Common/idlepace.h"           /* the tick slowed when nobody is there */
+#include "../../Common/traygrid.h"          /* 0.1.9: the tray's grid, as GFOpenTitle 0.7.10 */
 
 #define SP_OLD_PORT "OpenSpeaker"            /* 0.1.8: SP_SPEAKER_PORT before the GF rename */
 static struct MsgPort *old_port;
 
-const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.1.8 (04.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.1.9 (11.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct Library *CyberGfxBase;
@@ -97,8 +102,6 @@ struct Library *GadToolsBase, *LayersBase, *CxBase;
 #define TRAY_PARENT "ENV:GFOpenMenus"
 #define TRAY_DIR  "ENV:GFOpenMenus/Tray"        /* the tray: a file per program on the menu bar's end, "width order" */
 #define TRAY_MINE "ENV:GFOpenMenus/Tray/Speaker"
-#define TRAY_PAD  6                           /* 0.1.6: the room each tray icon has on each side (as GFOpenTitle 0.7.3) */
-#define SPEAKER_W 14                          /* 0.1.6: the speaker's own width */
 #define MY_ORDER  0                           /* lower is nearer the bar's end: GFOpenTitle's cog (-5) is rightmost, then the speaker, the clock (10) left of it */
 #define SOUND_SECTION "SOUND"                /* 0.1.5: GFOpenPrefs at its Sound page (SYS:Preferences/GFOpenPrefs: prefsapp.h) */
 #define NM_WHEEL_UP   0x7A                   /* the mouse wheel, as NewMouse and OS 3.2 send it */
@@ -200,16 +203,19 @@ static void draw_speaker(void)
     fg = paint_back();
     SetAPen(rp, fg);
     h = sh;                                                      /* the bar's rows: the line under them isn't ours */
-    cy = h / 2;
-    x = TRAY_PAD;                                                /* 0.1.6: the speaker alone, SPEAKER_W wide */
-    RectFill(rp, x, cy - 1, x + 2, cy + 1);                       /* the speaker: its box and cone */
-    for (int i = 0; i < 4; i++) { Move(rp, x + 3 + i, cy - 1 - i); Draw(rp, x + 3 + i, cy + 1 + i); }
+    cy = (h - (bar_edge == OM_BAR_TITLE ? 1 : 0)) / 2;           /* 0.1.9: centred as GFOpenTitle's network icons */
+    x = TRAY_PAD;                                                /* 0.1.9: in the tray's TRAY_ICON box, 11 rows as the network icons */
+    RectFill(rp, x, cy - 2, x + 2, cy + 2);                       /* the speaker: its box and cone, out to 11 rows */
+    for (int i = 0; i < 4; i++) { Move(rp, x + 3 + i, cy - 2 - i); Draw(rp, x + 3 + i, cy + 2 + i); }
     if (level() == 0) {                                          /* muted, or nothing: a cross */
-        Move(rp, x + 9, cy - 2); Draw(rp, x + 13, cy + 2);
-        Move(rp, x + 9, cy + 2); Draw(rp, x + 13, cy - 2);
-    } else {
-        Move(rp, x + 9, cy - 1); Draw(rp, x + 10, cy); Draw(rp, x + 9, cy + 1);
-        if (level() > 50) { Move(rp, x + 12, cy - 3); Draw(rp, x + 13, cy - 2); Draw(rp, x + 13, cy + 2); Draw(rp, x + 12, cy + 3); }
+        Move(rp, x + 10, cy - 3); Draw(rp, x + 15, cy + 2);
+        Move(rp, x + 10, cy + 2); Draw(rp, x + 15, cy - 3);
+    } else {                                                     /* one wave, two above half: 1-pixel arcs as the Wi-Fi's */
+        Move(rp, x + 9, cy - 2); Draw(rp, x + 10, cy - 1); Draw(rp, x + 10, cy + 1); Draw(rp, x + 9, cy + 2);
+        if (level() > 50) {
+            Move(rp, x + 12, cy - 4); Draw(rp, x + 13, cy - 3); Draw(rp, x + 14, cy - 2);
+            Draw(rp, x + 14, cy + 2); Draw(rp, x + 13, cy + 3); Draw(rp, x + 12, cy + 4);
+        }
     }
 }
 
@@ -307,7 +313,7 @@ static void place(void)
 {
     WORD bh = scr->BarHeight + 1;
     int n, off = tray_before(&n);            /* after any program with a lower order than ours */
-    sw = TRAY_PAD + SPEAKER_W + TRAY_PAD;    /* 0.1.6: no level beside it */
+    sw = TRAY_CELL;                          /* 0.1.6: no level beside it; 0.1.9: the tray's cell */
     switch (bar_edge) {
     case OM_BAR_BOTTOM: sh = bh; sx = scr->Width - sw - off; sy = scr->Height - bh; break;
     case OM_BAR_LEFT:   sh = bh; sx = 0; sy = scr->Height - bh * (n + 1); break;
