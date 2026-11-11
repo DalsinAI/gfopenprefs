@@ -14,6 +14,10 @@
  *     too... for workbench itself"): GFOpenBench's desktop shows no icons at all, its disks', the ones left out or
  *     AppIcons, and the backdrop, the bar, the dock and the meters stay; off, they come back where they were. GFOpenBench's
  *     Window > No icons is the same setting, and its Icons > Clean Up turns it off
+ *   - The default icons' tile (0.3, the user, 11 November 2026: "options to turn on and off the tile the icons sit
+ *     on"): the ROM's icons (a disk, drawer, tool or project with no .info of its own) on a dark tile (the default), a
+ *     light one or none, the picture alone; and Glass, the tile see-through on a true-colour screen. icon.library reads
+ *     ENV:Sys/IconTile ("dark", "light", "off", with "glass") when it makes one, so what a window opens next follows it
  *
  * Two variables, so icon.library (in the ROM) reads one word: ENV:Sys/IconLabels ("close", "close 3", "below") and
  * ENV:Sys/IconLayout ("cell=auto snap=on order=name columns=left labelcolour=backdrop"), read by GFOpenBench and its
@@ -52,16 +56,44 @@
 #include "wb_grid.h"                        /* gfopengadtools' workbench/: the two variables' words */
 #include "deskicons.h"                      /* Common/: ENV:Sys/DesktopIcons's words, shared with GFOpenBench */
 
-static const char version[] __attribute__((used)) = "$VER: IconsPage 0.2 (25.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: IconsPage 0.3 (11.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define LABELS "Sys/IconLabels"
 #define LAYOUT "Sys/IconLayout"
+#define TILE "Sys/IconTile"
 
 static wb_iconprefs ip;
 static int noicons;                         /* 0.2: DESKICONS_NONE, no icons on the desktop */
+static int tile, glass;                     /* 0.3: TILE_DARK, _LIGHT or _OFF; the tile see-through */
+enum { TILE_DARK, TILE_LIGHT, TILE_OFF };
 /* what ENV: had when the page opened, put back by Cancel after a Test */
-static char was_labels[48], was_layout[128], was_desk[16];
-static int had_labels, had_layout, had_desk, tested;
+static char was_labels[48], was_layout[128], was_desk[16], was_tile[24];
+static int had_labels, had_layout, had_desk, had_tile, tested;
+
+/* ENV:Sys/IconTile's words into tile and glass, as icon.library reads them (the last of dark, light, off wins) */
+static void tile_parse(const char *t)
+{
+    char w[16];
+    int k;
+    tile = TILE_DARK;
+    glass = 0;
+    while (t && *t) {
+        while (*t == ' ' || *t == ',' || *t == '\t' || *t == '\n' || *t == '\r') t++;
+        for (k = 0; *t && *t != ' ' && *t != ',' && *t != '\t' && *t != '\n' && *t != '\r'; t++)
+            if (k < (int)sizeof w - 1) w[k++] = *t;
+        w[k] = 0;
+        if (!Stricmp((CONST_STRPTR)w, (CONST_STRPTR)"dark") || !Stricmp((CONST_STRPTR)w, (CONST_STRPTR)"on")) tile = TILE_DARK;
+        else if (!Stricmp((CONST_STRPTR)w, (CONST_STRPTR)"light")) tile = TILE_LIGHT;
+        else if (!Stricmp((CONST_STRPTR)w, (CONST_STRPTR)"off") || !Stricmp((CONST_STRPTR)w, (CONST_STRPTR)"none")) tile = TILE_OFF;
+        else if (!Stricmp((CONST_STRPTR)w, (CONST_STRPTR)"glass")) glass = 1;
+    }
+}
+
+static const char *tile_text(void)
+{
+    static const char *const t[2][3] = { { "dark", "light", "off" }, { "dark glass", "light glass", "off" } };
+    return t[glass ? 1 : 0][tile];
+}
 
 /* A variable's text from ENV: (GetVar), else from ENVARC: (the file); 1 when there was one */
 static int read_var(const char *name, char *buf, int size)
@@ -104,6 +136,10 @@ static int put(int save, void (*say)(const char *))
         say(save ? "Couldn't write ENV: and ENVARC:Sys/DesktopIcons." : "Couldn't write ENV:Sys/DesktopIcons.");
         return 0;
     }
+    if (!set_var(TILE, tile_text(), save)) {
+        say(save ? "Couldn't write ENV: and ENVARC:Sys/IconTile." : "Couldn't write ENV:Sys/IconTile.");
+        return 0;
+    }
     return 1;
 }
 
@@ -117,12 +153,15 @@ static void put_back(void)
     else DeleteVar((CONST_STRPTR)LAYOUT, GVF_GLOBAL_ONLY);
     if (had_desk) set_var(DESKICONS_VAR, was_desk, 0);
     else DeleteVar((CONST_STRPTR)DESKICONS_VAR, GVF_GLOBAL_ONLY);
+    if (had_tile) set_var(TILE, was_tile, 0);
+    else DeleteVar((CONST_STRPTR)TILE, GVF_GLOBAL_ONLY);
     tested = 0;
 }
 
 /* ---- the window ------------------------------------------------------------------------------------ */
 
-enum { G_LABELS = 1, G_GAPLABEL, G_GAP, G_GAPTEXT, G_CELL, G_SNAP, G_ORDER, G_COLUMNS, G_TONE, G_NOICONS, G_FONTS, G_FONTTEXT,
+enum { G_LABELS = 1, G_GAPLABEL, G_GAP, G_GAPTEXT, G_CELL, G_SNAP, G_ORDER, G_COLUMNS, G_TONE, G_NOICONS, G_TILE, G_GLASS,
+       G_FONTS, G_FONTTEXT,
        G_STATUS, G_SAVE, G_USE, G_TEST, G_CANCEL, G_COUNT };
 
 static const char *const labels_names[] = { "Close to the picture", "Below the picture (OS 3.2.3)", NULL };
@@ -133,6 +172,7 @@ static const int cell_px[] = { 0, 32, 40, 48, 56, 64, 80, 96, 128 };
 static const char *const order_names[] = { "Name", "Kind", "Size", "Date", NULL };
 static const char *const columns_names[] = { "Down the left", "Down the right", NULL };
 static const char *const tone_names[] = { "From the backdrop", "The theme's", NULL };
+static const char *const tile_names[] = { "Dark tile", "Light tile", "No tile, the picture alone", NULL };
 
 static struct Window *win;
 static struct Gadget *gad[G_COUNT];
@@ -236,6 +276,13 @@ static int gui(void)
     G(CHECKBOX_KIND, G_NOICONS, X, row, 26, lh, "No icons on the desktop", PLACETEXT_RIGHT,
       GTCB_Checked, noicons == DESKICONS_NONE, GTCB_Scaled, TRUE);
     row += lh + 10;
+    /* 0.3: the tile the default icons sit on (icon.library's ENV:Sys/IconTile), and glass */
+    G(CYCLE_KIND, G_TILE, X, row, cw, lh, "Default icons", PLACETEXT_LEFT, GTCY_Labels, (ULONG)tile_names,
+      GTCY_Active, tile);
+    row += lh + 4;
+    G(CHECKBOX_KIND, G_GLASS, X, row, 26, lh, "Glass tiles (true-colour screens)", PLACETEXT_RIGHT,
+      GTCB_Checked, glass, GTCB_Scaled, TRUE, GA_Disabled, tile == TILE_OFF);
+    row += lh + 10;
     G(TEXT_KIND, G_FONTTEXT, 12, row, W - 24, lh, NULL, 0, GTTX_Text,
       (ULONG)"The labels are in Font prefs' Workbench icon text font.");
     row += lh + 2;
@@ -255,9 +302,9 @@ static int gui(void)
                    CYCLEIDCMP | TEXTIDCMP)
 #ifdef LT_ONE
     win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1,
-                  glist, IDCMP_ALL, "Icons 0.2");
+                  glist, IDCMP_ALL, "Icons 0.3");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Icons", WA_ScreenTitle, (ULONG)"Icons 0.2", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Icons", WA_ScreenTitle, (ULONG)"Icons 0.3", WA_PubScreen, (ULONG)scr,
                          WA_Left, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, WA_Top, scr->BarHeight + 20,
                          WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
@@ -313,6 +360,11 @@ static int gui(void)
                 case G_COLUMNS: ip.right = code == 1; break;
                 case G_TONE: ip.tone = code == 0; break;
                 case G_NOICONS: noicons = (gg->Flags & GFLG_SELECTED) ? DESKICONS_NONE : DESKICONS_SHOW; break;
+                case G_TILE:
+                    tile = code < 3 ? code : TILE_DARK;
+                    GT_SetGadgetAttrs(gad[G_GLASS], win, NULL, GA_Disabled, tile == TILE_OFF, TAG_DONE);
+                    break;
+                case G_GLASS: glass = (gg->Flags & GFLG_SELECTED) != 0; break;
                 case G_FONTS:                       /* the Fonts page, this one's changes kept as Use */
 #ifdef LT_ONE
                     if (LT_DIRTY) put(0, status);
@@ -327,6 +379,7 @@ static int gui(void)
                         had_labels = GetVar((CONST_STRPTR)LABELS, (STRPTR)was_labels, sizeof was_labels, GVF_GLOBAL_ONLY) >= 0;
                         had_layout = GetVar((CONST_STRPTR)LAYOUT, (STRPTR)was_layout, sizeof was_layout, GVF_GLOBAL_ONLY) >= 0;
                         had_desk = GetVar((CONST_STRPTR)DESKICONS_VAR, (STRPTR)was_desk, sizeof was_desk, GVF_GLOBAL_ONLY) >= 0;
+                        had_tile = GetVar((CONST_STRPTR)TILE, (STRPTR)was_tile, sizeof was_tile, GVF_GLOBAL_ONLY) >= 0;
                     }
                     if (put(0, status)) {
                         tested = 1;
@@ -363,19 +416,22 @@ static int word_of(const char *w, const char *const *list)
 }
 
 /*   Icons [LABELS close|below] [GAP n] [CELL auto|px] [SNAP on|off] [ORDER name|kind|size|date]
- *         [COLUMNS left|right] [LABELCOLOUR backdrop|theme] [DESKTOP show|none] [USE] [SAVE]
+ *         [COLUMNS left|right] [LABELCOLOUR backdrop|theme] [DESKTOP show|none] [TILE dark|light|off]
+ *         [GLASS on|off] [USE] [SAVE]
  * (GFOpenPrefs ICONS ...): the settings given over the ones in ENV:; with USE or SAVE written without a window.
- * DESKTOP (0.2): the desktop's icons shown (show, icons, on) or none at all (none, noicons, off). */
+ * DESKTOP (0.2): the desktop's icons shown (show, icons, on) or none at all (none, noicons, off).
+ * TILE and GLASS (0.3): the default icons' tile, ENV:Sys/IconTile. */
 int main(int argc, char **argv)
 {
     static const char *const lb[] = { "close", "below", "on", "off", NULL }, *const onoff[] = { "on", "off", "yes", "no", NULL };
     static const char *const ord[] = { "name", "kind", "size", "date", NULL }, *const side[] = { "left", "right", NULL };
     static const char *const tone[] = { "theme", "backdrop", NULL };
-    LONG args[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    static const char *const tl[] = { "dark", "light", "off", NULL };
+    LONG args[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     struct RDArgs *rd = argc > 0 ? ReadArgs((STRPTR)"LABELS/K,GAP/K/N,CELL/K,SNAP/K,ORDER/K,COLUMNS/K,USE/S,SAVE/S,LABELCOLOUR/K,"
-                                            "DESKTOP/K", args, NULL) : NULL;
-    char a[48], b[128], d[16];
-    int rc, ha, hb, hd, k;
+                                            "DESKTOP/K,TILE/K,GLASS/K", args, NULL) : NULL;
+    char a[48], b[128], d[16], t[24];
+    int rc, ha, hb, hd, ht, k;
     (void)argv;
     (void)version;
     win = NULL;                             /* built into GFOpenPrefs, the statics outlive a run */
@@ -384,6 +440,8 @@ int main(int argc, char **argv)
     ha = read_var(LABELS, a, sizeof a);
     hb = read_var(LAYOUT, b, sizeof b);
     hd = read_var(DESKICONS_VAR, d, sizeof d);
+    ht = read_var(TILE, t, sizeof t);
+    tile_parse(ht ? t : NULL);
     wb_iconprefs_parse(&ip, ha ? a : NULL, hb ? b : NULL);
     noicons = deskicons_parse(hd ? d : NULL, -1);
     if ((k = word_of((const char *)args[0], lb)) >= 0) ip.close = !(k & 1);
@@ -398,6 +456,8 @@ int main(int argc, char **argv)
     if ((k = word_of((const char *)args[5], side)) >= 0) ip.right = k;
     if ((k = word_of((const char *)args[8], tone)) >= 0) ip.tone = k;
     if ((k = deskicons_word((const char *)args[9], -1)) >= 0) noicons = k;
+    if ((k = word_of((const char *)args[10], tl)) >= 0) tile = k;
+    if ((k = word_of((const char *)args[11], onoff)) >= 0) glass = !(k & 1);
     if (args[6] || args[7]) rc = put(args[7] != 0, say_shell) ? RETURN_OK : RETURN_ERROR;
     else rc = gui();
     if (rd) FreeArgs(rd);
