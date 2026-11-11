@@ -1120,6 +1120,7 @@ static WORD menu_y[COG_ITEMS + USB_MAX + 2], menu_rh;
 
 /* a row's words: a cog_items entry's, or past them a USB stick's "Eject" */
 static const char *row_label(int idx) { return idx < COG_ITEMS ? cog_items[idx].label : usb[idx - COG_ITEMS].label; }
+static void usb_sticks(void);
 static const char *menu_title;
 
 static int exists(const char *path)
