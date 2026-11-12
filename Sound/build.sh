@@ -13,7 +13,7 @@ STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32}
 CC="$STOVE/prefix/bin/m68k-amigaos-gcc"
 OGT=${OGT:-$HERE/../../gfopengadtools}      # a checkout of DalsinAI/gfopengadtools: its theme reader (lib/ogt_theme.c)
 OUT=${1:-$HERE/build/os3}
-CFLAGS="-noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common -I$HERE/src -I$HERE/../Common -I$OGT/lib"
+CFLAGS="-noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common -I$HERE/src -I$HERE/../Common -I$HERE/../TitleBar/include -I$OGT/lib"
 # GFOpenAmigaGCC 16.2.0-open3's late-combine pass can store a copy one place late (GCC PR 123853; Common/wbclose.h's
 # strcpy of "OpenWBNotify" came out so): off until open4 (gfopengcc #29), on a compiler that knows the option.
 if "$CC" -fno-late-combine-instructions -S -o /dev/null -x c /dev/null 2>/dev/null; then CFLAGS="$CFLAGS -fno-late-combine-instructions"; fi

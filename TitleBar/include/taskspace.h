@@ -24,6 +24,11 @@
  *     window under it). Reply each one. TSE_GONE says GFOpenTitle is
  *     ending: the icon is gone, add it again when GFOpenTitle is back.
  *
+ * Version 2 (12 November 2026, GFOpenTitle 0.8): a program that sends tsm_Version 2 also hears TSE_PLACE, with
+ * the icon's box on the screen, each time GFOpenTitle places it or moves it, so it can take its own clicks, the
+ * wheel or the middle button there (GFOpenSpeaker 0.2 does: its input handler sees the box). Version 1 programs
+ * never get TSE_PLACE.
+ *
  * The pictures: tsm_States pictures of tsm_Width x tsm_Height pixels (at
  * most TS_MAXW x TS_MAXH), one byte a pixel, one picture after the other:
  *     0          see-through (the bar's own colour)
@@ -49,7 +54,7 @@
 
 #define TASKSPACE_PORT    "GFOpenTitle"
 #define TASKSPACE_MAGIC   0x54535043UL    /* 'TSPC' */
-#define TASKSPACE_VERSION 1
+#define TASKSPACE_VERSION 2
 
 #define TS_MAXW   16
 #define TS_MAXH   13
@@ -58,7 +63,7 @@
 
 enum { TSC_ADD = 1, TSC_SET = 2, TSC_REMOVE = 3 };
 enum { TSR_OK = 0, TSR_BADMSG = 1, TSR_FULL = 2, TSR_UNKNOWN = 3, TSR_NOMEM = 4 };
-enum { TSE_CLICK = 1, TSE_GONE = 2 };
+enum { TSE_CLICK = 1, TSE_GONE = 2, TSE_PLACE = 3 };   /* TSE_PLACE: version 2 only */
 
 struct TaskspaceMsg {
     struct Message tsm_Message;           /* mn_ReplyPort required; mn_Length = sizeof */

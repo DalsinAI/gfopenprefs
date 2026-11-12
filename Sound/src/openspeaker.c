@@ -52,6 +52,14 @@
  * ROM's own title-bar items (OpenKick's OpenBar) look for to leave the speaker to it (GFOpenTitle 0.7.9 does the same
  * with "OpenTitle").
  *
+ * 0.2 (12 November 2026, Dale: GFOpenTitle owns the system bar, TitleBar/docs/system-bar.md): while GFOpenTitle 0.8
+ * runs, the speaker is an item in its row (taskspace version 2, TitleBar/include/taskspace.h), drawn by GFOpenTitle
+ * like every other icon there; the speaker has no window of its own over the bar then. Its pictures are the ones
+ * it drew (muted, one wave, two waves), and the help under it says the volume. GFOpenTitle says where it put it
+ * (TSE_PLACE), so the wheel, the middle button and a click there still come here first, as before. Without
+ * GFOpenTitle (or on GFOpenMenus' own bar) it has its own window as before, and it moves into the row when
+ * GFOpenTitle starts (checked every 2 s) and back out when GFOpenTitle ends (TSE_GONE).
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -87,11 +95,12 @@
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 #include "../../Common/idlepace.h"           /* the tick slowed when nobody is there */
 #include "../../Common/traygrid.h"          /* 0.1.9: the tray's grid, as GFOpenTitle 0.7.10 */
+#include "taskspace.h"                       /* 0.2: the speaker as an item in GFOpenTitle's row */
 
 #define SP_OLD_PORT "OpenSpeaker"            /* 0.1.8: SP_SPEAKER_PORT before the GF rename */
 static struct MsgPort *old_port;
 
-const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.1.9 (11.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.2 (12.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct Library *CyberGfxBase;
@@ -193,11 +202,92 @@ static LONG paint_back(void)
     return bp_text_pen(scr, dri->dri_Pens[BARDETAILPEN]);
 }
 
+/* ---- 0.2: the speaker in GFOpenTitle's row ---------------------------------------------------- */
+#define TS_NAME "Speaker"                    /* also its tray file, as before */
+#define TS_EVENTS "GFOpenSpeaker.bar"        /* our port for GFOpenTitle's events */
+#define PIC_W 16
+#define PIC_H 11
+static int in_bar;                           /* 1: the speaker is GFOpenTitle's item, we have no window */
+static struct MsgPort *ts_events;            /* public, TS_EVENTS */
+static int ts_shown = -1;                    /* the picture last sent */
+static char ts_help[48];
+
+/* the picture: 0 muted (the cross), 1 one wave, 2 two waves; the speaker's own lines, in the bar's text colour (1) */
+static void speaker_pic(UBYTE *px, int state)
+{
+    int cy = PIC_H / 2, x = 0, i, y;
+    memset(px, 0, PIC_W * PIC_H);
+#define PX(a, b) (px[(b) * PIC_W + (a)] = 1)
+    for (y = cy - 2; y <= cy + 2; y++) for (i = 0; i <= 2; i++) PX(x + i, y);
+    for (i = 0; i < 4; i++) for (y = cy - 2 - i; y <= cy + 2 + i; y++) PX(x + 3 + i, y);
+    if (state == 0) for (i = 0; i <= 5; i++) { PX(x + 10 + i, cy - 3 + i); PX(x + 10 + i, cy + 2 - i); }
+    else {
+        PX(x + 9, cy - 2); PX(x + 10, cy - 1); PX(x + 10, cy); PX(x + 10, cy + 1); PX(x + 9, cy + 2);
+        if (state == 2) { PX(x + 12, cy - 4); PX(x + 13, cy - 3); for (y = cy - 2; y <= cy + 2; y++) PX(x + 14, y); PX(x + 13, cy + 3); PX(x + 12, cy + 4); }
+    }
+#undef PX
+}
+
+static int pic_state(void) { return level() == 0 ? 0 : level() > 50 ? 2 : 1; }
+
+static void help_text(char *t, int size)
+{
+    if (level() == 0) strlcpy(t, cur.muted ? "Sound: muted" : "Sound: off", size);
+    else snprintf(t, size, "Sound: volume %d%%", cur.volume);
+}
+
+/* one message to GFOpenTitle and its reply; the result, or -1 when GFOpenTitle isn't there */
+static LONG ts_send(UWORD command)
+{
+    static UBYTE pics[3 * PIC_W * PIC_H];
+    struct TaskspaceMsg m;
+    struct MsgPort *reply, *p;
+    int i;
+    if (!(reply = CreateMsgPort())) return -1;
+    memset(&m, 0, sizeof m);
+    m.tsm_Message.mn_ReplyPort = reply;
+    m.tsm_Message.mn_Length = sizeof m;
+    m.tsm_Magic = TASKSPACE_MAGIC;
+    m.tsm_Version = TASKSPACE_VERSION;
+    m.tsm_Command = command;
+    strcpy(m.tsm_Name, TS_NAME);
+    m.tsm_Order = MY_ORDER;
+    m.tsm_State = pic_state();
+    m.tsm_Width = PIC_W; m.tsm_Height = PIC_H; m.tsm_States = 3;
+    for (i = 0; i < 3; i++) speaker_pic(pics + i * PIC_W * PIC_H, i);
+    m.tsm_Pixels = pics;
+    help_text(m.tsm_Help, sizeof m.tsm_Help);
+    strcpy(m.tsm_Port, TS_EVENTS);
+    Forbid();
+    if ((p = FindPort((STRPTR)TASKSPACE_PORT))) PutMsg(p, &m.tsm_Message);
+    Permit();
+    if (p) WaitPort(reply), GetMsg(reply);
+    DeleteMsgPort(reply);
+    if (!p) return -1;
+    if (m.tsm_Result == TSR_OK) { ts_shown = m.tsm_State; strcpy(ts_help, m.tsm_Help); }
+    return m.tsm_Result;
+}
+
+static int bar_owner_here(void)
+{
+    struct MsgPort *p;
+    Forbid();
+    p = FindPort((STRPTR)TASKSPACE_PORT);
+    Permit();
+    return p != NULL;
+}
+
 static void draw_speaker(void)
 {
     struct RastPort *rp;
     LONG fg;
     WORD cy, x, h;
+    if (in_bar) {                            /* 0.2: GFOpenTitle draws it: only a changed picture or help is sent */
+        char t[48];
+        help_text(t, sizeof t);
+        if (pic_state() != ts_shown || strcmp(t, ts_help)) ts_send(TSC_SET);
+        return;
+    }
     if (!spk) return;
     rp = spk->RPort;
     fg = paint_back();
@@ -325,14 +415,18 @@ static void place(void)
 }
 
 static int speaker_ours(struct Window *w) { return w == spk || w == pop; }
+static int scr_locked;                      /* 0.2: in the row we have no window to keep the screen open: a lock does */
 
 static void close_speaker(void)
 {
     hscr = NULL;
     pt_free();
     bp_release();
+    if (in_bar) { ts_send(TSC_REMOVE); in_bar = 0; ts_shown = -1; }
     if (spk) { CloseWindow(spk); spk = NULL; }
     if (dri) { FreeScreenDrawInfo(scr, dri); dri = NULL; }
+    if (scr && scr_locked) UnlockPubScreen(NULL, scr);
+    scr_locked = 0;
     scr = NULL;
 }
 
@@ -347,6 +441,13 @@ static int open_speaker(void)
         pt_load(s);
         place();
         bp_sample(s, bar_edge == OM_BAR_TITLE, speaker_ours);
+        /* 0.2: GFOpenTitle's row when it runs (on the screen's title bar); our box until it says where it put us */
+        if (bar_edge == OM_BAR_TITLE && ts_events && bar_owner_here() && ts_send(TSC_ADD) == TSR_OK) {
+            in_bar = 1;
+            scr_locked = 1;                  /* kept locked: no window of ours holds it */
+            hscr = s;
+            return 1;
+        }
         spk = OpenWindowTags(NULL, WA_CustomScreen, (ULONG)s, WA_Left, sx, WA_Top, sy, WA_Width, sw, WA_Height, sh,
                              WA_Borderless, TRUE, WA_Activate, FALSE, WA_RMBTrap, TRUE, WA_SmartRefresh, TRUE,
                              WA_IDCMP, IDCMP_REFRESHWINDOW, TAG_DONE);
@@ -517,6 +618,32 @@ static int pop_events(void)
 
 /* ---- the input handler: the wheel and the buttons over the speaker or its levels ------------------ */
 
+/* 0.2: GFOpenTitle's events: where it put the speaker, a click it saw, or that it is ending */
+static void bar_events(void)
+{
+    struct TaskspaceEvent *e;
+    int gone = 0;
+    if (!ts_events) return;
+    while ((e = (struct TaskspaceEvent *)GetMsg(ts_events))) {
+        if (e->tse_Magic == TASKSPACE_MAGIC && in_bar) {
+            if (e->tse_Kind == TSE_PLACE || e->tse_Kind == TSE_CLICK) {
+                sx = e->tse_Left; sy = e->tse_Top; sw = e->tse_Width; sh = e->tse_Height;
+                Disable(); hx0 = sx; hy0 = sy; hx1 = sx + sw; hy1 = sy + sh; Enable();
+            }
+            if (e->tse_Kind == TSE_CLICK) want_toggle = 1;   /* only when the handler didn't take it first */
+            if (e->tse_Kind == TSE_GONE) gone = 1;
+        }
+        ReplyMsg(&e->tse_Message);
+    }
+    if (want_toggle) { want_toggle = 0; if (pop) pop_close(1); else pop_open(); }
+    if (gone) {                              /* GFOpenTitle is ending: our own window again */
+        in_bar = 0; ts_shown = -1;
+        if (pop) pop_close(0);
+        close_speaker();
+        if (!open_speaker()) wb_down = 2;
+    }
+}
+
 static int over(WORD x0, WORD y0, WORD x1, WORD y1, struct Screen *s)
 {
     return x1 > x0 && s->MouseX >= x0 && s->MouseX < x1 && s->MouseY >= y0 && s->MouseY < y1;
@@ -605,6 +732,10 @@ int main(void)
         AddPort(old_port);
     }
     Permit();
+    if ((ts_events = CreateMsgPort())) {     /* 0.2: GFOpenTitle's events come here */
+        ts_events->mp_Node.ln_Name = (char *)TS_EVENTS;
+        AddPort(ts_events);
+    }
     if (!(cust = CxCustom(custom, 0))) goto out;
     AttachCxObj(broker, cust);
     if ((tport = CreateMsgPort()) && (tr = (struct timerequest *)CreateIORequest(tport, sizeof *tr)))
@@ -615,7 +746,8 @@ int main(void)
     ActivateCxObj(broker, 1);
     while (!quit) {
         ULONG got = Wait((1UL << port->mp_SigBit) | (1UL << tport->mp_SigBit) | sig_input | sig_wake | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F |
-                         (spk ? 1UL << spk->UserPort->mp_SigBit : 0) | (pop ? 1UL << pop->UserPort->mp_SigBit : 0) | wbc_sigmask());
+                         (spk ? 1UL << spk->UserPort->mp_SigBit : 0) | (pop ? 1UL << pop->UserPort->mp_SigBit : 0) | wbc_sigmask() |
+                         (ts_events ? 1UL << ts_events->mp_SigBit : 0));
         CxMsg *cm;
         if (got & SIGBREAKF_CTRL_C) quit = 1;
         /* Workbench is shutting down (Font prefs' Use, a screen mode): no window, no lock on its screen until it is back */
@@ -645,6 +777,7 @@ int main(void)
             }
         }
         if (pop) pop_events();
+        bar_events();
         if (got & sig_input) {
             WORD steps;
             Disable(); steps = wheel_steps; wheel_steps = 0; Enable();
@@ -669,7 +802,7 @@ int main(void)
             WaitIO((struct IORequest *)tr);
             clock_us = (clock_us + elapsed) % 4000000;          /* elapsed is at most 1 s */
             /* 0.1.3: the bar changed height (GFOpenLook makes it taller as it starts): the speaker made again for it */
-            if (spk && !wb_down && scr->BarHeight != made_bh) {
+            if ((spk || in_bar) && !wb_down && scr->BarHeight != made_bh) {
                 if (pop) pop_close(0);
                 close_speaker();
                 if (!open_speaker()) wb_down = 2;    /* tried again as Workbench's return is */
@@ -679,6 +812,15 @@ int main(void)
             if (clock_us / 2000000 != before_us / 2000000 && !pop && !wb_down) {   /* every 2 s: GFOpenMenus' bar moved? */
                 int e = read_bar_edge();
                 if (e != bar_edge) { close_speaker(); open_speaker(); }
+                else if (spk && ts_events && bar_edge == OM_BAR_TITLE && bar_owner_here()) {   /* 0.2: GFOpenTitle came: into its row */
+                    close_speaker(); tray(0);
+                    if (!open_speaker()) wb_down = 2;
+                }
+                else if (in_bar && !bar_owner_here()) {      /* GFOpenTitle went without a word: our own window again */
+                    in_bar = 0; ts_shown = -1;
+                    close_speaker();
+                    if (!open_speaker()) wb_down = 2;
+                }
                 else if (spk) {                     /* the clock came or went, or changed its width */
                     WORD ox = sx, oy = sy;
                     place();
@@ -701,6 +843,13 @@ out:
     if (save_in) sp_save_levels(&cur, 1);
     wbc_stop();
     if (spk) { close_speaker(); tray(0); }
+    if (in_bar) close_speaker();             /* 0.2: our item out of GFOpenTitle's row */
+    if (ts_events) {
+        struct Message *m;
+        RemPort(ts_events);
+        while ((m = GetMsg(ts_events))) ReplyMsg(m);
+        DeleteMsgPort(ts_events);
+    }
     if (timer) { if (!CheckIO((struct IORequest *)tr)) AbortIO((struct IORequest *)tr); WaitIO((struct IORequest *)tr); CloseDevice((struct IORequest *)tr); }
     if (tr) DeleteIORequest((struct IORequest *)tr);
     if (tport) DeleteMsgPort(tport);
