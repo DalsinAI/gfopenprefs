@@ -105,6 +105,18 @@
  *   (gfopenusb's C:USBEject, then "safe to remove" in plain words) and the power menu: Reboot (warm, ColdReboot),
  *   Restart the machine... and Power off... (asked first, then accontrol.device 1.5's ACCMD_POWER to the host).
  *
+ * 0.8 (12 November 2026, Dale, 00:57-01:01: GFOpenTitle owns the system bar; every commodity is shown; the time in the
+ *   centre of the screen title, the right end for the icons and the screen's depth gadget): the cog, the network
+ *   icons and every program's icon are drawn in ONE window, the row (no item has a window of its own over the bar any
+ *   more, which is what made them look stuck on). Each item draws into a bitmap of its own, as it drew into its
+ *   window before, and the bitmap is copied into the row; a click on the row goes to the item under the pointer. On
+ *   the screen's title bar the clock is a window of its own in the bar's centre. TitleBar/docs/system-bar.md.
+ *
+ * 0.8.1 (12 November 2026, Dale, 15:01: "the fonts are still a bit yuk"): the clock, the cog's and the tray's menus,
+ *   the help line and the panel draw their text anti-aliased through GFOpenLayout 19's OLUI_AmigaText, from the
+ *   screen font's outline face at its height (sans-serif when it has none); Text() as before where it can't
+ *   (Common/aatext.h). Boxes take the wider of the two widths.
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -148,6 +160,7 @@
 #include "logo.h"
 #include "logo_big.h"
 #include "taskspace.h"
+#include "aatext.h"
 #include "barpaint.h"
 #include "wbclose.h"
 #include "popuptheme.h"
@@ -157,7 +170,7 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.7.10 (11.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.8.1 (12.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -566,7 +579,7 @@ static int ts_is(struct Window *w);
 
 static int bar_ours(struct Window *o)
 {
-    return o == logo_w || o == clock_w || o == net_w || o == pop_w || o == cog_w || o == menu_w || ts_is(o);
+    return o == logo_w || o == clock_w || o == pop_w || o == menu_w || ts_is(o);   /* ts_is: the row and the help too */
 }
 
 /* 0.7.5: the see-through bar's state (the rest of it is before close_all) */
@@ -612,7 +625,18 @@ static ULONG layer_look(struct Layer *l, ULONG what, ULONG value)
     return d0;
 }
 
+struct slot;
+static struct slot *slot_of(struct Window *w);
+static void slot_show(struct slot *s);
+static void see_key_one(struct Window *w);
 static void see_key(struct Window *w)
+{
+    struct slot *s = slot_of(w);
+    see_key_one(w);
+    if (s) slot_show(s);
+}
+
+static void see_key_one(struct Window *w)
 {
     ULONG *px, *p, bga;
     WORD x, y, ww, wh;
@@ -636,7 +660,7 @@ static void see_key(struct Window *w)
 /* a bar window just opened: its own alpha counts while the bar is see-through (it is keyed as it is drawn) */
 static struct Window *see_new(struct Window *w)
 {
-    if (w && see_live) layer_look(w->WLayer, SEE_LOOK_ALPHA, 1);
+    if (w && w->WLayer && see_live) layer_look(w->WLayer, SEE_LOOK_ALPHA, 1);
     return w;
 }
 
@@ -756,11 +780,10 @@ static void clock_text(char *t, int size)
 
 static WORD clock_width(void)
 {
-    struct RastPort rp;
+    struct RastPort rp = scr->RastPort;        /* 0.8.1: the screen's, so the outline text is measured as drawn */
     const char *widest = prefs.date ? "Wed 28 Sep  00:00" : "00:00";
-    InitRastPort(&rp);
     SetFont(&rp, dri->dri_Font);
-    return TextLength(&rp, (STRPTR)widest, strlen(widest)) + 2 * TRAY_PAD;
+    return aat_length(&rp, widest, strlen(widest)) + 2 * TRAY_PAD;
 }
 
 static void draw_clock(int force)
@@ -777,9 +800,8 @@ static void draw_clock(int force)
     SetAPen(rp, bar_text());
     SetDrMd(rp, JAM1);
     h = ch - (bar_edge == OM_BAR_TITLE ? 1 : 0);
-    w = TextLength(rp, (STRPTR)t, strlen(t));
-    Move(rp, cw - TRAY_PAD - w, (h - rp->TxHeight) / 2 + rp->TxBaseline);
-    Text(rp, (STRPTR)t, strlen(t));
+    w = aat_length(rp, t, strlen(t));
+    aat_box(rp, scr, cw - TRAY_PAD - w, 0, h, t, strlen(t));
     see_key(clock_w);
 }
 
@@ -812,8 +834,9 @@ static void place(void)
     case OM_BAR_LEFT:   ch = bh; cx = 0; cy = scr->Height - bh * (n + 1); break;
     case OM_BAR_RIGHT:  ch = bh; cx = scr->Width - cw; cy = scr->Height - bh * (n + 1); break;
     case OM_BAR_TOP:    ch = bh; cx = scr->Width - 2 * scr->BarHeight - cw - off; cy = 0; break;
-    default:            ch = scr->BarHeight; cx = scr->Width - bar_end() - cw - off; cy = 0; break;
+    default:            ch = scr->BarHeight; cx = (scr->Width - cw) / 2; cy = 0; break;   /* 0.8: the bar's centre */
     }
+    (void)off;
 }
 
 /* ---- the windows ----------------------------------------------------------------------------- */
@@ -831,6 +854,136 @@ static struct Window *bar_window(WORD x, WORD y, WORD w, WORD h)
     return to_back(OpenWindowTags(NULL, WA_CustomScreen, (ULONG)scr, WA_Left, x, WA_Top, y, WA_Width, w, WA_Height, h,
                           WA_Borderless, TRUE, WA_Activate, FALSE, WA_RMBTrap, TRUE, WA_SmartRefresh, TRUE,
                           WA_IDCMP, IDCMP_REFRESHWINDOW | IDCMP_ACTIVEWINDOW, TAG_DONE));
+}
+
+/* ---- 0.8: the row: one window for every item at the bar's right end ----------------------------
+ * An item (the cog, the network icons, a program's icon) is a slot: a bitmap of the item's size, with a RastPort
+ * on it, and a Window record that is never opened. The item's code draws through slot.win.RPort and reads the
+ * record's place (LeftEdge, TopEdge, Width, Height, on the screen) exactly as it drew into its own window before;
+ * see_key() then copies the slot into the row. The row is one borderless window over all the slots' boxes; it is
+ * made again when the boxes change. A click on the row is the click of the slot under the pointer. */
+#define SLOTS (2 + TS_ICONS)
+struct slot { struct Window win; struct RastPort rp; struct BitMap *bm; int on; };
+static struct slot slots[SLOTS];
+static struct Window *row_w;
+static WORD rx, ry, rw, rh;
+
+static struct slot *slot_of(struct Window *w)
+{
+    int i;
+    for (i = 0; i < SLOTS; i++) if (w && w == &slots[i].win && slots[i].on) return &slots[i];
+    return NULL;
+}
+
+static void slot_show(struct slot *s)
+{
+    if (row_w && s->on && s->bm)
+        BltBitMapRastPort(s->bm, 0, 0, row_w->RPort, s->win.LeftEdge - rx, s->win.TopEdge - ry, s->win.Width, s->win.Height, 0xc0);
+}
+
+static void row_redraw(void);
+static void bar_paint(struct Window *win, WORD x, WORD y, WORD pw, WORD ph);
+static void see_key(struct Window *w);
+static struct Window *see_new(struct Window *w);
+
+/* the row over every slot's box, made again when that changed */
+static void row_layout(void)
+{
+    WORD x0 = 0x7fff, y0 = 0x7fff, x1 = -1, y1 = -1;
+    int i;
+    for (i = 0; i < SLOTS; i++) {
+        struct Window *w = &slots[i].win;
+        if (!slots[i].on) continue;
+        if (w->LeftEdge < x0) x0 = w->LeftEdge;
+        if (w->TopEdge < y0) y0 = w->TopEdge;
+        if (w->LeftEdge + w->Width > x1) x1 = w->LeftEdge + w->Width;
+        if (w->TopEdge + w->Height > y1) y1 = w->TopEdge + w->Height;
+    }
+    if (x1 < 0) { if (row_w) { CloseWindow(row_w); row_w = NULL; } return; }
+    if (row_w && x0 == rx && y0 == ry && x1 - x0 == rw && y1 - y0 == rh) return;
+    if (row_w) { CloseWindow(row_w); row_w = NULL; }
+    rx = x0; ry = y0; rw = x1 - x0; rh = y1 - y0;
+    if (!(row_w = see_new(to_back(OpenWindowTags(NULL, WA_CustomScreen, (ULONG)scr, WA_Left, rx, WA_Top, ry, WA_Width, rw,
+                                 WA_Height, rh, WA_Borderless, TRUE, WA_Activate, FALSE, WA_RMBTrap, TRUE, WA_SmartRefresh, TRUE,
+                                 WA_IDCMP, IDCMP_REFRESHWINDOW | IDCMP_ACTIVEWINDOW | IDCMP_MOUSEBUTTONS, TAG_DONE)))))
+        return;
+    row_redraw();
+}
+
+/* the row's own background between the slots, then every slot as last drawn */
+static void row_show(void)
+{
+    int i;
+    if (!row_w) return;
+    bar_paint(row_w, 0, 0, rw, rh);
+    see_key(row_w);
+    for (i = 0; i < SLOTS; i++) slot_show(&slots[i]);
+}
+
+static void slot_free(struct slot *s)
+{
+    if (s->bm) { WaitBlit(); FreeBitMap(s->bm); s->bm = NULL; }
+}
+
+/* the slot's box on the screen; its bitmap made again when the size changed */
+static int slot_box(struct slot *s, WORD x, WORD y, WORD w, WORD h)
+{
+    if (!s->bm || w != s->win.Width || h != s->win.Height) {
+        slot_free(s);
+        if (w <= 0 || h <= 0 || !(s->bm = AllocBitMap(w, h, GetBitMapAttr(scr->RastPort.BitMap, BMA_DEPTH), BMF_CLEAR,
+                                                     scr->RastPort.BitMap))) return 0;
+        s->rp.BitMap = s->bm;
+    }
+    s->win.LeftEdge = x; s->win.TopEdge = y; s->win.Width = w; s->win.Height = h;
+    row_layout();
+    return 1;
+}
+
+/* an item's "window": a free slot at that box, or NULL */
+static struct Window *slot_open(WORD x, WORD y, WORD w, WORD h)
+{
+    int i;
+    struct slot *s;
+    for (i = 0; i < SLOTS && slots[i].on; i++) ;
+    if (i == SLOTS) return NULL;
+    s = &slots[i];
+    memset(s, 0, sizeof *s);
+    InitRastPort(&s->rp);
+    SetFont(&s->rp, dri->dri_Font);
+    s->win.RPort = &s->rp;
+    s->win.WScreen = scr;
+    s->on = 1;
+    if (!slot_box(s, x, y, w, h)) { s->on = 0; row_layout(); return NULL; }
+    return &s->win;
+}
+
+static void slot_close(struct Window *w)
+{
+    struct slot *s = slot_of(w);
+    if (!s) return;
+    s->on = 0;
+    slot_free(s);
+    row_layout();
+    row_show();
+}
+
+/* ChangeWindowBox for an item */
+static void slot_move(struct Window *w, WORD x, WORD y, WORD ww, WORD wh)
+{
+    struct slot *s = slot_of(w);
+    if (s) { slot_box(s, x, y, ww, wh); row_redraw(); }
+}
+
+/* the slot under the pointer, as the item's window it was */
+static struct Window *row_item(void)
+{
+    int i;
+    WORD x = scr->MouseX, y = scr->MouseY;
+    for (i = 0; i < SLOTS; i++) {
+        struct Window *w = &slots[i].win;
+        if (slots[i].on && x >= w->LeftEdge && x < w->LeftEdge + w->Width && y >= w->TopEdge && y < w->TopEdge + w->Height) return w;
+    }
+    return NULL;
 }
 
 
@@ -961,11 +1114,22 @@ static struct Window *net_window(WORD x, WORD y, WORD w, WORD h)
                           WA_IDCMP, IDCMP_REFRESHWINDOW | IDCMP_ACTIVEWINDOW | IDCMP_MOUSEBUTTONS, TAG_DONE));
 }
 
+/* 0.8: GFOpenNetwork (the network as a commodity, Dale 12 November 2026) runs: its icons are items in the row and
+ * ours are not drawn */
+static int net_elsewhere(void)
+{
+    struct MsgPort *p;
+    Forbid();
+    p = FindPort((STRPTR)"GFOpenNetwork.bar");
+    Permit();
+    return p != NULL;
+}
+
 static void net_open(void)
 {
     net_poll();
     net_place();
-    if ((net_w = see_new(net_window(nx, ny, nw, nh)))) {
+    if ((net_w = slot_open(nx, ny, nw, nh))) {
         net_drawn = -100;
         draw_net(1);
         tray("Network", nw, NET_ORDER);
@@ -1003,7 +1167,7 @@ static void draw_pop(void)
     }
     SetAPen(rp, pt_ok ? pt_text_pen() : dri->dri_Pens[TEXTPEN]);
     SetDrMd(rp, JAM1);
-    for (i = 0, y = 6; i < 2; i++, y += fh + 4) { Move(rp, 8, y + rp->TxBaseline); Text(rp, (STRPTR)l[i], strlen(l[i])); }
+    for (i = 0, y = 6; i < 2; i++, y += fh + 4) aat_box(rp, scr, 8, y, fh, l[i], strlen(l[i]));
     /* the button */
     if (pt_ok) {
         SetAPen(rp, pt_hot_pen());
@@ -1016,8 +1180,7 @@ static void draw_pop(void)
         Draw(rp, pop_w->Width - 9, y + fh + 5); Draw(rp, 8, y + fh + 5);
         SetAPen(rp, dri->dri_Pens[TEXTPEN]);
     }
-    Move(rp, (pop_w->Width - TextLength(rp, (STRPTR)l[2], strlen(l[2]))) / 2, y + 3 + rp->TxBaseline);
-    Text(rp, (STRPTR)l[2], strlen(l[2]));
+    aat_box(rp, scr, (pop_w->Width - aat_length(rp, l[2], strlen(l[2]))) / 2, y + 3, fh, l[2], strlen(l[2]));
 }
 
 static void pop_close(void)
@@ -1026,15 +1189,29 @@ static void pop_close(void)
     if (last_other) ActivateWindow(last_other);
 }
 
+/* 0.8.1: the panel as wide as its longest line (outline text is wider than Text()'s), POP_W at least */
+static WORD pop_width(void)
+{
+    struct RastPort rp = scr->RastPort;
+    char l[3][64];
+    WORD w = POP_W, tw;
+    int i;
+    SetFont(&rp, dri->dri_Font);
+    pop_lines(l);
+    for (i = 0; i < 2; i++)
+        if ((tw = aat_length(&rp, l[i], strlen(l[i])) + 16) > w) w = tw;
+    return w;
+}
+
 static void pop_open(void)
 {
-    WORD fh = dri->dri_Font->tf_YSize, h = 3 * (fh + 4) + 14, x = nx + nw - POP_W, y = ny + nh;
+    WORD fh = dri->dri_Font->tf_YSize, h = 3 * (fh + 4) + 14, pw = pop_width(), x = nx + nw - pw, y = ny + nh;
     if (x < 0) x = 0;
     if (bar_edge == OM_BAR_BOTTOM) y = ny - h;
     if (y + h > scr->Height) y = scr->Height - h;
     net_poll();
     draw_net(0);
-    if ((pop_w = net_window(x, y, POP_W, h))) {
+    if ((pop_w = net_window(x, y, pw, h))) {
         SetFont(pop_w->RPort, dri->dri_Font);
         draw_pop();
         pop_ticks = 0;
@@ -1224,7 +1401,7 @@ static void draw_cog(int force)
 static void cog_open(void)
 {
     cog_place();
-    if ((cog_w = see_new(net_window(gx, gy, gw, gh)))) {
+    if ((cog_w = slot_open(gx, gy, gw, gh))) {
         cog_drawn = -1;
         draw_cog(1);
         tray("Cog", gw, COG_ORDER);
@@ -1264,8 +1441,7 @@ static void draw_menu(void)
         }
         if (i == menu_hot) { SetAPen(rp, pt_ok ? pt_hot_pen() : dri->dri_Pens[FILLPEN]); RectFill(rp, 2, y0, w - 3, y1); }
         SetAPen(rp, pt_ok ? (i == menu_hot ? pt_hot_text_pen() : pt_text_pen()) : dri->dri_Pens[i == menu_hot ? FILLTEXTPEN : BARDETAILPEN]);
-        Move(rp, COG_PAD, y0 + (y1 - y0 + 1 - rp->TxHeight) / 2 + rp->TxBaseline);
-        Text(rp, (STRPTR)t, strlen(t));
+        aat_box(rp, scr, COG_PAD, y0, y1 - y0 + 1, t, strlen(t));
     }
 }
 
@@ -1310,7 +1486,7 @@ static void menu_open(void)
             t = row_label(at);
             menu_y[menu_n] = H;
             menu_idx[menu_n++] = at;
-            if (t) { WORD tw = TextLength(&trp, (STRPTR)t, strlen(t)); if (tw > W) W = tw; }
+            if (t) { WORD tw = aat_length(&trp, t, strlen(t)); if (tw > W) W = tw; }
             H += t ? menu_rh : 6;
             if (k == -1) { menu_y[menu_n] = H; menu_idx[menu_n++] = COG_ITEMS - 4; H += 6; }   /* a line after them */
         }
@@ -1557,6 +1733,7 @@ struct ts_icon {
     char name[16], help[48], port[24];
     WORD order;
     UWORD state, w, h, states;
+    UWORD version;                             /* 0.8: the protocol the program spoke; 2 hears TSE_PLACE */
     UBYTE pixels[TS_STATES * TS_MAXW * TS_MAXH];
     ULONG rgb[12];
     struct Window *win;
@@ -1637,14 +1814,16 @@ static void ts_draw(struct ts_icon *t, int force)
     see_key(t->win);
 }
 
+static int ts_tell(struct ts_icon *t, UWORD kind);
 static void ts_open_one(struct ts_icon *t)
 {
     if (!scr || t->win) return;
     ts_place(t);
-    if ((t->win = see_new(net_window(t->x, t->y, t->bw, t->bh)))) {
+    if ((t->win = slot_open(t->x, t->y, t->bw, t->bh))) {
         t->drawn = -1;
         ts_draw(t, 1);
         tray(t->name, t->bw, t->order);
+        if (t->version >= 2) ts_tell(t, TSE_PLACE);
     }
 }
 
@@ -1658,7 +1837,7 @@ static void ts_close_one(struct ts_icon *t, int forget_place)
 {
     int i;
     for (i = 0; i < TS_ICONS; i++) if (ts[i] == t && help_for == i) help_close();
-    if (t->win) { CloseWindow(t->win); t->win = NULL; }
+    if (t->win) { slot_close(t->win); t->win = NULL; }
     if (forget_place) tray(t->name, 0, t->order);
 }
 
@@ -1680,7 +1859,7 @@ static void help_open(int i)
     if (!t || !t->win || !t->help[0] || help_w) return;
     InitRastPort(&trp);
     SetFont(&trp, dri->dri_Font);
-    w = TextLength(&trp, (STRPTR)t->help, strlen(t->help)) + 12;
+    w = aat_length(&trp, t->help, strlen(t->help)) + 12;
     h = dri->dri_Font->tf_YSize + 6;
     x = t->x + t->bw - w;
     if (x < 0) x = 0;
@@ -1697,8 +1876,7 @@ static void help_open(int i)
     Move(help_w->RPort, 0, 0); Draw(help_w->RPort, w - 1, 0); Draw(help_w->RPort, w - 1, h - 1); Draw(help_w->RPort, 0, h - 1); Draw(help_w->RPort, 0, 0);
     SetAPen(help_w->RPort, dri->dri_Pens[BARDETAILPEN]);
     SetDrMd(help_w->RPort, JAM1);
-    Move(help_w->RPort, 6, 3 + help_w->RPort->TxBaseline);
-    Text(help_w->RPort, (STRPTR)t->help, strlen(t->help));
+    aat_box(help_w->RPort, scr, 6, 3, help_w->RPort->TxHeight, t->help, strlen(t->help));
 }
 
 /* every tenth of a second while the pointer is on the bar: the light and the help */
@@ -1760,6 +1938,7 @@ static void ts_command(struct TaskspaceMsg *m)
         strlcpy(t->help, m->tsm_Help, sizeof t->help);  /* the sender may fill the field: always ended */
         strlcpy(t->port, m->tsm_Port, sizeof t->port);
         t->order = m->tsm_Order;
+        t->version = m->tsm_Version;
         t->w = m->tsm_Width; t->h = m->tsm_Height; t->states = m->tsm_States;
         t->state = m->tsm_State < t->states ? m->tsm_State : 0;
         memcpy(t->pixels, m->tsm_Pixels, n * t->states);
@@ -1815,6 +1994,7 @@ static int ts_is(struct Window *w)
     int i;
     if (w && w == help_w) return 1;
     for (i = 0; i < TS_ICONS; i++) if (ts[i] && ts[i]->win == w && w) return 1;
+    if (w && w == row_w) return 1;
     return 0;
 }
 
@@ -1933,20 +2113,31 @@ static int see_hot(void)
     return 0;
 }
 
+/* 0.8: the row's background and every item drawn again (the row was made again, or the keying changed) */
+static void row_redraw(void)
+{
+    int i;
+    if (!row_w) return;
+    bar_paint(row_w, 0, 0, rw, rh);
+    see_key(row_w);
+    if (net_w) { net_drawn = -100; draw_net(1); }
+    if (cog_w) { cog_drawn = -1; draw_cog(1); }
+    for (i = 0; i < TS_ICONS; i++) if (ts[i] && ts[i]->win) { ts[i]->drawn = -1; ts_draw(ts[i], 1); }
+}
+
 static void see_looks(ULONG on)
 {
-    struct Window *const ws[4] = { logo_w, clock_w, net_w, cog_w };
+    struct Window *const ws[3] = { logo_w, clock_w, row_w };
     int i;
-    for (i = 0; i < 4; i++) if (ws[i]) layer_look(ws[i]->WLayer, SEE_LOOK_ALPHA, on);
-    for (i = 0; i < TS_ICONS; i++) if (ts[i] && ts[i]->win) layer_look(ts[i]->win->WLayer, SEE_LOOK_ALPHA, on);
+    for (i = 0; i < 3; i++) if (ws[i]) layer_look(ws[i]->WLayer, SEE_LOOK_ALPHA, on);
 }
 
 static void see_rekey(void)
 {
-    struct Window *const ws[4] = { logo_w, clock_w, net_w, cog_w };
+    struct Window *const ws[2] = { logo_w, clock_w };
     int i;
-    for (i = 0; i < 4; i++) see_key(ws[i]);
-    for (i = 0; i < TS_ICONS; i++) if (ts[i]) see_key(ts[i]->win);
+    for (i = 0; i < 2; i++) see_key(ws[i]);
+    row_redraw();
 }
 
 /* solid, as before: our windows' colours are as they were drawn, and their alpha no longer counts */
@@ -2017,14 +2208,15 @@ static void close_all(void)
     see_off();                                 /* 0.7.5: the bar solid again while the screen is still ours */
     if (clock_w) { CloseWindow(clock_w); clock_w = NULL; tray("Clock", 0, CLOCK_ORDER); }
     if (pop_w) { CloseWindow(pop_w); pop_w = NULL; }
-    if (net_w) { CloseWindow(net_w); net_w = NULL; tray("Network", 0, NET_ORDER); }
+    if (net_w) { slot_close(net_w); net_w = NULL; tray("Network", 0, NET_ORDER); }
     if (menu_w) { CloseWindow(menu_w); menu_w = NULL; }
-    if (cog_w) { CloseWindow(cog_w); cog_w = NULL; tray("Cog", 0, COG_ORDER); }
+    if (cog_w) { slot_close(cog_w); cog_w = NULL; tray("Cog", 0, COG_ORDER); }
     if (logo_w) { CloseWindow(logo_w); logo_w = NULL; }
     {
         int i;
         help_close();
         for (i = 0; i < TS_ICONS; i++) if (ts[i]) ts_close_one(ts[i], 1);
+        if (row_w) { CloseWindow(row_w); row_w = NULL; }
     }
     if (border_set) { prefs.border_black = 0; apply_border(); }
     free_pens();
@@ -2052,10 +2244,10 @@ static int open_all(void)
             SetFont(clock_w->RPort, dri->dri_Font);
             shown[0] = 0;
             draw_clock(1);
-            tray("Clock", cw, CLOCK_ORDER);
+            if (bar_edge != OM_BAR_TITLE) tray("Clock", cw, CLOCK_ORDER);   /* 0.8: on the title bar it is in the centre */
         }
     }
-    if (prefs.network) net_open();
+    if (prefs.network && !net_elsewhere()) net_open();   /* 0.8 */
     cog_open();                                /* 0.7: always (Dale, 17 Oct 2026); prefs.cog is read no more */
     {
         int i;
@@ -2175,7 +2367,7 @@ static int os_menu(struct Screen *s, WORD right, WORD top)
     SetFont(&trp, d->dri_Font);
     rh = d->dri_Font->tf_YSize + 4;
     for (i = 0; i < COG_SECTIONS; i++) {
-        WORD tw = TextLength(&trp, (STRPTR)cog_items[i].label, strlen(cog_items[i].label));
+        WORD tw = aat_length(&trp, cog_items[i].label, strlen(cog_items[i].label));
         if (tw > W) W = tw;
     }
     W += 2 * COG_PAD;
@@ -2199,8 +2391,7 @@ static int os_menu(struct Screen *s, WORD right, WORD top)
             WORD y = 3 + i * rh;
             if (i == hot) { SetAPen(rp, d->dri_Pens[FILLPEN]); RectFill(rp, 2, y, W - 3, y + rh - 1); }
             SetAPen(rp, d->dri_Pens[i == hot ? FILLTEXTPEN : BARDETAILPEN]);
-            Move(rp, COG_PAD, y + (rh - rp->TxHeight) / 2 + rp->TxBaseline);
-            Text(rp, (STRPTR)cog_items[i].label, strlen(cog_items[i].label));
+            aat_box(rp, s, COG_PAD, y, rh, cog_items[i].label, strlen(cog_items[i].label));
         }
         if (done) break;
         WaitPort(w->UserPort);
@@ -2262,6 +2453,31 @@ static void events(struct Window *w)
         UWORD code = m->Code;
         WORD my = m->MouseY;
         ReplyMsg((struct Message *)m);
+        if (w == row_w) {                      /* 0.8: the row: the item under the pointer */
+            if (cls == IDCMP_REFRESHWINDOW) { BeginRefresh(w); row_show(); EndRefresh(w, TRUE); continue; }
+            if (cls == IDCMP_ACTIVEWINDOW) { if (last_other) ActivateWindow(last_other); continue; }
+            if (cls == IDCMP_MOUSEBUTTONS && code == SELECTDOWN) {
+                struct Window *iw = row_item();
+                if (!iw) continue;
+                if (iw == net_w) { if (pop_w) pop_close(); else pop_open(); return; }
+                if (iw == cog_w) {
+                    if (menu_w) menu_close(1);
+                    else if (cog_skip) cog_skip = 0;
+                    else menu_open();
+                    return;
+                }
+                {
+                    int i;
+                    for (i = 0; i < TS_ICONS; i++)
+                        if (ts[i] && ts[i]->win == iw) {
+                            help_close();
+                            if (!ts_tell(ts[i], TSE_CLICK)) ts_drop(i);
+                            return;
+                        }
+                }
+            }
+            continue;
+        }
         if (cls == IDCMP_REFRESHWINDOW) {
             int i;
             BeginRefresh(w);
@@ -2316,7 +2532,7 @@ static int wb_title_shown(void)
 {
     struct Window *a = IntuitionBase->ActiveWindow;
     const char *t;
-    if (!a || a->WScreen != scr || a == logo_w || a == clock_w || a == net_w || a == pop_w || a == cog_w || a == menu_w || ts_is(a)) a = last_other;
+    if (!a || a->WScreen != scr || bar_ours(a)) a = last_other;
     t = (const char *)(a && a->WScreen == scr && a->ScreenTitle ? a->ScreenTitle : scr->Title);
     return t && !strncmp(t, LOGO_PAD, strlen(LOGO_PAD));
 }
@@ -2345,11 +2561,10 @@ static int is_window(struct Window *w)
 /* the windows that wake the task */
 static ULONG window_sigs(void)
 {
-    struct Window *const ws[6] = { logo_w, clock_w, net_w, pop_w, cog_w, menu_w };
+    struct Window *const ws[6] = { logo_w, clock_w, row_w, pop_w, help_w, menu_w };
     ULONG m = 0;
     int i;
-    for (i = 0; i < 6; i++) if (ws[i]) m |= 1UL << ws[i]->UserPort->mp_SigBit;
-    for (i = 0; i < TS_ICONS; i++) if (ts[i] && ts[i]->win) m |= 1UL << ts[i]->win->UserPort->mp_SigBit;
+    for (i = 0; i < 6; i++) if (ws[i] && ws[i]->UserPort) m |= 1UL << ws[i]->UserPort->mp_SigBit;
     return m | os_sigs();
 }
 
@@ -2395,6 +2610,7 @@ int main(void)
     LayersBase = OpenLibrary((STRPTR)"layers.library", 39);
     UtilityBase = OpenLibrary((STRPTR)"utility.library", 39);
     CyberGfxBase = OpenLibrary((STRPTR)"cybergraphics.library", 41);   /* the bar's own colours; without it the bar's pen */
+    aat_open();                                         /* 0.8.1: the bar's text through GFOpenLayout 19, else Text() */
     if (!IntuitionBase || !GfxBase || !LayersBase || !UtilityBase) goto out;
     wbc_start();
     Forbid();
@@ -2469,20 +2685,19 @@ int main(void)
         menu_events();
         events(logo_w);
         events(clock_w);
-        events(net_w);
-        events(cog_w);
+        events(row_w);                         /* 0.8: the cog, the network and the programs' icons */
         os_events();                           /* 0.7: the cogs on the other public screens */
         if (pop_w) events(pop_w);
         {
             int i;
-            for (i = 0; i < TS_ICONS; i++) if (ts[i] && ts[i]->win) events(ts[i]->win);
+            (void)i;
         }
         if (scr) ts_hover();
         if (cog_skip && !over_cog()) cog_skip = 0;
         draw_cog(0);
         see_tick();                            /* 0.7.5: the see-through bar's fade */
         act = IntuitionBase->ActiveWindow;
-        if (act && act != logo_w && act != clock_w && act != net_w && act != pop_w && act != cog_w && act != menu_w && !ts_is(act)) last_other = act;
+        if (act && !bar_ours(act)) last_other = act;
         if (last_other && !is_window(last_other)) last_other = NULL;
         if (waited < 500) continue;
         waited = 0;                            /* every half second, as before */
@@ -2497,12 +2712,16 @@ int main(void)
             WORD ox = cx, oy = cy, ow = cw, oh = ch;
             if (edge != bar_edge && (clock_w || net_w || cog_w || ts_count())) { close_all(); if (!open_all()) break; }
             else {
+                if (net_w && net_elsewhere()) {   /* 0.8: GFOpenNetwork started: its icons, not ours */
+                    if (pop_w) pop_close();
+                    slot_close(net_w); net_w = NULL; tray("Network", 0, NET_ORDER);
+                } else if (!net_w && prefs.network && !net_elsewhere()) net_open();   /* it ended: ours again */
                 if (net_w) {
                     WORD px = nx, py = ny, pw = nw, ph = nh;
                     if (tick % 20 == 0) net_poll();               /* every 10 s */
                     net_place();
                     if (nx != px || ny != py || nw != pw || nh != ph) {
-                        ChangeWindowBox(net_w, nx, ny, nw, nh);
+                        slot_move(net_w, nx, ny, nw, nh);
                         tray("Network", nw, NET_ORDER);
                         net_drawn = -100;
                     }
@@ -2522,8 +2741,9 @@ int main(void)
                         ts_place(t);
                         if (t->x != px || t->y != py || t->bw != pw || t->bh != ph) {
                             if (help_for == i) help_close();
-                            ChangeWindowBox(t->win, t->x, t->y, t->bw, t->bh);
+                            slot_move(t->win, t->x, t->y, t->bw, t->bh);
                             tray(t->name, t->bw, t->order);
+                            if (t->version >= 2) ts_tell(t, TSE_PLACE);
                             t->drawn = -1;
                         }
                     }
@@ -2532,7 +2752,7 @@ int main(void)
                     WORD px = gx, py = gy, pw = gw, ph = gh;
                     cog_place();
                     if (gx != px || gy != py || gw != pw || gh != ph) {
-                        ChangeWindowBox(cog_w, gx, gy, gw, gh);
+                        slot_move(cog_w, gx, gy, gw, gh);
                         tray("Cog", gw, COG_ORDER);
                         cog_drawn = -1;
                     }
@@ -2542,9 +2762,8 @@ int main(void)
                 int i;
                 draw_logo();
                 shown[0] = 0; draw_clock(1);
-                net_drawn = -100; draw_net(1);
-                cog_drawn = -1; draw_cog(1);
-                for (i = 0; i < TS_ICONS; i++) if (ts[i]) ts_draw(ts[i], 1);
+                row_redraw();                     /* 0.8: the row's background, the cog, the network, the icons */
+                (void)i;
             }
             if (scr) see_check(0);                /* 0.7.5: something behind the bar to see (GFOpenBench may have come or gone) */
         }
@@ -2563,6 +2782,7 @@ out:
     if (tr) DeleteIORequest((struct IORequest *)tr);
     if (tport) DeleteMsgPort(tport);
     wbc_stop();
+    aat_close();
     if (WorkbenchBase) CloseLibrary(WorkbenchBase);
     if (SocketBase) CloseLibrary(SocketBase);
     if (CyberGfxBase) CloseLibrary(CyberGfxBase);

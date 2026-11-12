@@ -70,7 +70,10 @@ static BP_UNUSED int bp_sample(struct Screen *scr, int title, int (*ours)(struct
         return changed;
     }
     if (w > scr->Width) w = scr->Width;
-    x0 = (scr->Width - w) / 2;
+    /* three quarters of the way along (GFOpenTitle 0.8, 12 November 2026): the bar's centre holds GFOpenTitle's clock
+     * now, and a strip read there read the clock's own window back (a white clock painted a white bar) */
+    x0 = scr->Width * 3 / 4 - w / 2;
+    if (x0 < 0) x0 = 0;
     if (!bp_clear(scr, x0, x0 + w - 1, ours)) return 0;      /* covered: keep what is known */
     ReadPixelArray(buf, 0, 0, BP_STRIP * 4, &scr->RastPort, x0, 0, w, n, RECTFMT_ARGB);
     for (r = 0; r < n; r++) {

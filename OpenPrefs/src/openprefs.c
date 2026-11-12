@@ -45,7 +45,7 @@
 #include "looktabs.h"
 #include "openprefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (5.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (12.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct Library *UtilityBase;
 
@@ -73,6 +73,7 @@ static const struct { const char *name; int page; } sections[] = {
     { "KEYMAP", LT_INPUT }, { "SCREENMODE", LT_SCREENMODE }, { "OVERSCAN", LT_SCREENMODE }, { "DISPLAY", LT_SCREENMODE },
     { "ICONTROL", LT_ICONTROL }, { "ICONS", LT_ICONS }, { "ICONLAYOUT", LT_ICONS }, { "ICONLABELS", LT_ICONS },
     { "PRINTING", LT_PRINTING }, { "PRINTER", LT_PRINTING }, { "PAPER", LT_PRINTING },
+    { "GLOBAL", LT_GLOBAL }, { "GLOBALSETTINGS", LT_GLOBAL },
 };
 
 /* The old editors' names, and a name for each other section: each opens its section, and takes its own arguments */
@@ -87,6 +88,7 @@ static const struct { const char *name; int page; } old_names[] = {
     { "GFOpenScreenMode", LT_SCREENMODE }, { "GFOpenPointer", LT_POINTER }, { "GFOpenFonts", LT_FONTS },
     { "GFOpenColours", LT_COLOURS }, { "GFOpenBackdrops", LT_BACKDROPS }, { "GFOpenWorkbench", LT_WORKBENCH },
     { "GFOpenFileRequesters", LT_ASL }, { "GFOpenBlanker", LT_BLANKER }, { "GFOpenIControl", LT_ICONTROL },
+    { "GFOpenGlobal", LT_GLOBAL },
 };
 
 /* A section by its word (SOUND, DATETIME) or its page's name ("Sound", "Date & Time") */
@@ -143,6 +145,7 @@ int op_page(int page, int argc, char **argv)
     case LT_ICONTROL: return icontrol_main(argc, argv);
     case LT_ICONS: return icons_main(argc, argv);
     case LT_PRINTING: return printing_main(argc, argv);
+    case LT_GLOBAL: return global_main(argc, argv);
     }
     return RETURN_FAIL;
 }
