@@ -3,6 +3,7 @@
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "tb_prefs.h"
 #include "tb_fade.h"
+#include "tb_format.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -240,11 +241,34 @@ static void pointer_tests(void)
     CHECK(tbp_on_bar(&p, 960, 10, 1));
 }
 
+/* 0.9: the bar's memory and time (CM4 item 17) */
+static void format_tests(void)
+{
+    char t[64];
+    tb_size(3ULL << 30, t, sizeof t); CHECK(!strcmp(t, "3 GB"));
+    tb_size(3113851290ULL, t, sizeof t); CHECK(!strcmp(t, "2.9 GB"));
+    tb_size(314573, t, sizeof t); CHECK(!strcmp(t, "0.3 MB"));
+    tb_size(150ULL << 20, t, sizeof t); CHECK(!strcmp(t, "0.15 GB"));
+    tb_size(5ULL << 20, t, sizeof t); CHECK(!strcmp(t, "5 MB"));
+    tb_size(57ULL << 20, t, sizeof t); CHECK(!strcmp(t, "57 MB"));
+    tb_size(2621440, t, sizeof t); CHECK(!strcmp(t, "2.5 MB"));
+    tb_size(512ULL << 10, t, sizeof t); CHECK(!strcmp(t, "0.5 MB"));
+    tb_size(20ULL << 10, t, sizeof t); CHECK(!strcmp(t, "20 KB"));
+    tb_size(0, t, sizeof t); CHECK(!strcmp(t, "0 KB"));
+    tb_size(1000ULL << 20, t, sizeof t); CHECK(!strcmp(t, "0.98 GB"));
+    tb_memory(3ULL << 30, 314573, t, sizeof t); CHECK(!strcmp(t, "3 GB RAM (0.3 MB in use)"));
+    tb_clock(11, 12, 10, 59, 1, t, sizeof t); CHECK(!strcmp(t, "Nov 12 1059"));
+    tb_clock(1, 3, 0, 5, 1, t, sizeof t); CHECK(!strcmp(t, "Jan 3 0005"));
+    tb_clock(11, 12, 10, 59, 0, t, sizeof t); CHECK(!strcmp(t, "1059"));
+    tb_zeros("Nov 12 1059", t, sizeof t); CHECK(!strcmp(t, "Nov 00 0000"));
+}
+
 int main(void)
 {
     prefs_tests();
     fade_tests();
     pointer_tests();
-    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer)");
+    format_tests();
+    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words)");
     return failed != 0;
 }

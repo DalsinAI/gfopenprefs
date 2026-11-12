@@ -117,12 +117,25 @@
  *   screen font's outline face at its height (sans-serif when it has none); Text() as before where it can't
  *   (Common/aatext.h). Boxes take the wider of the two widths.
  *
+ * 0.9 (12 November 2026, CM4 item 17, Dale, 17:01: "lets make sure the new screen title and commodities handling makes
+ *   it in"): the bar's right end is, left to right, the memory and the time, the systray, then Prefs and Power, then the
+ *   screen's depth gadget. The memory reads "3 GB RAM (0.3 MB in use)" and the time "Nov 12 1059" (tb_format.h); both
+ *   are in the row now, no longer in the title (which keeps "GFOpenBench 0.1" and the processors) or the centre. The
+ *   systray replaces Exchange: an item for each commodity running (commodities.library's CopyBrokerList, read every
+ *   2 s), but those that have taskspace icons of their own; a click shows or hides its window, the menu button gives
+ *   Show, Hide, Active, Information and Remove (BrokerCommand), and the pointer resting on it gives its title and
+ *   description. The cog is Prefs alone, with "All commodities..." listing every broker; the power menu (the USB
+ *   sticks' Eject, Reboot, Restart, Power off) is an icon of its own beside it. The systray and the Prefs and Power
+ *   pair each sit on a shaded band of the bar's own colour, and an open item is a deeper shade, not the fill pen.
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <exec/ports.h>
 #include <exec/io.h>
 #include <exec/errors.h>
+#include <exec/execbase.h>
+#include <libraries/commodities.h>
 #include <dos/dos.h>
 #include <intuition/intuition.h>
 #include <intuition/intuitionbase.h>
@@ -156,6 +169,7 @@
 
 #include "tb_prefs.h"
 #include "tb_fade.h"
+#include "tb_format.h"
 #include "om_prefs.h"
 #include "logo.h"
 #include "logo_big.h"
@@ -170,17 +184,18 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.8.1 (12.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.9 (12.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
-struct Library *LayersBase, *UtilityBase, *SocketBase, *WorkbenchBase, *CyberGfxBase;
+struct Library *LayersBase, *UtilityBase, *SocketBase, *WorkbenchBase, *CyberGfxBase, *CxBase;
 
 #define MENUS_ENV  "ENV:GFOpenMenus/Menus"
 #define TRAY_DIR   "ENV:GFOpenMenus/Tray"
 #define CLOCK_ORDER 10                         /* left of the network icons (5) and GFOpenSpeaker (0) */
 #define NET_ORDER   5
 #define COG_ORDER   (-5)                       /* the far end: right of GFOpenSpeaker (0), left of the depth gadget */
+#define CX_ORDER    3                          /* 0.9: the commodities, between the network icons and GFOpenSpeaker */
 #define NET_TOOL   "SYS:Tools/Commodities/GFOpenSocketControl"
 #define WIFI_DEVICE "gfopensocketwifi.device"    /* GFOpenSocket's: the PC's (or the card's) Wi-Fi */
 #define WIFI_STATUS 2
@@ -205,7 +220,7 @@ static WORD cx, cy, cw, ch;                    /* the clock window's place */
 static int bar_edge = OM_BAR_TITLE;
 static int border_set;                         /* we made the border black */
 static struct Window *last_other;              /* the window that was active before a click on ours */
-static char shown[40];
+static char shown[96];
 static int wb_down;                            /* Workbench is shutting down or shut: 1 our windows are closed, 2 to open them again */
 
 /* the network icons: LAN and Wi-Fi, from GFOpenSocket */
@@ -529,6 +544,8 @@ static int ours(const char *fmt)
     if (!strncmp(f, TITLE_MEM, m) && (!f[m] || !strncmp(f + m, ", ", 2))) return 1;   /* with or without the GPUs and CPUs */
     m = strlen(TITLE_MEM_068);                       /* 0.6.3 to 0.6.8's, replaced by the GFOpenBench one */
     if (!strncmp(f, TITLE_MEM_068, m) && (!f[m] || !strncmp(f + m, " - ", 3))) return 1;
+    m = strlen(TITLE_PLAIN);                         /* 0.9's: GFOpenBench's line and the processors */
+    if (!strncmp(f, TITLE_PLAIN, m) && !strncmp(f + m, ", GPU", 5)) return 1;
     return !strcmp(f, TITLE_MEM_062) || !strcmp(f, TITLE_PLAIN) || !strcmp(f, TITLE_PLAIN_068);
 }
 
@@ -536,10 +553,8 @@ static void apply_title(void)
 {
     char now[160], want[160], cpus[48], pad[BARLOGO_MAX_SPACES + 1];
     int have = wb_title(now, sizeof now);
-    if (!prefs.memory && !prefs.logo) {
-        if (have && ours(now)) wb_set_title(NULL);       /* back to Workbench's own */
-        return;
-    }
+    /* 0.9: the memory is in the row now; the title is GFOpenBench's line and the processors, whatever the memory's
+     * switch says (Workbench's own format would show its own memory again) */
     if (have && !ours(now) && now[0]) {
         /* someone's own title format: keep it, only make room for the logo (0.7.8: none needed when Intuition
          * draws it: the room made before goes) */
@@ -553,10 +568,8 @@ static void apply_title(void)
             snprintf(want, sizeof want, "%s%s", barlogo_pad(scr, pad), now);
         }
     } else {
-        cpus[0] = 0;
-        if (prefs.memory) cpus_text(cpus, sizeof cpus);
-        snprintf(want, sizeof want, "%s%s%s", prefs.logo && !icon_in_bar ? barlogo_pad(scr, pad) : "",
-                 prefs.memory ? TITLE_MEM : TITLE_PLAIN, cpus);
+        cpus_text(cpus, sizeof cpus);
+        snprintf(want, sizeof want, "%s%s%s", prefs.logo && !icon_in_bar ? barlogo_pad(scr, pad) : "", TITLE_PLAIN, cpus);
     }
     if (!have || strcmp(now, want)) wb_set_title(want);
 }
@@ -766,42 +779,91 @@ static void draw_logo(void)
 
 /* ---- the clock ------------------------------------------------------------------------------- */
 
-static void clock_text(char *t, int size)
+/* 0.9: every MemHeader's size, and how much of it isn't free: "3 GB RAM (0.3 MB in use)" */
+static void memory_text(char *t, int size)
 {
-    static const char *const days[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-    static const char *const months[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    struct MemHeader *mh;
+    unsigned long long total = 0, avail;
+    Forbid();
+    for (mh = (struct MemHeader *)SysBase->MemList.lh_Head; mh->mh_Node.ln_Succ; mh = (struct MemHeader *)mh->mh_Node.ln_Succ)
+        total += (ULONG)mh->mh_Upper - (ULONG)mh->mh_Lower;
+    Permit();
+    avail = AvailMem(MEMF_ANY);
+    tb_memory(total, total > avail ? total - avail : 0, t, size);
+}
+
+/* 0.9: "Nov 12 1059", or "1059" with the date off (tb_format.h) */
+static void time_text(char *t, int size)
+{
     struct DateStamp ds;
     struct ClockData cd;
     DateStamp(&ds);
     Amiga2Date(ds.ds_Days * 86400 + ds.ds_Minute * 60 + ds.ds_Tick / TICKS_PER_SECOND, &cd);
-    if (prefs.date) snprintf(t, size, "%s %d %s  %02d:%02d", days[cd.wday % 7], cd.mday, months[(cd.month + 11) % 12], cd.hour, cd.min);
-    else snprintf(t, size, "%02d:%02d", cd.hour, cd.min);
+    tb_clock(cd.month, cd.mday, cd.hour, cd.min, prefs.date, t, size);
 }
 
+#define CLOCK_GAP (3 * TRAY_PAD)               /* between the memory and the time */
+
+/* the memory's words and the time's, each "" when switched off */
+static void clock_parts(char *m, char *t, int size)
+{
+    m[0] = t[0] = 0;
+    if (prefs.memory) memory_text(m, size);
+    if (prefs.clock) time_text(t, size);
+}
+
+/* the room both need: measured on their words with every digit a 0, so it changes only with the digits' count */
 static WORD clock_width(void)
 {
-    struct RastPort rp = scr->RastPort;        /* 0.8.1: the screen's, so the outline text is measured as drawn */
-    const char *widest = prefs.date ? "Wed 28 Sep  00:00" : "00:00";
+    static char last[96];
+    static WORD last_w;
+    struct RastPort rp;
+    char m[48], t[48], z[96];
+    WORD w = 2 * TRAY_PAD;
+    clock_parts(m, t, sizeof m);
+    snprintf(z, sizeof z, "%s|%s", m, t);
+    tb_zeros(z, z, sizeof z);
+    if (last_w && !strcmp(z, last)) return last_w;
+    rp = scr->RastPort;                        /* 0.8.1: the screen's, so the outline text is measured as drawn */
     SetFont(&rp, dri->dri_Font);
-    return aat_length(&rp, widest, strlen(widest)) + 2 * TRAY_PAD;
+    tb_zeros(m, m, sizeof m);
+    tb_zeros(t, t, sizeof t);
+    if (m[0]) w += aat_length(&rp, m, strlen(m));
+    if (t[0]) w += aat_length(&rp, t, strlen(t));
+    if (m[0] && t[0]) w += CLOCK_GAP;
+    strcpy(last, z);
+    last_w = w;
+    return w;
 }
+
+static void place(void);
+static void slot_move(struct Window *w, WORD x, WORD y, WORD ww, WORD wh);
 
 static void draw_clock(int force)
 {
     struct RastPort *rp;
-    char t[40];
+    char m[48], t[48], both[96];
     WORD h, w;
     if (!clock_w) return;
-    clock_text(t, sizeof t);
-    if (!force && !strcmp(t, shown)) return;
-    strcpy(shown, t);
+    clock_parts(m, t, sizeof m);
+    snprintf(both, sizeof both, "%s|%s", m, t);
+    if (!force && !strcmp(both, shown)) return;
+    strcpy(shown, both);
+    if (clock_width() != cw) {                 /* more digits: the room grows (the others move at the next place) */
+        place();
+        slot_move(clock_w, cx, cy, cw, ch);
+        tray("Clock", cw, CLOCK_ORDER);
+    }
     rp = clock_w->RPort;
     bar_paint(clock_w, 0, 0, cw, ch);
     SetAPen(rp, bar_text());
     SetDrMd(rp, JAM1);
     h = ch - (bar_edge == OM_BAR_TITLE ? 1 : 0);
-    w = aat_length(rp, t, strlen(t));
-    aat_box(rp, scr, cw - TRAY_PAD - w, 0, h, t, strlen(t));
+    if (m[0]) aat_box(rp, scr, TRAY_PAD, 0, h, m, strlen(m));
+    if (t[0]) {
+        w = aat_length(rp, t, strlen(t));
+        aat_box(rp, scr, cw - TRAY_PAD - w, 0, h, t, strlen(t));
+    }
     see_key(clock_w);
 }
 
@@ -834,9 +896,8 @@ static void place(void)
     case OM_BAR_LEFT:   ch = bh; cx = 0; cy = scr->Height - bh * (n + 1); break;
     case OM_BAR_RIGHT:  ch = bh; cx = scr->Width - cw; cy = scr->Height - bh * (n + 1); break;
     case OM_BAR_TOP:    ch = bh; cx = scr->Width - 2 * scr->BarHeight - cw - off; cy = 0; break;
-    default:            ch = scr->BarHeight; cx = (scr->Width - cw) / 2; cy = 0; break;   /* 0.8: the bar's centre */
+    default:            ch = scr->BarHeight; cx = scr->Width - bar_end() - cw - off; cy = 0; break;   /* 0.9: in the row */
     }
-    (void)off;
 }
 
 /* ---- the windows ----------------------------------------------------------------------------- */
@@ -1100,6 +1161,7 @@ static void draw_net(int force)
     net_drawn = key;
     rp = net_w->RPort;
     bar_paint(net_w, 0, 0, nw, nh);
+    band(net_w, 0, nw, nh, BAND_SHADE);         /* 0.9: the systray's band */
     SetAPen(rp, bar_text());
     cy = (nh - (bar_edge == OM_BAR_TITLE ? 1 : 0)) / 2;
     draw_lan(rp, TRAY_PAD, cy, lan_state);
@@ -1247,6 +1309,115 @@ static const char *const cog13[13] = {
     ".....###.....", ".##..###..##.", ".###########.", "..#########..", "..###...###..", "####.....####", "####.....####",
     "####.....####", "..###...###..", "..#########..", ".###########.", ".##..###..##.", ".....###.....",
 };
+/* 0.9: Power's glyph, the power symbol, at the cog's sizes */
+static const char *const pw9[9] = {
+    "....#....", ".#..#..#.", "#...#...#", "#...#...#", "#.......#", "#.......#", ".#.....#.", "..#####..", ".........",
+};
+static const char *const pw11[11] = {
+    ".....#.....", "..#..#..#..", ".#...#...#.", "#....#....#", "#....#....#", "#.........#",
+    "#.........#", "#.........#", ".#.......#.", "..#.....#..", "...#####...",
+};
+static const char *const pw13[13] = {
+    "......#......", "...#..#..#...", "..##..#..##..", ".##...#...##.", ".#....#....#.", "#.....#.....#", "#...........#",
+    "#...........#", "#...........#", ".#.........#.", ".##.......##.", "..###...###..", "....#####....",
+};
+
+/* ---- 0.9: the commodities (the systray), as last read ------------------------------------------------
+ * commodities.library's private calls that Exchange uses (-186 CopyBrokerList, -192 FreeBrokerList, -198
+ * BrokerCommand), in OS 3.2's and GFOpenCommodities' library alike, as GFOpenExchange calls them (gfopenup
+ * src/openexchange/exchange.c). No change to commodities.library. */
+#ifndef COF_ACTIVE
+#define COF_ACTIVE 2
+#endif
+struct BrokerCopy {
+    struct Node bc_Node;
+    char bc_Name[CBD_NAMELEN];
+    char bc_Title[CBD_TITLELEN];
+    char bc_Descr[CBD_DESCRLEN];
+    LONG bc_Task;
+    LONG bc_Port;
+    UWORD bc_Dummy;
+    ULONG bc_Flags;
+};
+
+static LONG cx_CopyBrokerList(struct List *l)
+{
+    register struct Library *a6 __asm("a6") = CxBase;
+    register struct List *a0 __asm("a0") = l;
+    register LONG d0 __asm("d0");
+    __asm__ volatile("jsr -186(%%a6)" : "=r"(d0), "+r"(a0) : "r"(a6) : "d1", "a1", "cc", "memory");
+    return d0;
+}
+
+static void cx_FreeBrokerList(struct List *l)
+{
+    register struct Library *a6 __asm("a6") = CxBase;
+    register struct List *a0 __asm("a0") = l;
+    __asm__ volatile("jsr -192(%%a6)" : "+r"(a0) : "r"(a6) : "d0", "d1", "a1", "cc", "memory");
+}
+
+static LONG cx_BrokerCommand(const char *name, LONG id)
+{
+    register struct Library *a6 __asm("a6") = CxBase;
+    register const char *a0 __asm("a0") = name;
+    register LONG d0 __asm("d0") = id;
+    __asm__ volatile("jsr -198(%%a6)" : "+r"(d0), "+r"(a0) : "r"(a6) : "d1", "a1", "cc", "memory");
+    return d0;
+}
+
+#define CX_ALL 24                              /* the brokers "All commodities..." lists */
+#define CX_MAX 12                              /* the systray's items */
+struct cx_item { char name[CBD_NAMELEN], title[CBD_TITLELEN], descr[CBD_DESCRLEN]; ULONG flags; struct Task *task; };
+static struct cx_item cx_all[CX_ALL];
+static int cx_all_n;
+static int cx_tray[CX_MAX], cx_n;              /* the systray's items: indexes into cx_all */
+static struct Window *cx_w;                    /* the systray's slot */
+static WORD xx, xy, xw, xh;
+static int cx_drawn = -1;
+static void draw_cx(int force);
+static void cx_sync(int read);
+
+/* 0.9: who a menu is for: Prefs (the cog), Power, or a systray item (OW_CX + its place in the systray) */
+#define OW_PREFS 1
+#define OW_POWER 2
+#define OW_CX    100
+static int menu_owner;
+#define COG_GAP 6                              /* before Prefs and Power: their band apart from the systray's */
+#define BAND_SHADE 36                          /* the bands: 256ths of the way from the bar's colour to white (or black) */
+#define BAND_HOT   84                          /* an item whose menu is open */
+
+/* 0.9: a band of the bar's own colour, a shade lighter (darker on a light bar), across x..x+w-1 of an item */
+static void band(struct Window *win, WORD x, WORD w, WORD h, int shade)
+{
+    WORD top = h > 12 ? 2 : 1, bh = h - 2 * top - (bar_edge == OM_BAR_TITLE ? 1 : 0);
+    if (w <= 0 || bh <= 0) return;
+    if (CyberGfxBase && bp_n) bp_paint_kept(win, 0, dri->dri_Pens[BARBLOCKPEN], x, top, w, bh, shade);
+    else if (shade >= BAND_HOT) { SetAPen(win->RPort, dri->dri_Pens[FILLPEN]); RectFill(win->RPort, x, top, x + w - 1, top + bh - 1); }
+}
+
+/* a glyph's '#' rows, centred in the box x..x+w-1, 0..h-1 */
+static void glyph(struct RastPort *rp, const char *const *rows, int size, WORD x, WORD w, WORD h)
+{
+    WORD ox = x + (w - size) / 2, oy = (h - size) / 2, gx0, gy0;
+    if (oy < 0) oy = 0;
+    for (gy0 = 0; gy0 < size && oy + gy0 < h; gy0++)
+        for (gx0 = 0; gx0 < size; ) {
+            WORD run;
+            if (rows[gy0][gx0] != '#') { gx0++; continue; }
+            for (run = gx0; run < size && rows[gy0][run] == '#'; run++) ;
+            RectFill(rp, ox + gx0, oy + gy0, ox + run - 1, oy + gy0);
+            gx0 = run;
+        }
+}
+
+/* raised under the pointer, as the taskspace's icons are */
+static void raised(struct RastPort *rp, WORD x, WORD w, WORD h)
+{
+    SetAPen(rp, dri->dri_Pens[SHINEPEN]);
+    Move(rp, x + 1, h - 1); Draw(rp, x + 1, 0); Draw(rp, x + w - 2, 0);
+    SetAPen(rp, dri->dri_Pens[SHADOWPEN]);
+    Draw(rp, x + w - 2, h - 1); Draw(rp, x + 2, h - 1);
+}
 
 /* 0.7.10 (Dale, 11 November 2026: "we need a reboot / power cycle option. Also ... a safe eject for USB"): the
  * cog's list ends with the power menu, and above it an "Eject" row for each USB stick mounted (usb_sticks()) */
@@ -1292,11 +1463,25 @@ static const struct { const char *label, *path, *section, *needs; int power; } c
 #define COG_SECTIONS 15                        /* the first ones: GFOpenPrefs's */
 #define COG_ITEMS (int)(sizeof cog_items / sizeof cog_items[0])
 #define COG_PAD 10
-static int menu_idx[COG_ITEMS + USB_MAX + 1], menu_n; /* what the list shows: indexes into cog_items, then usb[] */
-static WORD menu_y[COG_ITEMS + USB_MAX + 2], menu_rh;
+#define COG_POWER_LINE (COG_ITEMS - 4)         /* the line before Reboot: Prefs' list ends there, Power's starts after it */
 
-/* a row's words: a cog_items entry's, or past them a USB stick's "Eject" */
-static const char *row_label(int idx) { return idx < COG_ITEMS ? cog_items[idx].label : usb[idx - COG_ITEMS].label; }
+/* 0.9: the rows the commodities' menus have (and "All commodities..."), past cog_items and the USB sticks */
+#define XR_BASE 1000
+#define XR_MAX  (CX_ALL + 4)
+enum { XA_LINE, XA_SHOW, XA_HIDE, XA_ACTIVE, XA_INFO, XA_REMOVE, XA_ALLCX, XA_BROKER };
+static struct { char label[CBD_TITLELEN + 4]; int act, tick; } xrow[XR_MAX];
+static int xr_n;
+static char menu_cx[CBD_NAMELEN];              /* the broker a commodity's menu is for */
+
+static int menu_idx[COG_ITEMS + USB_MAX + XR_MAX + 2], menu_n; /* what the list shows: cog_items, usb[], xrow[] */
+static WORD menu_y[COG_ITEMS + USB_MAX + XR_MAX + 3], menu_rh;
+
+/* a row's words: a cog_items entry's, a USB stick's "Eject", or past them a commodity row's (NULL: a line) */
+static const char *row_label(int idx)
+{
+    if (idx >= XR_BASE) return xrow[idx - XR_BASE].act == XA_LINE ? NULL : xrow[idx - XR_BASE].label;
+    return idx < COG_ITEMS ? cog_items[idx].label : usb[idx - COG_ITEMS].label;
+}
 static void usb_sticks(void);
 static const char *menu_title;
 
@@ -1342,11 +1527,12 @@ static int cog_size(void)
     return h >= 13 ? 13 : h >= 11 ? 11 : 9;
 }
 
+/* 0.9: Prefs and Power, one item of the row: a gap, then a cell each */
 static void cog_place(void)
 {
     WORD bh = scr->BarHeight + 1;
     int n, off = tray_before("Cog", COG_ORDER, &n);
-    gw = TRAY_CELL;
+    gw = COG_GAP + 2 * TRAY_CELL;
     switch (bar_edge) {
     case OM_BAR_BOTTOM: gh = bh; gx = scr->Width - gw - off; gy = scr->Height - bh; break;
     case OM_BAR_LEFT:   gh = bh; gx = 0; gy = scr->Height - bh * (n + 1); break;
@@ -1356,45 +1542,53 @@ static void cog_place(void)
     }
 }
 
-static int over_cog(void)
+/* the cell under the pointer: OW_PREFS, OW_POWER or 0 */
+static int cog_cell(void)
 {
-    WORD x = scr->MouseX, y = scr->MouseY;
-    return cog_w && IntuitionBase->FirstScreen == scr && x >= gx && x < gx + gw && y >= gy && y < gy + gh;
+    WORD x = scr->MouseX - gx - COG_GAP, y = scr->MouseY;
+    if (!cog_w || IntuitionBase->FirstScreen != scr || y < gy || y >= gy + gh || x < 0 || x >= 2 * TRAY_CELL) return 0;
+    return x < TRAY_CELL ? OW_PREFS : OW_POWER;
 }
 
-/* plain in the bar's pens; raised under the pointer; filled while its list is open, as GFOpenSpeaker is */
+static int over_cog(void) { return cog_cell() != 0; }
+
+/* the systray's item under the pointer, or -1 */
+static int cx_over(void)
+{
+    WORD x = scr->MouseX - xx, y = scr->MouseY;
+    if (!cx_w || IntuitionBase->FirstScreen != scr || y < xy || y >= xy + xh || x < 0 || x >= cx_n * TRAY_CELL) return -1;
+    return x / TRAY_CELL;
+}
+
+/* whose menu a click here opens: OW_PREFS, OW_POWER, OW_CX + k, or 0 */
+static int owner_at_pointer(void)
+{
+    int k = cog_cell();
+    if (k) return k;
+    k = cx_over();
+    return k >= 0 ? OW_CX + k : 0;
+}
+
+/* Prefs (the cog) and Power on their band; raised under the pointer; a deeper shade while its menu is open (0.9:
+ * no longer the fill pen, Dale: "the colour on the prefs bit needs sorting") */
 static void draw_cog(int force)
 {
     struct RastPort *rp;
-    const char *const *rows;
-    int state = menu_w ? 2 : over_cog() ? 1 : 0, size, x, y;
-    WORD h, ox, oy;
+    int hot = cog_cell(), open = menu_w && menu_owner <= OW_POWER ? menu_owner : 0, state = hot + 3 * open, size, c;
     if (!cog_w || (!force && state == cog_drawn)) return;
     cog_drawn = state;
     rp = cog_w->RPort;
-    h = gh;
-    if (state == 2) { SetAPen(rp, dri->dri_Pens[FILLPEN]); RectFill(rp, 0, 0, gw - 1, gh - 1); }
-    else bar_paint(cog_w, 0, 0, gw, gh);
-    if (state == 1) {
-        SetAPen(rp, dri->dri_Pens[SHINEPEN]);
-        Move(rp, 1, h - 1); Draw(rp, 1, 0); Draw(rp, gw - 2, 0);
-        SetAPen(rp, dri->dri_Pens[SHADOWPEN]);
-        Draw(rp, gw - 2, h - 1); Draw(rp, 2, h - 1);
-    }
+    bar_paint(cog_w, 0, 0, gw, gh);
+    band(cog_w, COG_GAP, 2 * TRAY_CELL, gh, BAND_SHADE);
     size = cog_size();
-    rows = size == 13 ? cog13 : size == 11 ? cog11 : cog9;
-    ox = (gw - size) / 2;
-    oy = (h - size) / 2;
-    if (oy < 0) oy = 0;
-    SetAPen(rp, state == 2 ? dri->dri_Pens[FILLTEXTPEN] : bar_text());
-    for (y = 0; y < size && oy + y < gh; y++)
-        for (x = 0; x < size; ) {
-            int run;
-            if (rows[y][x] != '#') { x++; continue; }
-            for (run = x; run < size && rows[y][run] == '#'; run++) ;
-            RectFill(rp, ox + x, oy + y, ox + run - 1, oy + y);
-            x = run;
-        }
+    for (c = OW_PREFS; c <= OW_POWER; c++) {
+        WORD x = COG_GAP + (c - 1) * TRAY_CELL;
+        if (open == c) band(cog_w, x, TRAY_CELL, gh, BAND_HOT);
+        else if (hot == c) raised(rp, x, TRAY_CELL, gh);
+        SetAPen(rp, bar_text());
+        if (c == OW_PREFS) glyph(rp, size == 13 ? cog13 : size == 11 ? cog11 : cog9, size, x, TRAY_CELL, gh);
+        else glyph(rp, size == 13 ? pw13 : size == 11 ? pw11 : pw9, size, x, TRAY_CELL, gh);
+    }
     see_key(cog_w);
 }
 
@@ -1442,6 +1636,11 @@ static void draw_menu(void)
         if (i == menu_hot) { SetAPen(rp, pt_ok ? pt_hot_pen() : dri->dri_Pens[FILLPEN]); RectFill(rp, 2, y0, w - 3, y1); }
         SetAPen(rp, pt_ok ? (i == menu_hot ? pt_hot_text_pen() : pt_text_pen()) : dri->dri_Pens[i == menu_hot ? FILLTEXTPEN : BARDETAILPEN]);
         aat_box(rp, scr, COG_PAD, y0, y1 - y0 + 1, t, strlen(t));
+        if (menu_idx[i] >= XR_BASE && xrow[menu_idx[i] - XR_BASE].tick) {   /* 0.9: Active's tick */
+            WORD cy0 = (y0 + y1) / 2;
+            Move(rp, 2, cy0); Draw(rp, 4, cy0 + 2); Draw(rp, 8, cy0 - 3);
+            Move(rp, 2, cy0 + 1); Draw(rp, 4, cy0 + 3); Draw(rp, 8, cy0 - 2);
+        }
     }
 }
 
@@ -1461,48 +1660,98 @@ static void menu_close(int give_back)
     menu_hot = -1;
     if (give_back && last_other) ActivateWindow(last_other);
     draw_cog(1);
+    draw_cx(1);
 }
 
-static void menu_open(void)
+static void xr_add(const char *label, int act, int tick)
+{
+    if (xr_n >= XR_MAX) return;
+    strncpy(xrow[xr_n].label, label ? label : "", sizeof xrow[0].label - 1);
+    xrow[xr_n].label[sizeof xrow[0].label - 1] = 0;
+    xrow[xr_n].act = act;
+    xrow[xr_n].tick = tick;
+    xr_n++;
+}
+
+static int cx_find(const char *name);
+
+/* the box the menu hangs from: its right edge, top and height (0.9: Prefs, Power or a systray item) */
+static void owner_box(int owner, WORD *right, WORD *top, WORD *h)
+{
+    if (owner >= OW_CX) { *right = xx + (owner - OW_CX + 1) * TRAY_CELL; *top = xy; *h = xh; }
+    else { *right = gx + COG_GAP + (owner == OW_POWER ? 2 : 1) * TRAY_CELL; *top = gy; *h = gh; }
+}
+
+/* 0.9: the menu for owner: Prefs' (GFOpenPrefs' sections, the other settings, "All commodities...", All Prefs...),
+ * Power's (the USB sticks, Reboot, Restart, Power off), a commodity's (cx: Show, Hide, Active, Information,
+ * Remove), or every broker's (all) */
+#define MK_PREFS 1
+#define MK_POWER 2
+#define MK_CX    3
+#define MK_CXALL 4
+static void menu_open(int kind, int owner, const char *cx)
 {
     struct RastPort trp;
-    WORD W = 0, H, x, y;
-    int i;
+    WORD W = 0, H, x, y, right, top, bh;
+    int i, k;
     InitRastPort(&trp);
     SetFont(&trp, dri->dri_Font);
     menu_rh = dri->dri_Font->tf_YSize + 4;
     menu_n = 0;
+    xr_n = 0;
     H = 3;
-    {
+#define ROW(at) do { const char *t_ = row_label(at); menu_y[menu_n] = H; menu_idx[menu_n++] = (at); \
+                     if (t_) { WORD tw_ = aat_length(&trp, t_, strlen(t_)); if (tw_ > W) W = tw_; } H += t_ ? menu_rh : 6; } while (0)
+    if (kind == MK_PREFS) {
         const char *app = prefs_app();
-    usb_sticks();
-    for (i = 0; i < COG_ITEMS; i++) {
-        const char *t = cog_items[i].label;
-        int k;
-        if (t && !cog_items[i].power && (cog_items[i].section ? !app : !exists(cog_items[i].needs ? cog_items[i].needs : cog_items[i].path))) continue;
-        if (!t && !menu_n) continue;                   /* no line at the top */
-        for (k = cog_items[i].power == PW_REBOOT ? -usb_n : 0; k <= 0; k++) {   /* 0.7.10: the sticks before Reboot */
-            int at = k < 0 ? COG_ITEMS + usb_n + k : i;
-            t = row_label(at);
-            menu_y[menu_n] = H;
-            menu_idx[menu_n++] = at;
-            if (t) { WORD tw = aat_length(&trp, t, strlen(t)); if (tw > W) W = tw; }
-            H += t ? menu_rh : 6;
-            if (k == -1) { menu_y[menu_n] = H; menu_idx[menu_n++] = COG_ITEMS - 4; H += 6; }   /* a line after them */
+        for (i = 0; i < COG_POWER_LINE; i++) {
+            const char *t = cog_items[i].label;
+            if (t && (cog_items[i].section ? !app : !exists(cog_items[i].needs ? cog_items[i].needs : cog_items[i].path))) continue;
+            if (!t && !menu_n) continue;               /* no line at the top */
+            if (t && !strcmp(t, "All Prefs...") && CxBase) { xr_add("All commodities...", XA_ALLCX, 0); ROW(XR_BASE + xr_n - 1); }
+            ROW(i);
         }
+    } else if (kind == MK_POWER) {
+        usb_sticks();
+        for (k = 0; k < usb_n; k++) ROW(COG_ITEMS + k);
+        if (usb_n) ROW(COG_POWER_LINE);
+        for (i = COG_POWER_LINE + 1; i < COG_ITEMS; i++) ROW(i);
+    } else if (kind == MK_CX) {
+        int b = cx_find(cx);
+        ULONG f = b >= 0 ? cx_all[b].flags : 0;
+        strncpy(menu_cx, cx, sizeof menu_cx - 1);
+        menu_cx[sizeof menu_cx - 1] = 0;
+        if (f & COF_SHOW_HIDE) {
+            xr_add("Show", XA_SHOW, 0); ROW(XR_BASE + xr_n - 1);
+            xr_add("Hide", XA_HIDE, 0); ROW(XR_BASE + xr_n - 1);
+            xr_add(NULL, XA_LINE, 0); ROW(XR_BASE + xr_n - 1);
+        }
+        xr_add("Active", XA_ACTIVE, (f & COF_ACTIVE) != 0); ROW(XR_BASE + xr_n - 1);
+        xr_add("Information...", XA_INFO, 0); ROW(XR_BASE + xr_n - 1);
+        xr_add(NULL, XA_LINE, 0); ROW(XR_BASE + xr_n - 1);
+        xr_add("Remove", XA_REMOVE, 0); ROW(XR_BASE + xr_n - 1);
+    } else {
+        for (k = 0; k < cx_all_n && xr_n < XR_MAX; k++) {
+            xr_add(cx_all[k].name, XA_BROKER, (cx_all[k].flags & COF_ACTIVE) != 0);
+            ROW(XR_BASE + xr_n - 1);
+        }
+        if (!cx_all_n) { xr_add("No commodities running", XA_LINE + 100, 0); ROW(XR_BASE + xr_n - 1); }
     }
-    }
+#undef ROW
+    if (!menu_n) return;
     menu_y[menu_n] = H;
     H += 3;
     W += 2 * COG_PAD;
     if (W < 120) W = 120;
-    x = gx + gw - W;                                    /* under the cog, towards the middle of the screen */
+    owner_box(owner, &right, &top, &bh);
+    x = right - W;                                      /* under the item, towards the middle of the screen */
     if (bar_edge == OM_BAR_LEFT) x = 0;
     if (x < 0) x = 0;
-    y = (bar_edge == OM_BAR_BOTTOM || bar_edge == OM_BAR_LEFT || bar_edge == OM_BAR_RIGHT) ? gy - H : gy + gh + (bar_edge == OM_BAR_TITLE ? 1 : 0);
+    y = (bar_edge == OM_BAR_BOTTOM || bar_edge == OM_BAR_LEFT || bar_edge == OM_BAR_RIGHT) ? top - H : top + bh + (bar_edge == OM_BAR_TITLE ? 1 : 0);
     if (y < 0) y = 0;
     if (y + H > scr->Height) y = scr->Height - H;
     menu_hot = -1;
+    menu_owner = owner;
     {   /* the bar keeps the title it shows now while the list is active */
         static char title[120];
         strncpy(title, scr->Title ? (const char *)scr->Title : "", sizeof title - 1);
@@ -1520,6 +1769,7 @@ static void menu_open(void)
         draw_menu();
     }
     draw_cog(1);
+    draw_cx(1);
 }
 
 /* starts an editor as a double-click on its icon does (its icon's stack and tool types count) */
@@ -1673,12 +1923,15 @@ static void power(int what)
     }
 }
 
+static void cx_pick(int r);
+
 static void menu_pick(int row)
 {
     const char *path;
     int at;
     if (row < 0 || row >= menu_n) return;
     at = menu_idx[row];
+    if (at >= XR_BASE) { cx_pick(at - XR_BASE); return; }                        /* 0.9 */
     if (at >= COG_ITEMS) { menu_close(1); usb_eject(at - COG_ITEMS); return; }     /* 0.7.10 */
     if (cog_items[at].power) { menu_close(1); power(cog_items[at].power); return; }
     if (cog_items[menu_idx[row]].section) {   /* 0.7: GFOpenPrefs at its section, by the cog */
@@ -1710,7 +1963,7 @@ static void menu_events(void)
         }
         else if (cls == IDCMP_MOUSEBUTTONS && code == SELECTUP && inside) menu_pick(menu_row(my));
         else if (cls == IDCMP_INACTIVEWINDOW) {          /* a click elsewhere */
-            cog_skip = over_cog();
+            cog_skip = owner_at_pointer() == menu_owner ? menu_owner : 0;   /* on the item: it closed the menu */
             menu_close(0);
         }
         else if (cls == IDCMP_RAWKEY) {
@@ -1788,6 +2041,7 @@ static void ts_draw(struct ts_icon *t, int force)
     rp = t->win->RPort;
     h = t->bh;
     bar_paint(t->win, 0, 0, t->bw, t->bh);
+    band(t->win, 0, t->bw, t->bh, BAND_SHADE);  /* 0.9: the systray's band */
     if (lit) {
         SetAPen(rp, dri->dri_Pens[SHINEPEN]);
         Move(rp, 1, h - 1); Draw(rp, 1, 0); Draw(rp, t->bw - 2, 0);
@@ -1850,25 +2104,24 @@ static void ts_drop(int i)
     if (hover_for == i) hover_for = -1;
 }
 
-/* the help under an icon, after the pointer has rested on it a moment */
-static void help_open(int i)
+/* the help under an icon, after the pointer has rested on it a moment (0.9: any words, under any item's box) */
+static int help_show(const char *text, WORD right, WORD top, WORD bh)
 {
-    struct ts_icon *t = ts[i];
     struct RastPort trp;
     WORD w, h, x, y;
-    if (!t || !t->win || !t->help[0] || help_w) return;
+    if (!text[0] || help_w) return 0;
     InitRastPort(&trp);
     SetFont(&trp, dri->dri_Font);
     w = aat_length(&trp, t->help, strlen(t->help)) + 12;
     h = dri->dri_Font->tf_YSize + 6;
-    x = t->x + t->bw - w;
+    if (w > scr->Width) w = scr->Width;
+    x = right - w;
     if (x < 0) x = 0;
-    y = bar_edge == OM_BAR_BOTTOM ? t->y - h : t->y + t->bh + (bar_edge == OM_BAR_TITLE ? 1 : 0);
+    y = bar_edge == OM_BAR_BOTTOM ? top - h : top + bh + (bar_edge == OM_BAR_TITLE ? 1 : 0);
     if (y + h > scr->Height) y = scr->Height - h;
     if (!(help_w = OpenWindowTags(NULL, WA_CustomScreen, (ULONG)scr, WA_Left, x, WA_Top, y, WA_Width, w, WA_Height, h,
                                   WA_Borderless, TRUE, WA_Activate, FALSE, WA_RMBTrap, TRUE, WA_SmartRefresh, TRUE, TAG_DONE)))
-        return;
-    help_for = i;
+        return 0;
     SetFont(help_w->RPort, dri->dri_Font);
     SetAPen(help_w->RPort, dri->dri_Pens[BARBLOCKPEN]);
     RectFill(help_w->RPort, 1, 1, w - 2, h - 2);
@@ -1876,16 +2129,27 @@ static void help_open(int i)
     Move(help_w->RPort, 0, 0); Draw(help_w->RPort, w - 1, 0); Draw(help_w->RPort, w - 1, h - 1); Draw(help_w->RPort, 0, h - 1); Draw(help_w->RPort, 0, 0);
     SetAPen(help_w->RPort, dri->dri_Pens[BARDETAILPEN]);
     SetDrMd(help_w->RPort, JAM1);
-    aat_box(help_w->RPort, scr, 6, 3, help_w->RPort->TxHeight, t->help, strlen(t->help));
+    aat_box(help_w->RPort, scr, 6, 3, help_w->RPort->TxHeight, text, strlen(text));
+    return 1;
 }
+
+static void help_open(int i)
+{
+    struct ts_icon *t = ts[i];
+    if (t && t->win && help_show(t->help, t->x + t->bw, t->y, t->bh)) help_for = i;
+}
+
+static void cx_help(int k);
 
 /* every tenth of a second while the pointer is on the bar: the light and the help */
 static void ts_hover(void)
 {
     int i, over = -1;
     for (i = 0; i < TS_ICONS; i++) if (ts[i]) { ts_draw(ts[i], 0); if (ts_over(ts[i])) over = i; }
+    if (over < 0 && (i = cx_over()) >= 0) over = OW_CX + i;     /* 0.9: a commodity's title and description */
+    draw_cx(0);
     if (over != hover_for) { hover_for = over; hover_ticks = 0; if (help_w) help_close(); }
-    else if (over >= 0 && ++hover_ticks == 6) help_open(over);
+    else if (over >= 0 && ++hover_ticks == 6) { if (over >= OW_CX) cx_help(over - OW_CX); else help_open(over); }
 }
 
 /* tells the program; 0 when its port is gone (it ended without TSC_REMOVE) */
@@ -1944,6 +2208,7 @@ static void ts_command(struct TaskspaceMsg *m)
         memcpy(t->pixels, m->tsm_Pixels, n * t->states);
         memcpy(t->rgb, m->tsm_RGB, sizeof t->rgb);
         ts_open_one(t);
+        cx_sync(1);                            /* 0.9: its commodity leaves the systray */
         break;
     }
     case TSC_SET:
@@ -1959,6 +2224,7 @@ static void ts_command(struct TaskspaceMsg *m)
     case TSC_REMOVE:
         if (i < 0) { m->tsm_Result = TSR_UNKNOWN; return; }
         ts_drop(i);
+        cx_sync(1);
         break;
     default:
         m->tsm_Result = TSR_BADMSG;
@@ -1996,6 +2262,218 @@ static int ts_is(struct Window *w)
     for (i = 0; i < TS_ICONS; i++) if (ts[i] && ts[i]->win == w && w) return 1;
     if (w && w == row_w) return 1;
     return 0;
+}
+
+/* ---- 0.9: the systray: an item for each commodity --------------------------------------------------- */
+
+static int cx_find(const char *name)
+{
+    int i;
+    for (i = 0; i < cx_all_n; i++) if (!strcmp(cx_all[i].name, name)) return i;
+    return -1;
+}
+
+/* a commodity with taskspace icons of its own (GFOpenSpeaker, GFOpenNetwork) is shown by them, not again */
+static int cx_has_icons(struct Task *task)
+{
+    int i, has = 0;
+    Forbid();
+    for (i = 0; i < TS_ICONS && !has; i++) {
+        struct MsgPort *p;
+        if (ts[i] && ts[i]->port[0] && (p = FindPort((STRPTR)ts[i]->port)) && (struct Task *)p->mp_SigTask == task) has = 1;
+    }
+    Permit();
+    return has;
+}
+
+/* the brokers now, into cx_all and the systray's cx_tray: 1 when what the systray shows changed */
+static int cx_read(void)
+{
+    static struct cx_item now[CX_ALL];
+    struct List l;
+    struct Node *n;
+    int count = 0, i, tray_was[CX_MAX], n_was = cx_n, changed;
+    if (!CxBase) return 0;
+    NewList(&l);
+    cx_CopyBrokerList(&l);
+    for (n = l.lh_Head; n->ln_Succ && count < CX_ALL; n = n->ln_Succ) {
+        struct BrokerCopy *b = (struct BrokerCopy *)n;
+        struct cx_item *e = &now[count++];
+        memset(e, 0, sizeof *e);
+        strncpy(e->name, b->bc_Name, CBD_NAMELEN - 1);
+        strncpy(e->title, b->bc_Title, CBD_TITLELEN - 1);
+        strncpy(e->descr, b->bc_Descr, CBD_DESCRLEN - 1);
+        e->flags = b->bc_Flags & (COF_ACTIVE | COF_SHOW_HIDE);
+        e->task = (struct Task *)b->bc_Task;
+    }
+    cx_FreeBrokerList(&l);
+    memcpy(tray_was, cx_tray, sizeof tray_was);
+    changed = count != cx_all_n || memcmp(now, cx_all, count * sizeof now[0]);
+    memcpy(cx_all, now, count * sizeof now[0]);
+    cx_all_n = count;
+    cx_n = 0;
+    for (i = 0; i < count && cx_n < CX_MAX; i++)
+        if (strcmp(now[i].name, TB_PORT) && !cx_has_icons(now[i].task)) cx_tray[cx_n++] = i;
+    return changed || cx_n != n_was || memcmp(tray_was, cx_tray, cx_n * sizeof cx_tray[0]);
+}
+
+static void cx_place(void)
+{
+    WORD bh = scr->BarHeight + 1;
+    int n, off = tray_before("Commodities", CX_ORDER, &n);
+    xw = cx_n * TRAY_CELL;
+    switch (bar_edge) {
+    case OM_BAR_BOTTOM: xh = bh; xx = scr->Width - xw - off; xy = scr->Height - bh; break;
+    case OM_BAR_LEFT:   xh = bh; xx = 0; xy = scr->Height - bh * (n + 1); break;
+    case OM_BAR_RIGHT:  xh = bh; xx = scr->Width - xw; xy = scr->Height - bh * (n + 1); break;
+    case OM_BAR_TOP:    xh = bh; xx = scr->Width - 2 * scr->BarHeight - xw - off; xy = 0; break;
+    default:            xh = scr->BarHeight; xx = scr->Width - bar_end() - xw - off; xy = 0; break;
+    }
+}
+
+/* a commodity's letter: its name's first, after "GFOpen" (GFOpenWindows: W) */
+static char cx_letter(const char *name)
+{
+    char c;
+    if (!strncmp(name, "GFOpen", 6) && name[6]) name += 6;
+    else if (!strncmp(name, "Open", 4) && name[4]) name += 4;
+    c = name[0] ? name[0] : '?';
+    return c >= 'a' && c <= 'z' ? c - 32 : c;
+}
+
+/* each item a letter in a rounded box (no box while the commodity is inactive), on the systray's band; raised under
+ * the pointer, a deeper shade while its menu is open */
+static void draw_cx(int force)
+{
+    struct RastPort *rp;
+    int hot = cx_over(), open = menu_w && menu_owner >= OW_CX ? menu_owner - OW_CX : -1, state = (hot + 1) * 64 + open + 1, k;
+    WORD size;
+    if (!cx_w || (!force && state == cx_drawn)) return;
+    cx_drawn = state;
+    rp = cx_w->RPort;
+    bar_paint(cx_w, 0, 0, xw, xh);
+    band(cx_w, 0, xw, xh, BAND_SHADE);
+    size = cog_size();
+    SetDrMd(rp, JAM1);
+    for (k = 0; k < cx_n; k++) {
+        const struct cx_item *c = &cx_all[cx_tray[k]];
+        WORD x = k * TRAY_CELL, ox = x + (TRAY_CELL - size) / 2, oy = (xh - (bar_edge == OM_BAR_TITLE ? 1 : 0) - size) / 2, lw;
+        char letter = cx_letter(c->name);
+        if (oy < 0) oy = 0;
+        if (open == k) band(cx_w, x, TRAY_CELL, xh, BAND_HOT);
+        else if (hot == k) raised(rp, x, TRAY_CELL, xh);
+        SetAPen(rp, bar_text());
+        if (c->flags & COF_ACTIVE) {
+            Move(rp, ox + 2, oy); Draw(rp, ox + size - 3, oy);
+            Move(rp, ox + size - 1, oy + 2); Draw(rp, ox + size - 1, oy + size - 3);
+            Move(rp, ox + size - 3, oy + size - 1); Draw(rp, ox + 2, oy + size - 1);
+            Move(rp, ox, oy + size - 3); Draw(rp, ox, oy + 2);
+            WritePixel(rp, ox + 1, oy + 1); WritePixel(rp, ox + size - 2, oy + 1);
+            WritePixel(rp, ox + 1, oy + size - 2); WritePixel(rp, ox + size - 2, oy + size - 2);
+        }
+        lw = aat_length(rp, &letter, 1);
+        aat_box(rp, scr, ox + (size - lw + 1) / 2, oy, size, &letter, 1);
+    }
+    see_key(cx_w);
+}
+
+/* the systray after the brokers changed: its slot opened, moved or closed, and the row placed again */
+static void place_all(void);
+static void cx_sync(int read)
+{
+    if (!scr || (read && !cx_read())) return;
+    if (help_for >= OW_CX) help_close();
+    if (!cx_n) {
+        if (cx_w) { slot_close(cx_w); cx_w = NULL; tray("Commodities", 0, CX_ORDER); place_all(); }
+        return;
+    }
+    cx_place();
+    if (!cx_w) {
+        if (!(cx_w = slot_open(xx, xy, xw, xh))) return;
+        tray("Commodities", xw, CX_ORDER);
+        place_all();
+    } else if (cx_w->Width != xw || cx_w->LeftEdge != xx || cx_w->TopEdge != xy || cx_w->Height != xh) {
+        slot_move(cx_w, xx, xy, xw, xh);
+        tray("Commodities", xw, CX_ORDER);
+        place_all();
+    }
+    cx_drawn = -1;
+    draw_cx(1);
+}
+
+static void cx_help(int k)
+{
+    char t[CBD_TITLELEN + CBD_DESCRLEN + 4];
+    const struct cx_item *c;
+    if (k < 0 || k >= cx_n) return;
+    c = &cx_all[cx_tray[k]];
+    snprintf(t, sizeof t, "%s%s%s", c->title[0] ? c->title : c->name, c->descr[0] ? " - " : "", c->descr);
+    if (help_show(t, xx + (k + 1) * TRAY_CELL, xy, xh)) help_for = OW_CX + k;
+}
+
+/* the commodity's task has a window open: on Workbench's screen, or any other */
+static int cx_shown(struct Task *task)
+{
+    struct Screen *s;
+    struct Window *w;
+    int found = 0;
+    ULONG lock;
+    if (!task) return 0;
+    lock = LockIBase(0);
+    for (s = IntuitionBase->FirstScreen; s && !found; s = s->NextScreen)
+        for (w = s->FirstWindow; w && !found; w = w->NextWindow)
+            if (w->UserPort && (struct Task *)w->UserPort->mp_SigTask == task) found = 1;
+    UnlockIBase(lock);
+    return found;
+}
+
+/* a click on Prefs, Power or a systray item (menu: with the menu button) */
+static void owner_click(int owner, int menu)
+{
+    help_close();
+    if (owner == OW_PREFS) menu_open(MK_PREFS, owner, NULL);
+    else if (owner == OW_POWER) menu_open(MK_POWER, owner, NULL);
+    else if (owner >= OW_CX && owner - OW_CX < cx_n) {
+        const struct cx_item *c = &cx_all[cx_tray[owner - OW_CX]];
+        if (!menu && (c->flags & COF_SHOW_HIDE))   /* its window shown, or hidden when it is */
+            cx_BrokerCommand(c->name, cx_shown(c->task) ? CXCMD_DISAPPEAR : CXCMD_APPEAR);
+        else menu_open(MK_CX, owner, c->name);
+    }
+}
+
+/* a commodity's words, in a requester ("%" in them stays as it is) */
+static void cx_info(const struct cx_item *c)
+{
+    struct EasyStruct es;
+    const char *args[2];
+    es.es_StructSize = sizeof es;
+    es.es_Flags = 0;
+    es.es_Title = (UBYTE *)(c->title[0] ? c->title : c->name);
+    es.es_TextFormat = (UBYTE *)"%s\n\n%s";
+    es.es_GadgetFormat = (UBYTE *)"OK";
+    args[0] = c->title[0] ? c->title : c->name;
+    args[1] = c->descr[0] ? c->descr : "No description.";
+    EasyRequestArgs(NULL, &es, NULL, (APTR)args);
+}
+
+/* a row of a commodity's menu, or of "All commodities..." */
+static void cx_pick(int r)
+{
+    int act = xrow[r].act, owner = menu_owner, b;
+    char name[CBD_NAMELEN];
+    if (act == XA_ALLCX) { menu_close(0); menu_open(MK_CXALL, owner, NULL); return; }
+    if (act == XA_BROKER) { strcpy(name, xrow[r].label); menu_close(0); menu_open(MK_CX, owner, name); return; }
+    strcpy(name, menu_cx);
+    menu_close(1);
+    if ((b = cx_find(name)) < 0) return;          /* it ended meanwhile */
+    switch (act) {
+    case XA_SHOW:   cx_BrokerCommand(name, CXCMD_APPEAR); break;
+    case XA_HIDE:   cx_BrokerCommand(name, CXCMD_DISAPPEAR); break;
+    case XA_ACTIVE: cx_BrokerCommand(name, (cx_all[b].flags & COF_ACTIVE) ? CXCMD_DISABLE : CXCMD_ENABLE); break;
+    case XA_INFO:   cx_info(&cx_all[b]); break;
+    case XA_REMOVE: cx_BrokerCommand(name, CXCMD_KILL); break;
+    }
+    if (act == XA_ACTIVE || act == XA_REMOVE) { Delay(TICKS_PER_SECOND / 10); cx_sync(1); }   /* seen at once, not in 2 s */
 }
 
 /* ---- 0.7.5: the see-through bar ------------------------------------------------------------------
@@ -2120,23 +2598,23 @@ static void row_redraw(void)
     if (!row_w) return;
     bar_paint(row_w, 0, 0, rw, rh);
     see_key(row_w);
+    if (clock_w) { shown[0] = 0; draw_clock(1); }
     if (net_w) { net_drawn = -100; draw_net(1); }
     if (cog_w) { cog_drawn = -1; draw_cog(1); }
+    if (cx_w) { cx_drawn = -1; draw_cx(1); }
     for (i = 0; i < TS_ICONS; i++) if (ts[i] && ts[i]->win) { ts[i]->drawn = -1; ts_draw(ts[i], 1); }
 }
 
 static void see_looks(ULONG on)
 {
-    struct Window *const ws[3] = { logo_w, clock_w, row_w };
+    struct Window *const ws[2] = { logo_w, row_w };   /* 0.9: the clock is in the row */
     int i;
-    for (i = 0; i < 3; i++) if (ws[i]) layer_look(ws[i]->WLayer, SEE_LOOK_ALPHA, on);
+    for (i = 0; i < 2; i++) if (ws[i]) layer_look(ws[i]->WLayer, SEE_LOOK_ALPHA, on);
 }
 
 static void see_rekey(void)
 {
-    struct Window *const ws[2] = { logo_w, clock_w };
-    int i;
-    for (i = 0; i < 2; i++) see_key(ws[i]);
+    if (logo_w) see_key(logo_w);
     row_redraw();
 }
 
@@ -2206,11 +2684,12 @@ static void see_tick(void)
 static void close_all(void)
 {
     see_off();                                 /* 0.7.5: the bar solid again while the screen is still ours */
-    if (clock_w) { CloseWindow(clock_w); clock_w = NULL; tray("Clock", 0, CLOCK_ORDER); }
+    if (clock_w) { slot_close(clock_w); clock_w = NULL; tray("Clock", 0, CLOCK_ORDER); }
     if (pop_w) { CloseWindow(pop_w); pop_w = NULL; }
     if (net_w) { slot_close(net_w); net_w = NULL; tray("Network", 0, NET_ORDER); }
     if (menu_w) { CloseWindow(menu_w); menu_w = NULL; }
     if (cog_w) { slot_close(cog_w); cog_w = NULL; tray("Cog", 0, COG_ORDER); }
+    if (cx_w) { slot_close(cx_w); cx_w = NULL; tray("Commodities", 0, CX_ORDER); }   /* 0.9 */
     if (logo_w) { CloseWindow(logo_w); logo_w = NULL; }
     {
         int i;
@@ -2238,13 +2717,12 @@ static int open_all(void)
     bar_edge = read_bar_edge();
     bar_sample_now();
     pt_load(scr);
-    if (prefs.clock) {
+    if (prefs.clock || prefs.memory) {         /* 0.9: the memory and the time, an item of the row */
         place();
-        if ((clock_w = see_new(bar_window(cx, cy, cw, ch)))) {
-            SetFont(clock_w->RPort, dri->dri_Font);
+        if ((clock_w = slot_open(cx, cy, cw, ch))) {
             shown[0] = 0;
             draw_clock(1);
-            if (bar_edge != OM_BAR_TITLE) tray("Clock", cw, CLOCK_ORDER);   /* 0.8: on the title bar it is in the centre */
+            tray("Clock", cw, CLOCK_ORDER);
         }
     }
     if (prefs.network && !net_elsewhere()) net_open();   /* 0.8 */
@@ -2253,6 +2731,9 @@ static int open_all(void)
         int i;
         for (i = 0; i < TS_ICONS; i++) if (ts[i]) ts_open_one(ts[i]);
     }
+    cx_read();                                 /* 0.9: the systray, then everything where the tray now says */
+    cx_sync(0);
+    place_all();
     apply_border();
     see_check(1);                              /* 0.7.5 */
     return 1;
@@ -2444,6 +2925,22 @@ static ULONG os_sigs(void)
     return m;
 }
 
+/* 0.6.4: a double-click on the date and time opens GFOpenDateTime (date, time, the clock and the region in one
+ * editor); until it is installed, the OS's Time editor (the user, 10 Oct 2026) */
+static void clock_click(ULONG secs, ULONG micros)
+{
+    static ULONG last_s, last_m;
+    if (last_s && DoubleClick(last_s, last_m, secs, micros)) {
+        static const char *const editors[] = { "SYS:Prefs/GFOpenDateTime", "SYS:Prefs/Time", "SYS:Prefs/Classic/Time" };
+        int k;
+        last_s = 0;
+        for (k = 0; k < 3; k++) {
+            BPTR l = Lock((STRPTR)editors[k], ACCESS_READ);
+            if (l) { UnLock(l); cog_start(editors[k]); break; }
+        }
+    } else { last_s = secs; last_m = micros; }
+}
+
 static void events(struct Window *w)
 {
     struct IntuiMessage *m;
@@ -2456,16 +2953,19 @@ static void events(struct Window *w)
         if (w == row_w) {                      /* 0.8: the row: the item under the pointer */
             if (cls == IDCMP_REFRESHWINDOW) { BeginRefresh(w); row_show(); EndRefresh(w, TRUE); continue; }
             if (cls == IDCMP_ACTIVEWINDOW) { if (last_other) ActivateWindow(last_other); continue; }
-            if (cls == IDCMP_MOUSEBUTTONS && code == SELECTDOWN) {
+            if (cls == IDCMP_MOUSEBUTTONS && (code == SELECTDOWN || code == MENUDOWN)) {
                 struct Window *iw = row_item();
                 if (!iw) continue;
-                if (iw == net_w) { if (pop_w) pop_close(); else pop_open(); return; }
-                if (iw == cog_w) {
+                if (iw == cog_w || iw == cx_w) {   /* 0.9: Prefs, Power and the commodities: their menus */
+                    int o = owner_at_pointer();
                     if (menu_w) menu_close(1);
-                    else if (cog_skip) cog_skip = 0;
-                    else menu_open();
+                    else if (cog_skip && cog_skip == o) cog_skip = 0;
+                    else if (o) owner_click(o, code == MENUDOWN);
                     return;
                 }
+                if (code != SELECTDOWN) continue;
+                if (iw == clock_w) { clock_click(secs, micros); return; }
+                if (iw == net_w) { if (pop_w) pop_close(); else pop_open(); return; }
                 {
                     int i;
                     for (i = 0; i < TS_ICONS; i++)
@@ -2489,28 +2989,7 @@ static void events(struct Window *w)
         }
         else if (cls == IDCMP_MOUSEBUTTONS && code == SELECTDOWN) {
             if (w == net_w) { if (pop_w) pop_close(); else pop_open(); return; }
-            if (w == clock_w) {
-                /* 0.6.4: a double-click on the date and time opens GFOpenDateTime (date, time, the clock and the
-                 * region in one editor); until it is installed, the OS's Time editor (the user, 10 Oct 2026) */
-                static ULONG last_s, last_m;
-                if (last_s && DoubleClick(last_s, last_m, secs, micros)) {
-                    static const char *const editors[] = { "SYS:Prefs/GFOpenDateTime", "SYS:Prefs/Time", "SYS:Prefs/Classic/Time" };
-                    int k;
-                    last_s = 0;
-                    for (k = 0; k < 3; k++) {
-                        BPTR l = Lock((STRPTR)editors[k], ACCESS_READ);
-                        if (l) { UnLock(l); cog_start(editors[k]); break; }
-                    }
-                } else { last_s = secs; last_m = micros; }
-                return;
-            }
             if (w == pop_w) { pop_click(my); return; }
-            if (w == cog_w) {
-                if (menu_w) menu_close(1);
-                else if (cog_skip) cog_skip = 0;        /* the click closed the list */
-                else menu_open();
-                return;
-            }
             {   /* a program's icon: tell it; drop the icon when the program is gone */
                 int i;
                 for (i = 0; i < TS_ICONS; i++)
@@ -2523,6 +3002,60 @@ static void events(struct Window *w)
         }
         /* a click on ours: the window before stays the active one (the panel keeps it while open) */
         else if (cls == IDCMP_ACTIVEWINDOW && last_other && w != pop_w) ActivateWindow(last_other);
+    }
+}
+
+/* every item of the row where the tray says now (0.9: also at once when the systray grew or shrank) */
+static void place_all(void)
+{
+    int i;
+    if (!scr) return;
+    if (net_w) {
+        WORD px = nx, py = ny, pw = nw, ph = nh;
+        net_place();
+        if (nx != px || ny != py || nw != pw || nh != ph) {
+            slot_move(net_w, nx, ny, nw, nh);
+            tray("Network", nw, NET_ORDER);
+            net_drawn = -100;
+        }
+    }
+    if (clock_w) {
+        WORD ox = cx, oy = cy, ow = cw, oh = ch;
+        place();
+        if (cx != ox || cy != oy || cw != ow || ch != oh) { slot_move(clock_w, cx, cy, cw, ch); tray("Clock", cw, CLOCK_ORDER); shown[0] = 0; }
+    }
+    for (i = 0; i < TS_ICONS; i++) {
+        struct ts_icon *t = ts[i];
+        WORD px, py, pw, ph;
+        if (!t || !t->win) continue;
+        px = t->x; py = t->y; pw = t->bw; ph = t->bh;
+        ts_place(t);
+        if (t->x != px || t->y != py || t->bw != pw || t->bh != ph) {
+            if (help_for == i) help_close();
+            slot_move(t->win, t->x, t->y, t->bw, t->bh);
+            tray(t->name, t->bw, t->order);
+            if (t->version >= 2) ts_tell(t, TSE_PLACE);
+            t->drawn = -1;
+        }
+    }
+    if (menu_w) return;                        /* the menus hang from Prefs, Power and the systray: they stay */
+    if (cog_w) {
+        WORD px = gx, py = gy, pw = gw, ph = gh;
+        cog_place();
+        if (gx != px || gy != py || gw != pw || gh != ph) {
+            slot_move(cog_w, gx, gy, gw, gh);
+            tray("Cog", gw, COG_ORDER);
+            cog_drawn = -1;
+        }
+    }
+    if (cx_w) {
+        WORD px = xx, py = xy, pw = xw, ph = xh;
+        cx_place();
+        if (xx != px || xy != py || xw != pw || xh != ph) {
+            slot_move(cx_w, xx, xy, xw, xh);
+            tray("Commodities", xw, CX_ORDER);
+            cx_drawn = -1;
+        }
     }
 }
 
@@ -2561,10 +3094,10 @@ static int is_window(struct Window *w)
 /* the windows that wake the task */
 static ULONG window_sigs(void)
 {
-    struct Window *const ws[6] = { logo_w, clock_w, row_w, pop_w, help_w, menu_w };
+    struct Window *const ws[5] = { logo_w, row_w, pop_w, help_w, menu_w };
     ULONG m = 0;
     int i;
-    for (i = 0; i < 6; i++) if (ws[i] && ws[i]->UserPort) m |= 1UL << ws[i]->UserPort->mp_SigBit;
+    for (i = 0; i < 5; i++) if (ws[i] && ws[i]->UserPort) m |= 1UL << ws[i]->UserPort->mp_SigBit;
     return m | os_sigs();
 }
 
@@ -2611,6 +3144,7 @@ int main(void)
     UtilityBase = OpenLibrary((STRPTR)"utility.library", 39);
     CyberGfxBase = OpenLibrary((STRPTR)"cybergraphics.library", 41);   /* the bar's own colours; without it the bar's pen */
     aat_open();                                         /* 0.8.1: the bar's text through GFOpenLayout 19, else Text() */
+    CxBase = OpenLibrary((STRPTR)"commodities.library", 37);   /* 0.9: the systray; none without it */
     if (!IntuitionBase || !GfxBase || !LayersBase || !UtilityBase) goto out;
     wbc_start();
     Forbid();
@@ -2684,7 +3218,6 @@ int main(void)
         ts_replies();
         menu_events();
         events(logo_w);
-        events(clock_w);
         events(row_w);                         /* 0.8: the cog, the network and the programs' icons */
         os_events();                           /* 0.7: the cogs on the other public screens */
         if (pop_w) events(pop_w);
@@ -2693,7 +3226,7 @@ int main(void)
             (void)i;
         }
         if (scr) ts_hover();
-        if (cog_skip && !over_cog()) cog_skip = 0;
+        if (cog_skip && owner_at_pointer() != cog_skip) cog_skip = 0;
         draw_cog(0);
         see_tick();                            /* 0.7.5: the see-through bar's fade */
         act = IntuitionBase->ActiveWindow;
@@ -2709,54 +3242,16 @@ int main(void)
         if (tick % 2 == 0) os_poll(1);        /* every second: the other public screens' cogs (0.7) */
         if (++tick % 4 == 0) {                 /* every 2 s: the tray and GFOpenMenus' bar may have moved */
             int edge = read_bar_edge();
-            WORD ox = cx, oy = cy, ow = cw, oh = ch;
-            if (edge != bar_edge && (clock_w || net_w || cog_w || ts_count())) { close_all(); if (!open_all()) break; }
+            if (edge != bar_edge && (clock_w || net_w || cog_w || cx_w || ts_count())) { close_all(); if (!open_all()) break; }
             else {
                 if (net_w && net_elsewhere()) {   /* 0.8: GFOpenNetwork started: its icons, not ours */
                     if (pop_w) pop_close();
                     slot_close(net_w); net_w = NULL; tray("Network", 0, NET_ORDER);
                 } else if (!net_w && prefs.network && !net_elsewhere()) net_open();   /* it ended: ours again */
-                if (net_w) {
-                    WORD px = nx, py = ny, pw = nw, ph = nh;
-                    if (tick % 20 == 0) net_poll();               /* every 10 s */
-                    net_place();
-                    if (nx != px || ny != py || nw != pw || nh != ph) {
-                        slot_move(net_w, nx, ny, nw, nh);
-                        tray("Network", nw, NET_ORDER);
-                        net_drawn = -100;
-                    }
-                    draw_net(0);
-                }
-                if (clock_w) {
-                    place();
-                    if (cx != ox || cy != oy || cw != ow || ch != oh) { ChangeWindowBox(clock_w, cx, cy, cw, ch); shown[0] = 0; }
-                }
-                {
-                    int i;
-                    for (i = 0; i < TS_ICONS; i++) {
-                        struct ts_icon *t = ts[i];
-                        WORD px, py, pw, ph;
-                        if (!t || !t->win) continue;
-                        px = t->x; py = t->y; pw = t->bw; ph = t->bh;
-                        ts_place(t);
-                        if (t->x != px || t->y != py || t->bw != pw || t->bh != ph) {
-                            if (help_for == i) help_close();
-                            slot_move(t->win, t->x, t->y, t->bw, t->bh);
-                            tray(t->name, t->bw, t->order);
-                            if (t->version >= 2) ts_tell(t, TSE_PLACE);
-                            t->drawn = -1;
-                        }
-                    }
-                }
-                if (cog_w && !menu_w) {
-                    WORD px = gx, py = gy, pw = gw, ph = gh;
-                    cog_place();
-                    if (gx != px || gy != py || gw != pw || gh != ph) {
-                        slot_move(cog_w, gx, gy, gw, gh);
-                        tray("Cog", gw, COG_ORDER);
-                        cog_drawn = -1;
-                    }
-                }
+                if (net_w && tick % 20 == 0) net_poll();          /* every 10 s */
+                if (!menu_w) cx_sync(1);          /* 0.9: the commodities that came and went */
+                place_all();
+                if (net_w) draw_net(0);
             }
             if (scr && bar_sample_now()) {        /* the theme changed the bar: paint again */
                 int i;
@@ -2786,6 +3281,7 @@ out:
     if (WorkbenchBase) CloseLibrary(WorkbenchBase);
     if (SocketBase) CloseLibrary(SocketBase);
     if (CyberGfxBase) CloseLibrary(CyberGfxBase);
+    if (CxBase) CloseLibrary(CxBase);
     if (UtilityBase) CloseLibrary(UtilityBase);
     if (LayersBase) CloseLibrary(LayersBase);
     if (GfxBase) CloseLibrary((struct Library *)GfxBase);
