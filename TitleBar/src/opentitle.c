@@ -162,6 +162,7 @@
 #include <proto/wb.h>
 #include <devices/inputevent.h>
 #include <proto/input.h>
+#include <proto/commodities.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -184,7 +185,7 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.9 (12.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.9.1 (12.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -2448,6 +2449,92 @@ static void owner_click(int owner, int menu)
     }
 }
 
+/* 0.9.1: the menu button on Prefs, Power and the systray. The row never stays the active window, and Intuition
+ * gives the menu button to the active one (GFOpenBench's menus), so the row never saw it. A commodity of our own
+ * (CxCustom, in input.device's task) takes the press and its release while the pointer is on the cog's or the
+ * systray's slot, and signals the loop. Nothing else is touched: every other event goes on. */
+static struct Screen *volatile rb_scr;         /* the bar's screen while the windows are open; NULL: take nothing */
+static struct Task *rb_task;
+static BYTE rb_sig = -1;
+static volatile UBYTE rb_held;                 /* we took the press: the release is ours too */
+static CxObj *rb_broker;
+static struct MsgPort *rb_port;
+
+static int rb_on(const struct Window *w, WORD x, WORD y)
+{
+    return w && x >= w->LeftEdge && x < w->LeftEdge + w->Width && y >= w->TopEdge && y < w->TopEdge + w->Height;
+}
+
+static void rb_func(CxMsg *m, CxObj *co)
+{
+    struct InputEvent *ie = (struct InputEvent *)CxMsgData(m);
+    struct Screen *s = rb_scr;
+    (void)co;
+    if (!ie || ie->ie_Class != IECLASS_RAWMOUSE) return;
+    if (ie->ie_Code == IECODE_RBUTTON) {
+        if (!s || IntuitionBase->FirstScreen != s) return;
+        if (!rb_on(cog_w, s->MouseX, s->MouseY) && !rb_on(cx_w, s->MouseX, s->MouseY)) return;
+        rb_held = 1;
+        DisposeCxMsg(m);
+        Signal(rb_task, 1UL << rb_sig);
+    } else if (ie->ie_Code == (IECODE_RBUTTON | IECODE_UP_PREFIX) && rb_held) {
+        rb_held = 0;
+        DisposeCxMsg(m);
+    }
+}
+
+static void rb_start(void)
+{
+    struct NewBroker nb;
+    CxObj *c;
+    if (!CxBase || !(rb_port = CreateMsgPort())) return;
+    if ((rb_sig = AllocSignal(-1)) < 0) { DeleteMsgPort(rb_port); rb_port = NULL; return; }
+    rb_task = FindTask(NULL);
+    memset(&nb, 0, sizeof nb);
+    nb.nb_Version = NB_VERSION;
+    nb.nb_Name = (STRPTR)"GFOpenTitle";        /* cx_read leaves it out of the systray */
+    nb.nb_Title = (STRPTR)"GFOpenTitle";
+    nb.nb_Descr = (STRPTR)"The title bar's menu button";
+    nb.nb_Unique = NBU_UNIQUE;
+    nb.nb_Pri = 50;
+    nb.nb_Port = rb_port;
+    if (!(rb_broker = CxBroker(&nb, NULL))) return;
+    if (!(c = CxCustom(rb_func, 0))) { DeleteCxObjAll(rb_broker); rb_broker = NULL; return; }
+    AttachCxObj(rb_broker, c);
+    if (CxObjError(rb_broker)) { DeleteCxObjAll(rb_broker); rb_broker = NULL; return; }
+    ActivateCxObj(rb_broker, 1);
+}
+
+static void rb_stop(void)
+{
+    struct Message *m;
+    rb_scr = NULL;
+    if (rb_broker) DeleteCxObjAll(rb_broker);
+    rb_broker = NULL;
+    if (rb_port) { while ((m = GetMsg(rb_port))) ReplyMsg(m); DeleteMsgPort(rb_port); }
+    rb_port = NULL;
+    if (rb_sig >= 0) FreeSignal(rb_sig);
+    rb_sig = -1;
+}
+
+/* the loop's part: Exchange's commands answered (nothing to do), and a press on an item opens its menu */
+static void rb_events(ULONG sig)
+{
+    struct Message *m;
+    if (rb_port) while ((m = GetMsg(rb_port))) ReplyMsg(m);
+    if (rb_sig < 0 || !(sig & (1UL << rb_sig)) || !scr) return;
+    {
+        int o = owner_at_pointer();
+        if (menu_w) menu_close(1);
+        else if (o) owner_click(o, 1);
+    }
+}
+
+static ULONG rb_mask(void)
+{
+    return (rb_sig >= 0 ? 1UL << rb_sig : 0) | (rb_port ? 1UL << rb_port->mp_SigBit : 0);
+}
+
 /* a commodity's words, in a requester ("%" in them stays as it is) */
 static void cx_info(const struct cx_item *c)
 {
@@ -2693,6 +2780,7 @@ static void see_tick(void)
 
 static void close_all(void)
 {
+    rb_scr = NULL;                             /* 0.9.1: the menu button left alone from here */
     see_off();                                 /* 0.7.5: the bar solid again while the screen is still ours */
     if (clock_w) { slot_close(clock_w); clock_w = NULL; tray("Clock", 0, CLOCK_ORDER); }
     if (pop_w) { CloseWindow(pop_w); pop_w = NULL; }
@@ -3020,6 +3108,7 @@ static void place_all(void)
 {
     int i;
     if (!scr) return;
+    rb_scr = scr;                              /* 0.9.1: the cog and the systray take the menu button */
     if (net_w) {
         WORD px = nx, py = ny, pw = nw, ph = nh;
         net_place();
@@ -3172,6 +3261,7 @@ int main(void)
 
     read_prefs();
     watch_start();
+    rb_start();                                /* 0.9.1 */
     if (!open_all()) quit = 1;
     apply_title();                             /* 0.7.8: after open_all, which finds out whether Intuition draws the logo */
     while (!quit) {
@@ -3187,7 +3277,7 @@ int main(void)
             tr->tr_node.io_Command = TR_ADDREQUEST; tr->tr_time.tv_secs = 0; tr->tr_time.tv_micro = ms * 1000;
             SendIO((struct IORequest *)tr);
             sig = Wait(SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F | (1UL << tport->mp_SigBit) | (1UL << port->mp_SigBit)
-                       | (ts_reply ? 1UL << ts_reply->mp_SigBit : 0) | window_sigs() | wbc_sigmask() | watch_mask());
+                       | (ts_reply ? 1UL << ts_reply->mp_SigBit : 0) | window_sigs() | wbc_sigmask() | watch_mask() | rb_mask());
             /* Only a request that came back by itself counts as time waited. An
              * aborted one comes back too, and its reply sets the timer port's
              * signal after Wait() has returned; WaitIO() takes the reply but leaves
@@ -3227,6 +3317,7 @@ int main(void)
         port_events(port);
         ts_replies();
         menu_events();
+        rb_events(sig);                        /* 0.9.1: the menu button on the cog or the systray */
         events(logo_w);
         events(row_w);                         /* 0.8: the cog, the network and the programs' icons */
         os_events();                           /* 0.7: the cogs on the other public screens */
@@ -3273,6 +3364,7 @@ int main(void)
             if (scr) see_check(0);                /* 0.7.5: something behind the bar to see (GFOpenBench may have come or gone) */
         }
     }
+    rb_stop();                                 /* 0.9.1: before the windows it looks at go */
     os_poll(0);                                /* the other screens' cogs closed */
     RemPort(port);                             /* no new icons from here on */
     old_name_port_end(old_port);
