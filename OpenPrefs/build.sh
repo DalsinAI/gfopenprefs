@@ -78,6 +78,9 @@ page "$P/Printing/src/pr_prefs.c" $PRT
 # the Global Settings page (2.9): the default stack size, GFOpenDOS's floor (ENV:GFOpenPrefs/Stack)
 page "$P/Global/src/globalsettings.c" -Dmain=global_main -Dversion=global_version -I"$P/Global/src"
 page "$P/Global/src/gs_stack.c" -I"$P/Global/src"
+# the Power page (3.0): the host's power level through accontrol.device 1.6 (CM4 item 9)
+page "$P/Power/src/power.c" -Dmain=power_main -Dversion=power_version -I"$P/Power/src"
+page "$P/Power/src/pw_info.c" -I"$P/Power/src"
 # the frame and the program, not moved: openprefs.c first, so its $VER is the file's first
 "$CC" $FRAME -o "$OUT/GFOpenPrefs" "$HERE/src/openprefs.c" "$HERE/src/op_apply.c" "$HERE/src/opframe.c" "$HERE/src/op_why.c" "$O"/app/*.o \
   "$OGT/lib/ogt_theme.c"
