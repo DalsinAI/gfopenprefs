@@ -247,18 +247,29 @@ static void pop_draw(void)
 
 static void pop_open(int which)
 {
-    WORD fh, h, x, y;
+    WORD fh, h, x, y, pw = POP_W;
     WORD *b = box[which];
     if (!(pscr = LockPubScreen((STRPTR)"Workbench"))) return;
     if (!(pdri = GetScreenDrawInfo(pscr))) { pop_close(); return; }
     pt_load(pscr);
     fh = pdri->dri_Font->tf_YSize;
     h = 3 * (fh + 4) + 14;
-    x = b[0] + b[2] - POP_W;
+    {   /* 0.1.1: as wide as its longest line (outline text is wider than Text()'s), POP_W at least */
+        struct RastPort trp = pscr->RastPort;
+        char l[2][64];
+        WORD tw;
+        int i;
+        SetFont(&trp, pdri->dri_Font);
+        lan_line(l[0], 64);
+        wifi_line(l[1], 64);
+        for (i = 0; i < 2; i++)
+            if ((tw = aat_length(&trp, l[i], strlen(l[i])) + 16) > pw) pw = tw;
+    }
+    x = b[0] + b[2] - pw;
     if (x < 0) x = 0;
     y = b[1] + b[3] + 1;
     if (y + h > pscr->Height) y = b[1] - h;
-    if (!(pop = OpenWindowTags(NULL, WA_CustomScreen, (ULONG)pscr, WA_Left, x, WA_Top, y, WA_Width, POP_W, WA_Height, h,
+    if (!(pop = OpenWindowTags(NULL, WA_CustomScreen, (ULONG)pscr, WA_Left, x, WA_Top, y, WA_Width, pw, WA_Height, h,
                                WA_Borderless, TRUE, WA_Activate, FALSE, WA_RMBTrap, TRUE, WA_SmartRefresh, TRUE,   /* the active window stays */
                                WA_IDCMP, IDCMP_REFRESHWINDOW | IDCMP_MOUSEBUTTONS, TAG_DONE))) { pop_close(); return; }
     SetFont(pop->RPort, pdri->dri_Font);

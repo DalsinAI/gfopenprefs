@@ -1189,15 +1189,29 @@ static void pop_close(void)
     if (last_other) ActivateWindow(last_other);
 }
 
+/* 0.8.1: the panel as wide as its longest line (outline text is wider than Text()'s), POP_W at least */
+static WORD pop_width(void)
+{
+    struct RastPort rp = scr->RastPort;
+    char l[3][64];
+    WORD w = POP_W, tw;
+    int i;
+    SetFont(&rp, dri->dri_Font);
+    pop_lines(l);
+    for (i = 0; i < 2; i++)
+        if ((tw = aat_length(&rp, l[i], strlen(l[i])) + 16) > w) w = tw;
+    return w;
+}
+
 static void pop_open(void)
 {
-    WORD fh = dri->dri_Font->tf_YSize, h = 3 * (fh + 4) + 14, x = nx + nw - POP_W, y = ny + nh;
+    WORD fh = dri->dri_Font->tf_YSize, h = 3 * (fh + 4) + 14, pw = pop_width(), x = nx + nw - pw, y = ny + nh;
     if (x < 0) x = 0;
     if (bar_edge == OM_BAR_BOTTOM) y = ny - h;
     if (y + h > scr->Height) y = scr->Height - h;
     net_poll();
     draw_net(0);
-    if ((pop_w = net_window(x, y, POP_W, h))) {
+    if ((pop_w = net_window(x, y, pw, h))) {
         SetFont(pop_w->RPort, dri->dri_Font);
         draw_pop();
         pop_ticks = 0;
