@@ -23,7 +23,7 @@ LONG start(void)
     BPTR out, win = 0;
     ULONG got, asked;
     LONG args[2];
-    SysBase = *(struct ExecBase **)4;
+    SysBase = *(struct ExecBase * volatile *)4;      /* AbsExecBase (volatile: not a null pointer to GCC) */
     pr = (struct Process *)FindTask(NULL);
     if (!pr->pr_CLI) {
         WaitPort(&pr->pr_MsgPort);
