@@ -1368,6 +1368,13 @@ static LONG cx_BrokerCommand(const char *name, LONG id)
     return d0;
 }
 
+static void cx_copy(char *to, const char *from, int size)
+{
+    int i;
+    for (i = 0; i < size - 1 && from[i]; i++) to[i] = from[i];
+    to[i] = 0;
+}
+
 #define CX_ALL 24                              /* the brokers "All commodities..." lists */
 #define CX_MAX 12                              /* the systray's items */
 struct cx_item { char name[CBD_NAMELEN], title[CBD_TITLELEN], descr[CBD_DESCRLEN]; ULONG flags; struct Task *task; };
@@ -2284,13 +2291,6 @@ static int cx_has_icons(struct Task *task)
     }
     Permit();
     return has;
-}
-
-static void cx_copy(char *to, const char *from, int size)
-{
-    int i;
-    for (i = 0; i < size - 1 && from[i]; i++) to[i] = from[i];
-    to[i] = 0;
 }
 
 /* the brokers now, into cx_all and the systray's cx_tray: 1 when what the systray shows changed */
