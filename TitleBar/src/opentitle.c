@@ -112,6 +112,11 @@
  *   window before, and the bitmap is copied into the row; a click on the row goes to the item under the pointer. On
  *   the screen's title bar the clock is a window of its own in the bar's centre. TitleBar/docs/system-bar.md.
  *
+ * 0.8.1 (12 November 2026, Dale, 15:01: "the fonts are still a bit yuk"): the clock, the cog's and the tray's menus,
+ *   the help line and the panel draw their text anti-aliased through GFOpenLayout 19's OLUI_AmigaText, from the
+ *   screen font's outline face at its height (sans-serif when it has none); Text() as before where it can't
+ *   (Common/aatext.h). Boxes take the wider of the two widths.
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -155,6 +160,7 @@
 #include "logo.h"
 #include "logo_big.h"
 #include "taskspace.h"
+#include "aatext.h"
 #include "barpaint.h"
 #include "wbclose.h"
 #include "popuptheme.h"
@@ -164,7 +170,7 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.8 (12.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.8.1 (12.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -774,11 +780,10 @@ static void clock_text(char *t, int size)
 
 static WORD clock_width(void)
 {
-    struct RastPort rp;
+    struct RastPort rp = scr->RastPort;        /* 0.8.1: the screen's, so the outline text is measured as drawn */
     const char *widest = prefs.date ? "Wed 28 Sep  00:00" : "00:00";
-    InitRastPort(&rp);
     SetFont(&rp, dri->dri_Font);
-    return TextLength(&rp, (STRPTR)widest, strlen(widest)) + 2 * TRAY_PAD;
+    return aat_length(&rp, widest, strlen(widest)) + 2 * TRAY_PAD;
 }
 
 static void draw_clock(int force)
@@ -795,9 +800,8 @@ static void draw_clock(int force)
     SetAPen(rp, bar_text());
     SetDrMd(rp, JAM1);
     h = ch - (bar_edge == OM_BAR_TITLE ? 1 : 0);
-    w = TextLength(rp, (STRPTR)t, strlen(t));
-    Move(rp, cw - TRAY_PAD - w, (h - rp->TxHeight) / 2 + rp->TxBaseline);
-    Text(rp, (STRPTR)t, strlen(t));
+    w = aat_length(rp, t, strlen(t));
+    aat_box(rp, scr, cw - TRAY_PAD - w, 0, h, t, strlen(t));
     see_key(clock_w);
 }
 
@@ -1163,7 +1167,7 @@ static void draw_pop(void)
     }
     SetAPen(rp, pt_ok ? pt_text_pen() : dri->dri_Pens[TEXTPEN]);
     SetDrMd(rp, JAM1);
-    for (i = 0, y = 6; i < 2; i++, y += fh + 4) { Move(rp, 8, y + rp->TxBaseline); Text(rp, (STRPTR)l[i], strlen(l[i])); }
+    for (i = 0, y = 6; i < 2; i++, y += fh + 4) aat_box(rp, scr, 8, y, fh, l[i], strlen(l[i]));
     /* the button */
     if (pt_ok) {
         SetAPen(rp, pt_hot_pen());
@@ -1176,8 +1180,7 @@ static void draw_pop(void)
         Draw(rp, pop_w->Width - 9, y + fh + 5); Draw(rp, 8, y + fh + 5);
         SetAPen(rp, dri->dri_Pens[TEXTPEN]);
     }
-    Move(rp, (pop_w->Width - TextLength(rp, (STRPTR)l[2], strlen(l[2]))) / 2, y + 3 + rp->TxBaseline);
-    Text(rp, (STRPTR)l[2], strlen(l[2]));
+    aat_box(rp, scr, (pop_w->Width - aat_length(rp, l[2], strlen(l[2]))) / 2, y + 3, fh, l[2], strlen(l[2]));
 }
 
 static void pop_close(void)
@@ -1186,15 +1189,29 @@ static void pop_close(void)
     if (last_other) ActivateWindow(last_other);
 }
 
+/* 0.8.1: the panel as wide as its longest line (outline text is wider than Text()'s), POP_W at least */
+static WORD pop_width(void)
+{
+    struct RastPort rp = scr->RastPort;
+    char l[3][64];
+    WORD w = POP_W, tw;
+    int i;
+    SetFont(&rp, dri->dri_Font);
+    pop_lines(l);
+    for (i = 0; i < 2; i++)
+        if ((tw = aat_length(&rp, l[i], strlen(l[i])) + 16) > w) w = tw;
+    return w;
+}
+
 static void pop_open(void)
 {
-    WORD fh = dri->dri_Font->tf_YSize, h = 3 * (fh + 4) + 14, x = nx + nw - POP_W, y = ny + nh;
+    WORD fh = dri->dri_Font->tf_YSize, h = 3 * (fh + 4) + 14, pw = pop_width(), x = nx + nw - pw, y = ny + nh;
     if (x < 0) x = 0;
     if (bar_edge == OM_BAR_BOTTOM) y = ny - h;
     if (y + h > scr->Height) y = scr->Height - h;
     net_poll();
     draw_net(0);
-    if ((pop_w = net_window(x, y, POP_W, h))) {
+    if ((pop_w = net_window(x, y, pw, h))) {
         SetFont(pop_w->RPort, dri->dri_Font);
         draw_pop();
         pop_ticks = 0;
@@ -1424,8 +1441,7 @@ static void draw_menu(void)
         }
         if (i == menu_hot) { SetAPen(rp, pt_ok ? pt_hot_pen() : dri->dri_Pens[FILLPEN]); RectFill(rp, 2, y0, w - 3, y1); }
         SetAPen(rp, pt_ok ? (i == menu_hot ? pt_hot_text_pen() : pt_text_pen()) : dri->dri_Pens[i == menu_hot ? FILLTEXTPEN : BARDETAILPEN]);
-        Move(rp, COG_PAD, y0 + (y1 - y0 + 1 - rp->TxHeight) / 2 + rp->TxBaseline);
-        Text(rp, (STRPTR)t, strlen(t));
+        aat_box(rp, scr, COG_PAD, y0, y1 - y0 + 1, t, strlen(t));
     }
 }
 
@@ -1470,7 +1486,7 @@ static void menu_open(void)
             t = row_label(at);
             menu_y[menu_n] = H;
             menu_idx[menu_n++] = at;
-            if (t) { WORD tw = TextLength(&trp, (STRPTR)t, strlen(t)); if (tw > W) W = tw; }
+            if (t) { WORD tw = aat_length(&trp, t, strlen(t)); if (tw > W) W = tw; }
             H += t ? menu_rh : 6;
             if (k == -1) { menu_y[menu_n] = H; menu_idx[menu_n++] = COG_ITEMS - 4; H += 6; }   /* a line after them */
         }
@@ -1843,7 +1859,7 @@ static void help_open(int i)
     if (!t || !t->win || !t->help[0] || help_w) return;
     InitRastPort(&trp);
     SetFont(&trp, dri->dri_Font);
-    w = TextLength(&trp, (STRPTR)t->help, strlen(t->help)) + 12;
+    w = aat_length(&trp, t->help, strlen(t->help)) + 12;
     h = dri->dri_Font->tf_YSize + 6;
     x = t->x + t->bw - w;
     if (x < 0) x = 0;
@@ -1860,8 +1876,7 @@ static void help_open(int i)
     Move(help_w->RPort, 0, 0); Draw(help_w->RPort, w - 1, 0); Draw(help_w->RPort, w - 1, h - 1); Draw(help_w->RPort, 0, h - 1); Draw(help_w->RPort, 0, 0);
     SetAPen(help_w->RPort, dri->dri_Pens[BARDETAILPEN]);
     SetDrMd(help_w->RPort, JAM1);
-    Move(help_w->RPort, 6, 3 + help_w->RPort->TxBaseline);
-    Text(help_w->RPort, (STRPTR)t->help, strlen(t->help));
+    aat_box(help_w->RPort, scr, 6, 3, help_w->RPort->TxHeight, t->help, strlen(t->help));
 }
 
 /* every tenth of a second while the pointer is on the bar: the light and the help */
@@ -2352,7 +2367,7 @@ static int os_menu(struct Screen *s, WORD right, WORD top)
     SetFont(&trp, d->dri_Font);
     rh = d->dri_Font->tf_YSize + 4;
     for (i = 0; i < COG_SECTIONS; i++) {
-        WORD tw = TextLength(&trp, (STRPTR)cog_items[i].label, strlen(cog_items[i].label));
+        WORD tw = aat_length(&trp, cog_items[i].label, strlen(cog_items[i].label));
         if (tw > W) W = tw;
     }
     W += 2 * COG_PAD;
@@ -2376,8 +2391,7 @@ static int os_menu(struct Screen *s, WORD right, WORD top)
             WORD y = 3 + i * rh;
             if (i == hot) { SetAPen(rp, d->dri_Pens[FILLPEN]); RectFill(rp, 2, y, W - 3, y + rh - 1); }
             SetAPen(rp, d->dri_Pens[i == hot ? FILLTEXTPEN : BARDETAILPEN]);
-            Move(rp, COG_PAD, y + (rh - rp->TxHeight) / 2 + rp->TxBaseline);
-            Text(rp, (STRPTR)cog_items[i].label, strlen(cog_items[i].label));
+            aat_box(rp, s, COG_PAD, y, rh, cog_items[i].label, strlen(cog_items[i].label));
         }
         if (done) break;
         WaitPort(w->UserPort);
@@ -2596,6 +2610,7 @@ int main(void)
     LayersBase = OpenLibrary((STRPTR)"layers.library", 39);
     UtilityBase = OpenLibrary((STRPTR)"utility.library", 39);
     CyberGfxBase = OpenLibrary((STRPTR)"cybergraphics.library", 41);   /* the bar's own colours; without it the bar's pen */
+    aat_open();                                         /* 0.8.1: the bar's text through GFOpenLayout 19, else Text() */
     if (!IntuitionBase || !GfxBase || !LayersBase || !UtilityBase) goto out;
     wbc_start();
     Forbid();
@@ -2767,6 +2782,7 @@ out:
     if (tr) DeleteIORequest((struct IORequest *)tr);
     if (tport) DeleteMsgPort(tport);
     wbc_stop();
+    aat_close();
     if (WorkbenchBase) CloseLibrary(WorkbenchBase);
     if (SocketBase) CloseLibrary(SocketBase);
     if (CyberGfxBase) CloseLibrary(CyberGfxBase);

@@ -14,6 +14,9 @@
  * Every 5 seconds it looks again. While GFOpenTitle isn't running it waits (checked every 5 seconds) and the ROM's
  * GFOpenBar shows the network as before.
  *
+ * 0.1.1 (12 November 2026): the panel's text anti-aliased through GFOpenLayout 19, as GFOpenTitle 0.8.1's
+ *   (Common/aatext.h); Text() where it can't.
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -38,8 +41,9 @@
 #include "taskspace.h"
 #include "popuptheme.h"
 #include "net_pics.h"
+#include "aatext.h"
 
-const char version[] __attribute__((used)) = "$VER: GFOpenNetwork 0.1 (12.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenNetwork 0.1.1 (12.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -226,7 +230,7 @@ static void pop_draw(void)
     }
     SetAPen(rp, pt_ok ? pt_text_pen() : pdri->dri_Pens[TEXTPEN]);
     SetDrMd(rp, JAM1);
-    for (i = 0, y = 6; i < 2; i++, y += fh + 4) { Move(rp, 8, y + rp->TxBaseline); Text(rp, (STRPTR)l[i], strlen(l[i])); }
+    for (i = 0, y = 6; i < 2; i++, y += fh + 4) aat_box(rp, pscr, 8, y, fh, l[i], strlen(l[i]));
     if (pt_ok) {
         SetAPen(rp, pt_hot_pen());
         RectFill(rp, 8, y, pop->Width - 9, y + fh + 5);
@@ -238,24 +242,34 @@ static void pop_draw(void)
         Draw(rp, pop->Width - 9, y + fh + 5); Draw(rp, 8, y + fh + 5);
         SetAPen(rp, pdri->dri_Pens[TEXTPEN]);
     }
-    Move(rp, (pop->Width - TextLength(rp, (STRPTR)l[2], strlen(l[2]))) / 2, y + 3 + rp->TxBaseline);
-    Text(rp, (STRPTR)l[2], strlen(l[2]));
+    aat_box(rp, pscr, (pop->Width - aat_length(rp, l[2], strlen(l[2]))) / 2, y + 3, fh, l[2], strlen(l[2]));
 }
 
 static void pop_open(int which)
 {
-    WORD fh, h, x, y;
+    WORD fh, h, x, y, pw = POP_W;
     WORD *b = box[which];
     if (!(pscr = LockPubScreen((STRPTR)"Workbench"))) return;
     if (!(pdri = GetScreenDrawInfo(pscr))) { pop_close(); return; }
     pt_load(pscr);
     fh = pdri->dri_Font->tf_YSize;
     h = 3 * (fh + 4) + 14;
-    x = b[0] + b[2] - POP_W;
+    {   /* 0.1.1: as wide as its longest line (outline text is wider than Text()'s), POP_W at least */
+        struct RastPort trp = pscr->RastPort;
+        char l[2][64];
+        WORD tw;
+        int i;
+        SetFont(&trp, pdri->dri_Font);
+        lan_line(l[0], 64);
+        wifi_line(l[1], 64);
+        for (i = 0; i < 2; i++)
+            if ((tw = aat_length(&trp, l[i], strlen(l[i])) + 16) > pw) pw = tw;
+    }
+    x = b[0] + b[2] - pw;
     if (x < 0) x = 0;
     y = b[1] + b[3] + 1;
     if (y + h > pscr->Height) y = b[1] - h;
-    if (!(pop = OpenWindowTags(NULL, WA_CustomScreen, (ULONG)pscr, WA_Left, x, WA_Top, y, WA_Width, POP_W, WA_Height, h,
+    if (!(pop = OpenWindowTags(NULL, WA_CustomScreen, (ULONG)pscr, WA_Left, x, WA_Top, y, WA_Width, pw, WA_Height, h,
                                WA_Borderless, TRUE, WA_Activate, FALSE, WA_RMBTrap, TRUE, WA_SmartRefresh, TRUE,   /* the active window stays */
                                WA_IDCMP, IDCMP_REFRESHWINDOW | IDCMP_MOUSEBUTTONS, TAG_DONE))) { pop_close(); return; }
     SetFont(pop->RPort, pdri->dri_Font);
@@ -334,6 +348,7 @@ int main(void)
     GfxBase = (struct GfxBase *)OpenLibrary((STRPTR)"graphics.library", 39);
     CxBase = OpenLibrary((STRPTR)"commodities.library", 37);
     CyberGfxBase = OpenLibrary((STRPTR)"cybergraphics.library", 41);   /* the panel's exact colours */
+    aat_open();                                         /* the panel's text through GFOpenLayout 19, else Text() */
     if (!IntuitionBase || !GfxBase || !CxBase) goto out;
     if (!(cxport = CreateMsgPort())) goto out;
     nb.nb_Port = cxport;
@@ -396,6 +411,7 @@ out:
         while ((m = GetMsg(cxport))) ReplyMsg(m);
         DeleteMsgPort(cxport);
     }
+    aat_close();
     if (SocketBase) CloseLibrary(SocketBase);
     if (CyberGfxBase) CloseLibrary(CyberGfxBase);
     if (CxBase) CloseLibrary(CxBase);
