@@ -1110,6 +1110,17 @@ static struct Window *net_window(WORD x, WORD y, WORD w, WORD h)
                           WA_IDCMP, IDCMP_REFRESHWINDOW | IDCMP_ACTIVEWINDOW | IDCMP_MOUSEBUTTONS, TAG_DONE));
 }
 
+/* 0.8: GFOpenNetwork (the network as a commodity, Dale 12 November 2026) runs: its icons are items in the row and
+ * ours are not drawn */
+static int net_elsewhere(void)
+{
+    struct MsgPort *p;
+    Forbid();
+    p = FindPort((STRPTR)"GFOpenNetwork.bar");
+    Permit();
+    return p != NULL;
+}
+
 static void net_open(void)
 {
     net_poll();
@@ -2221,7 +2232,7 @@ static int open_all(void)
             if (bar_edge != OM_BAR_TITLE) tray("Clock", cw, CLOCK_ORDER);   /* 0.8: on the title bar it is in the centre */
         }
     }
-    if (prefs.network) net_open();
+    if (prefs.network && !net_elsewhere()) net_open();   /* 0.8 */
     cog_open();                                /* 0.7: always (Dale, 17 Oct 2026); prefs.cog is read no more */
     {
         int i;
@@ -2686,6 +2697,10 @@ int main(void)
             WORD ox = cx, oy = cy, ow = cw, oh = ch;
             if (edge != bar_edge && (clock_w || net_w || cog_w || ts_count())) { close_all(); if (!open_all()) break; }
             else {
+                if (net_w && net_elsewhere()) {   /* 0.8: GFOpenNetwork started: its icons, not ours */
+                    if (pop_w) pop_close();
+                    slot_close(net_w); net_w = NULL; tray("Network", 0, NET_ORDER);
+                } else if (!net_w && prefs.network && !net_elsewhere()) net_open();   /* it ended: ours again */
                 if (net_w) {
                     WORD px = nx, py = ny, pw = nw, ph = nh;
                     if (tick % 20 == 0) net_poll();               /* every 10 s */
