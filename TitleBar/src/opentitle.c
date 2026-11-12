@@ -846,7 +846,7 @@ static void draw_clock(int force)
     struct RastPort *rp;
     char m[64], t[64], both[132];
     WORD h, w;
-    if (!clock_w) return;
+    if (!clock_w || !slot_of(clock_w)) return;
     clock_parts(m, t, sizeof m);
     snprintf(both, sizeof both, "%s|%s", m, t);
     if (!force && !strcmp(both, shown)) return;
@@ -1160,7 +1160,7 @@ static void draw_net(int force)
     struct RastPort *rp;
     int key = lan_state * 1000 + (wifi_state + 1) * 100 + (wifi_state > 0 ? (wifi_signal > 66 ? 3 : wifi_signal > 33 ? 2 : 1) : 0);
     WORD cy;
-    if (!net_w || (!force && key == net_drawn)) return;
+    if (!net_w || !slot_of(net_w) || (!force && key == net_drawn)) return;
     net_drawn = key;
     rp = net_w->RPort;
     bar_paint(net_w, 0, 0, nw, nh);
@@ -1581,7 +1581,7 @@ static void draw_cog(int force)
 {
     struct RastPort *rp;
     int hot = cog_cell(), open = menu_w && menu_owner <= OW_POWER ? menu_owner : 0, state = hot + 3 * open, size, c;
-    if (!cog_w || (!force && state == cog_drawn)) return;
+    if (!cog_w || !slot_of(cog_w) || (!force && state == cog_drawn)) return;
     cog_drawn = state;
     rp = cog_w->RPort;
     bar_paint(cog_w, 0, 0, gw, gh);
@@ -2040,7 +2040,7 @@ static void ts_draw(struct ts_icon *t, int force)
     int lit, key, x, y;
     WORD h, ox, oy;
     const UBYTE *px;
-    if (!t->win) return;
+    if (!t->win || !slot_of(t->win)) return;
     lit = ts_over(t);
     key = t->state * 2 + lit;
     if (!force && key == t->drawn) return;
@@ -2355,7 +2355,7 @@ static void draw_cx(int force)
     struct RastPort *rp;
     int hot = cx_over(), open = menu_w && menu_owner >= OW_CX ? menu_owner - OW_CX : -1, state = (hot + 1) * 64 + open + 1, k;
     WORD size;
-    if (!cx_w || (!force && state == cx_drawn)) return;
+    if (!cx_w || !slot_of(cx_w) || (!force && state == cx_drawn)) return;
     cx_drawn = state;
     rp = cx_w->RPort;
     bar_paint(cx_w, 0, 0, xw, xh);
@@ -2605,11 +2605,14 @@ static void row_redraw(void)
     if (!row_w) return;
     bar_paint(row_w, 0, 0, rw, rh);
     see_key(row_w);
-    if (clock_w) { shown[0] = 0; draw_clock(1); }
-    if (net_w) { net_drawn = -100; draw_net(1); }
-    if (cog_w) { cog_drawn = -1; draw_cog(1); }
-    if (cx_w) { cx_drawn = -1; draw_cx(1); }
-    for (i = 0; i < TS_ICONS; i++) if (ts[i] && ts[i]->win) { ts[i]->drawn = -1; ts_draw(ts[i], 1); }
+    /* 0.9: only slots still on. slot_close() lays the row out again before its item forgets the slot, and a row made
+     * again draws every item: one whose bitmap was just freed drew into freed memory (lab, 12 November 2026: the
+     * machine stopped when the memory came back on, the clock's slot at the row's left end) */
+    if (clock_w && slot_of(clock_w)) { shown[0] = 0; draw_clock(1); }
+    if (net_w && slot_of(net_w)) { net_drawn = -100; draw_net(1); }
+    if (cog_w && slot_of(cog_w)) { cog_drawn = -1; draw_cog(1); }
+    if (cx_w && slot_of(cx_w)) { cx_drawn = -1; draw_cx(1); }
+    for (i = 0; i < TS_ICONS; i++) if (ts[i] && ts[i]->win && slot_of(ts[i]->win)) { ts[i]->drawn = -1; ts_draw(ts[i], 1); }
 }
 
 static void see_looks(ULONG on)
