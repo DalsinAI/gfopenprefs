@@ -14,6 +14,9 @@
  * Every 5 seconds it looks again. While GFOpenTitle isn't running it waits (checked every 5 seconds) and the ROM's
  * GFOpenBar shows the network as before.
  *
+ * 0.1.1 (12 November 2026): the panel's text anti-aliased through GFOpenLayout 19, as GFOpenTitle 0.8.1's
+ *   (Common/aatext.h); Text() where it can't.
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -38,8 +41,9 @@
 #include "taskspace.h"
 #include "popuptheme.h"
 #include "net_pics.h"
+#include "aatext.h"
 
-const char version[] __attribute__((used)) = "$VER: GFOpenNetwork 0.1 (12.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenNetwork 0.1.1 (12.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -226,7 +230,7 @@ static void pop_draw(void)
     }
     SetAPen(rp, pt_ok ? pt_text_pen() : pdri->dri_Pens[TEXTPEN]);
     SetDrMd(rp, JAM1);
-    for (i = 0, y = 6; i < 2; i++, y += fh + 4) { Move(rp, 8, y + rp->TxBaseline); Text(rp, (STRPTR)l[i], strlen(l[i])); }
+    for (i = 0, y = 6; i < 2; i++, y += fh + 4) aat_box(rp, pscr, 8, y, fh, l[i], strlen(l[i]));
     if (pt_ok) {
         SetAPen(rp, pt_hot_pen());
         RectFill(rp, 8, y, pop->Width - 9, y + fh + 5);
@@ -238,8 +242,7 @@ static void pop_draw(void)
         Draw(rp, pop->Width - 9, y + fh + 5); Draw(rp, 8, y + fh + 5);
         SetAPen(rp, pdri->dri_Pens[TEXTPEN]);
     }
-    Move(rp, (pop->Width - TextLength(rp, (STRPTR)l[2], strlen(l[2]))) / 2, y + 3 + rp->TxBaseline);
-    Text(rp, (STRPTR)l[2], strlen(l[2]));
+    aat_box(rp, pscr, (pop->Width - aat_length(rp, l[2], strlen(l[2]))) / 2, y + 3, fh, l[2], strlen(l[2]));
 }
 
 static void pop_open(int which)
@@ -334,6 +337,7 @@ int main(void)
     GfxBase = (struct GfxBase *)OpenLibrary((STRPTR)"graphics.library", 39);
     CxBase = OpenLibrary((STRPTR)"commodities.library", 37);
     CyberGfxBase = OpenLibrary((STRPTR)"cybergraphics.library", 41);   /* the panel's exact colours */
+    aat_open();                                         /* the panel's text through GFOpenLayout 19, else Text() */
     if (!IntuitionBase || !GfxBase || !CxBase) goto out;
     if (!(cxport = CreateMsgPort())) goto out;
     nb.nb_Port = cxport;
@@ -396,6 +400,7 @@ out:
         while ((m = GetMsg(cxport))) ReplyMsg(m);
         DeleteMsgPort(cxport);
     }
+    aat_close();
     if (SocketBase) CloseLibrary(SocketBase);
     if (CyberGfxBase) CloseLibrary(CyberGfxBase);
     if (CxBase) CloseLibrary(CxBase);
