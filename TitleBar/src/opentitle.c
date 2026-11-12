@@ -222,7 +222,7 @@ static WORD cx, cy, cw, ch;                    /* the clock window's place */
 static int bar_edge = OM_BAR_TITLE;
 static int border_set;                         /* we made the border black */
 static struct Window *last_other;              /* the window that was active before a click on ours */
-static char shown[96];
+static char shown[132];
 static int wb_down;                            /* Workbench is shutting down or shut: 1 our windows are closed, 2 to open them again */
 
 /* the network icons: LAN and Wi-Fi, from GFOpenSocket */
@@ -817,10 +817,10 @@ static void clock_parts(char *m, char *t, int size)
 /* the room both need: measured on their words with every digit a 0, so it changes only with the digits' count */
 static WORD clock_width(void)
 {
-    static char last[96];
+    static char last[132];
     static WORD last_w;
     struct RastPort rp;
-    char m[48], t[48], z[96];
+    char m[64], t[64], z[132];
     WORD w = 2 * TRAY_PAD;
     clock_parts(m, t, sizeof m);
     snprintf(z, sizeof z, "%s|%s", m, t);
@@ -844,7 +844,7 @@ static void slot_move(struct Window *w, WORD x, WORD y, WORD ww, WORD wh);
 static void draw_clock(int force)
 {
     struct RastPort *rp;
-    char m[48], t[48], both[96];
+    char m[64], t[64], both[132];
     WORD h, w;
     if (!clock_w) return;
     clock_parts(m, t, sizeof m);
@@ -1664,12 +1664,14 @@ static void menu_close(int give_back)
 
 static void xr_add(const char *label, int act, int tick)
 {
-    if (xr_n >= XR_MAX) return;
-    strncpy(xrow[xr_n].label, label ? label : "", sizeof xrow[0].label - 1);
-    xrow[xr_n].label[sizeof xrow[0].label - 1] = 0;
-    xrow[xr_n].act = act;
-    xrow[xr_n].tick = tick;
-    xr_n++;
+    unsigned n = (unsigned)xr_n, i;
+    if (n >= XR_MAX) return;
+    if (!label) label = "";
+    for (i = 0; i < sizeof xrow[0].label - 1 && label[i]; i++) xrow[n].label[i] = label[i];
+    xrow[n].label[i] = 0;
+    xrow[n].act = act;
+    xrow[n].tick = tick;
+    xr_n = n + 1;
 }
 
 static int cx_find(const char *name);
@@ -1718,8 +1720,7 @@ static void menu_open(int kind, int owner, const char *cx)
     } else if (kind == MK_CX) {
         int b = cx_find(cx);
         ULONG f = b >= 0 ? cx_all[b].flags : 0;
-        strncpy(menu_cx, cx, sizeof menu_cx - 1);
-        menu_cx[sizeof menu_cx - 1] = 0;
+        cx_copy(menu_cx, cx, sizeof menu_cx);
         if (f & COF_SHOW_HIDE) {
             xr_add("Show", XA_SHOW, 0); ROW(XR_BASE + xr_n - 1);
             xr_add("Hide", XA_HIDE, 0); ROW(XR_BASE + xr_n - 1);
@@ -2285,6 +2286,13 @@ static int cx_has_icons(struct Task *task)
     return has;
 }
 
+static void cx_copy(char *to, const char *from, int size)
+{
+    int i;
+    for (i = 0; i < size - 1 && from[i]; i++) to[i] = from[i];
+    to[i] = 0;
+}
+
 /* the brokers now, into cx_all and the systray's cx_tray: 1 when what the systray shows changed */
 static int cx_read(void)
 {
@@ -2299,9 +2307,9 @@ static int cx_read(void)
         struct BrokerCopy *b = (struct BrokerCopy *)n;
         struct cx_item *e = &now[count++];
         memset(e, 0, sizeof *e);
-        strncpy(e->name, b->bc_Name, CBD_NAMELEN - 1);
-        strncpy(e->title, b->bc_Title, CBD_TITLELEN - 1);
-        strncpy(e->descr, b->bc_Descr, CBD_DESCRLEN - 1);
+        cx_copy(e->name, b->bc_Name, CBD_NAMELEN);
+        cx_copy(e->title, b->bc_Title, CBD_TITLELEN);
+        cx_copy(e->descr, b->bc_Descr, CBD_DESCRLEN);
         e->flags = b->bc_Flags & (COF_ACTIVE | COF_SHOW_HIDE);
         e->task = (struct Task *)b->bc_Task;
     }

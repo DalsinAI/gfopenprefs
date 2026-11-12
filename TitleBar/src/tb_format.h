@@ -26,13 +26,19 @@ static __attribute__((unused)) int tb_size(unsigned long long bytes, char *out, 
     return snprintf(out, size, "%llu.%02llu %s", h / 100, h % 100, units[u]);
 }
 
-/* "3 GB RAM (0.3 MB in use)" */
+/* "3 GB RAM (0.3 MB in use)" (put together by hand: the sizes are short, and snprintf's checks can't know it) */
 static __attribute__((unused)) int tb_memory(unsigned long long total, unsigned long long used, char *out, int size)
 {
-    char t[24], u[24];
+    char t[32], u[32];
+    const char *parts[5];
+    int n = 0, i, k;
     tb_size(total, t, sizeof t);
     tb_size(used, u, sizeof u);
-    return snprintf(out, size, "%s RAM (%s in use)", t, u);
+    parts[0] = t; parts[1] = " RAM ("; parts[2] = u; parts[3] = " in use)"; parts[4] = NULL;
+    for (i = 0; parts[i]; i++)
+        for (k = 0; parts[i][k] && n < size - 1; k++) out[n++] = parts[i][k];
+    if (size > 0) out[n] = 0;
+    return n;
 }
 
 /* "Nov 12 1059", or "1059" without the date; month 1 to 12 */
