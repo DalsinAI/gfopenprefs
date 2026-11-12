@@ -67,10 +67,13 @@ static inline void aat_close(void)
 /* the face: rp's font's own name (diskfont's, "DejaVuSans.font"); one with no outline face gives sans-serif */
 #define AAT_FAMILY(rp) ((const char *)(rp)->Font->tf_Message.mn_Node.ln_Name)
 
-/* the outline text's size at rp's font's height; 0 where it isn't drawn so */
+/* the outline text's size at rp's font's height; 0 where it isn't drawn so. A RastPort of no BitMap (one
+ * InitRastPort made only to measure) is measured without a screen: given as it is, it measured nothing and
+ * the box came out Text()'s width, too narrow for the outline text (the clock's first letter cut off). */
 static inline int aat_size_of(struct RastPort *rp, const char *s, unsigned long n, aat_size *sz)
 {
-    return aat_base && rp->Font && aat_ascii(s, n) && AAT_TextWidth(rp, s, n, AAT_FAMILY(rp), rp->Font->tf_YSize, 0, sz);
+    return aat_base && rp->Font && aat_ascii(s, n)
+           && AAT_TextWidth(rp->BitMap ? rp : NULL, s, n, AAT_FAMILY(rp), rp->Font->tf_YSize, 0, sz);
 }
 
 /* the width aat_box draws s at: the wider of the two, so a box sized by it holds either */

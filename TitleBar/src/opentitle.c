@@ -780,9 +780,8 @@ static void clock_text(char *t, int size)
 
 static WORD clock_width(void)
 {
-    struct RastPort rp;
+    struct RastPort rp = scr->RastPort;        /* 0.8.1: the screen's, so the outline text is measured as drawn */
     const char *widest = prefs.date ? "Wed 28 Sep  00:00" : "00:00";
-    InitRastPort(&rp);
     SetFont(&rp, dri->dri_Font);
     return aat_length(&rp, widest, strlen(widest)) + 2 * TRAY_PAD;
 }
