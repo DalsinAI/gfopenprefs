@@ -75,6 +75,8 @@ page "$P/Icons/src/icons.c" -Dmain=icons_main -Dversion=icons_version -I"$OGT/wo
 PRT="-I$P/Look/src -I$P/Printing/src"
 page "$P/Printing/src/printing.c" -Dmain=printing_main -Dversion=printing_version $PRT
 page "$P/Printing/src/pr_prefs.c" $PRT
+# the Global Settings page (2.9): the default stack size, GFOpenDOS's floor (ENV:GFOpenPrefs/Stack)
+page "$P/Global/src/globalsettings.c" -Dmain=global_main -Dversion=global_version
 # the frame and the program, not moved: openprefs.c first, so its $VER is the file's first
 "$CC" $FRAME -o "$OUT/GFOpenPrefs" "$HERE/src/openprefs.c" "$HERE/src/op_apply.c" "$HERE/src/opframe.c" "$HERE/src/op_why.c" "$O"/app/*.o \
   "$OGT/lib/ogt_theme.c"
