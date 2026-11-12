@@ -111,6 +111,17 @@ built.
 2. Taskspace version 2 (text items, menus, 32-bit pictures).
 3. Commodities in the bar (every broker, Exchange's commands as the item's
    menu).
+   Done in GFOpenTitle 0.9 (CM4 item 17, 12 November 2026). The right end, left to right, is now
+   `memory | time | systray | Prefs, Power | depth gadget`:
+   - memory "3 GB RAM (0.3 MB in use)" and time "Nov 12 1059" in the row (no longer in the screen title,
+     nor in the centre); each has its switch in the Title bar editor;
+   - the systray: an item a broker (CopyBrokerList every 2 s; a commodity with taskspace icons of its own,
+     such as GFOpenSpeaker and GFOpenNetwork, is shown by those). Click: show or hide its window. Menu
+     button: Show, Hide, Active (ticked), Information, Remove. Hover: its title and description;
+   - Prefs (the cog: GFOpenPrefs' sections, the other settings, "All commodities...", All Prefs...) and
+     Power (the USB sticks' Eject, Reboot, Restart, Power off), side by side;
+   - the systray (with the taskspace's icons) and the Prefs and Power pair each on a shaded band of the
+     bar's own colour; an item whose menu is open is a deeper shade.
 4. The text path: AA and hinting for the bar and the screen title first, then
    icon labels, window titles, menus and requesters.
 

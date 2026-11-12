@@ -195,6 +195,8 @@ struct Library *LayersBase, *UtilityBase, *SocketBase, *WorkbenchBase, *CyberGfx
 #define CLOCK_ORDER 10                         /* left of the network icons (5) and GFOpenSpeaker (0) */
 #define NET_ORDER   5
 #define COG_ORDER   (-5)                       /* the far end: right of GFOpenSpeaker (0), left of the depth gadget */
+#define BAND_SHADE 36                          /* 0.9: the bands: 256ths of the way from the bar's colour to white (or black) */
+#define BAND_HOT   84                          /* an item whose menu is open */
 #define CX_ORDER    3                          /* 0.9: the commodities, between the network icons and GFOpenSpeaker */
 #define NET_TOOL   "SYS:Tools/Commodities/GFOpenSocketControl"
 #define WIFI_DEVICE "gfopensocketwifi.device"    /* GFOpenSocket's: the PC's (or the card's) Wi-Fi */
@@ -944,6 +946,7 @@ static void slot_show(struct slot *s)
 
 static void row_redraw(void);
 static void bar_paint(struct Window *win, WORD x, WORD y, WORD pw, WORD ph);
+static void band(struct Window *win, WORD x, WORD w, WORD h, int shade);
 static void see_key(struct Window *w);
 static struct Window *see_new(struct Window *w);
 
@@ -1383,8 +1386,6 @@ static void cx_sync(int read);
 #define OW_CX    100
 static int menu_owner;
 #define COG_GAP 6                              /* before Prefs and Power: their band apart from the systray's */
-#define BAND_SHADE 36                          /* the bands: 256ths of the way from the bar's colour to white (or black) */
-#define BAND_HOT   84                          /* an item whose menu is open */
 
 /* 0.9: a band of the bar's own colour, a shade lighter (darker on a light bar), across x..x+w-1 of an item */
 static void band(struct Window *win, WORD x, WORD w, WORD h, int shade)
@@ -1549,8 +1550,6 @@ static int cog_cell(void)
     if (!cog_w || IntuitionBase->FirstScreen != scr || y < gy || y >= gy + gh || x < 0 || x >= 2 * TRAY_CELL) return 0;
     return x < TRAY_CELL ? OW_PREFS : OW_POWER;
 }
-
-static int over_cog(void) { return cog_cell() != 0; }
 
 /* the systray's item under the pointer, or -1 */
 static int cx_over(void)
@@ -2112,7 +2111,7 @@ static int help_show(const char *text, WORD right, WORD top, WORD bh)
     if (!text[0] || help_w) return 0;
     InitRastPort(&trp);
     SetFont(&trp, dri->dri_Font);
-    w = aat_length(&trp, t->help, strlen(t->help)) + 12;
+    w = aat_length(&trp, text, strlen(text)) + 12;
     h = dri->dri_Font->tf_YSize + 6;
     if (w > scr->Width) w = scr->Width;
     x = right - w;
@@ -2294,7 +2293,7 @@ static int cx_read(void)
     struct Node *n;
     int count = 0, i, tray_was[CX_MAX], n_was = cx_n, changed;
     if (!CxBase) return 0;
-    NewList(&l);
+    l.lh_Head = (struct Node *)&l.lh_Tail; l.lh_Tail = NULL; l.lh_TailPred = (struct Node *)&l.lh_Head; l.lh_Type = 0;
     cx_CopyBrokerList(&l);
     for (n = l.lh_Head; n->ln_Succ && count < CX_ALL; n = n->ln_Succ) {
         struct BrokerCopy *b = (struct BrokerCopy *)n;
