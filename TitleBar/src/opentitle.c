@@ -1706,6 +1706,7 @@ struct ts_icon {
     char name[16], help[48], port[24];
     WORD order;
     UWORD state, w, h, states;
+    UWORD version;                             /* 0.8: the protocol the program spoke; 2 hears TSE_PLACE */
     UBYTE pixels[TS_STATES * TS_MAXW * TS_MAXH];
     ULONG rgb[12];
     struct Window *win;
@@ -1786,6 +1787,7 @@ static void ts_draw(struct ts_icon *t, int force)
     see_key(t->win);
 }
 
+static int ts_tell(struct ts_icon *t, UWORD kind);
 static void ts_open_one(struct ts_icon *t)
 {
     if (!scr || t->win) return;
@@ -1794,6 +1796,7 @@ static void ts_open_one(struct ts_icon *t)
         t->drawn = -1;
         ts_draw(t, 1);
         tray(t->name, t->bw, t->order);
+        if (t->version >= 2) ts_tell(t, TSE_PLACE);
     }
 }
 
@@ -1909,6 +1912,7 @@ static void ts_command(struct TaskspaceMsg *m)
         strlcpy(t->help, m->tsm_Help, sizeof t->help);  /* the sender may fill the field: always ended */
         strlcpy(t->port, m->tsm_Port, sizeof t->port);
         t->order = m->tsm_Order;
+        t->version = m->tsm_Version;
         t->w = m->tsm_Width; t->h = m->tsm_Height; t->states = m->tsm_States;
         t->state = m->tsm_State < t->states ? m->tsm_State : 0;
         memcpy(t->pixels, m->tsm_Pixels, n * t->states);
@@ -2709,6 +2713,7 @@ int main(void)
                             if (help_for == i) help_close();
                             slot_move(t->win, t->x, t->y, t->bw, t->bh);
                             tray(t->name, t->bw, t->order);
+                            if (t->version >= 2) ts_tell(t, TSE_PLACE);
                             t->drawn = -1;
                         }
                     }
