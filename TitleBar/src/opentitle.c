@@ -619,6 +619,9 @@ static ULONG layer_look(struct Layer *l, ULONG what, ULONG value)
     return d0;
 }
 
+struct slot;
+static struct slot *slot_of(struct Window *w);
+static void slot_show(struct slot *s);
 static void see_key_one(struct Window *w);
 static void see_key(struct Window *w)
 {
