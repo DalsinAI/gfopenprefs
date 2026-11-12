@@ -39,7 +39,8 @@ window laid over the bar.
 3. **Commodities are shown there.** Every commodity is already registered with
    commodities.library (CxBroker), with a name, a title and a description, and
    understands Exchange's commands (show, hide, enable, disable, quit). The
-   owner lists the brokers and gives each commodity that asks for it an item.
+   owner lists the brokers and gives every running commodity an item (Dale,
+   12 Nov 00:57: every commodity; under GFOS we run so few).
    The item's menu is Exchange's commands for that commodity; a click sends
    CXCMD_APPEAR. So GFOpenBlanker, GFOpenSnap, GFOpenWindows, GFOpenSpeaker and
    any third-party commodity can show in the bar without each of them drawing
@@ -65,10 +66,11 @@ text path) is called through libraries on the disk when they are there.
 
 Two ways in, both answered by the same owner:
 
-- **commodities.library**: a commodity says it wants an item with one new
-  NewBroker flag, `COF_SYSBAR`, and a picture in the broker's tool types or a
-  tag. Nothing else changes for a commodity; without the flag it isn't shown
-  (unless the user switches on "show every commodity" in Title Bar prefs).
+- **commodities.library**: every broker gets an item, with no flag and no
+  change to the commodity (Dale, 12 Nov 00:57: every commodity). The owner
+  takes the broker's title for the item's name and a picture from the
+  commodity's icon (its tool types may name a smaller one); a commodity that
+  wants its own live picture sends it through taskspace version 2.
 - **A port message for other programs**: the taskspace protocol
   (TitleBar/include/taskspace.h, version 1) grows into version 2: text items, a
   menu, and up to the grid's 16 x 16 pictures in 32-bit colour on RTG screens.
@@ -108,8 +110,8 @@ built.
    cog and clock become items. GFOpenTitle and GFOpenSpeaker add theirs through
    the port instead of drawing.
 2. Taskspace version 2 (text items, menus, 32-bit pictures).
-3. Commodities in the bar (COF_SYSBAR, the "show every commodity" switch,
-   Exchange's commands as the item's menu).
+3. Commodities in the bar (every broker, Exchange's commands as the item's
+   menu).
 4. The text path: AA and hinting for the bar and the screen title first, then
    icon labels, window titles, menus and requesters.
 
