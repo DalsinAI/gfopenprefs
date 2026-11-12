@@ -10,7 +10,7 @@
  *          connected.
  * The help under each says it in words. A click on either opens a panel under it with what the network is and a
  * button for the network settings (SYS:Tools/Commodities/GFOpenSocketControl), as GFOpenTitle's did; the panel
- * goes after 10 seconds, or with a click anywhere else.
+ * goes after 10 seconds, with a click on it, or with another click on the icon.
  * Every 5 seconds it looks again. While GFOpenTitle isn't running it waits (checked every 5 seconds) and the ROM's
  * GFOpenBar shows the network as before.
  *
@@ -256,8 +256,8 @@ static void pop_open(int which)
     y = b[1] + b[3] + 1;
     if (y + h > pscr->Height) y = b[1] - h;
     if (!(pop = OpenWindowTags(NULL, WA_CustomScreen, (ULONG)pscr, WA_Left, x, WA_Top, y, WA_Width, POP_W, WA_Height, h,
-                               WA_Borderless, TRUE, WA_Activate, TRUE, WA_RMBTrap, TRUE, WA_SmartRefresh, TRUE,
-                               WA_IDCMP, IDCMP_REFRESHWINDOW | IDCMP_MOUSEBUTTONS | IDCMP_INACTIVEWINDOW, TAG_DONE))) { pop_close(); return; }
+                               WA_Borderless, TRUE, WA_Activate, FALSE, WA_RMBTrap, TRUE, WA_SmartRefresh, TRUE,   /* the active window stays */
+                               WA_IDCMP, IDCMP_REFRESHWINDOW | IDCMP_MOUSEBUTTONS, TAG_DONE))) { pop_close(); return; }
     SetFont(pop->RPort, pdri->dri_Font);
     pop_for = which;
     pop_ticks = 0;
@@ -285,7 +285,6 @@ static void pop_events(void)
         WORD my = m->MouseY;
         ReplyMsg((struct Message *)m);
         if (cls == IDCMP_REFRESHWINDOW) { BeginRefresh(pop); pop_draw(); EndRefresh(pop, TRUE); }
-        else if (cls == IDCMP_INACTIVEWINDOW) close = 1;
         else if (cls == IDCMP_MOUSEBUTTONS && code == SELECTDOWN) {
             WORD fh = pop->RPort->TxHeight, by = 6 + 2 * (fh + 4);
             go = my >= by && my <= by + fh + 5;
