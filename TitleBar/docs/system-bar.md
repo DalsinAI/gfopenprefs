@@ -1,6 +1,6 @@
 # The system bar: one owner, items asked for, commodities shown
 
-Status: proposal, 11 November 2026. Nothing here is built yet; Dale decides the design.
+Status: decided, 12 November 2026 (Dale 00:57: every commodity shown; 00:59: GFOpenTitle on disk owns the bar). Nothing here is built yet.
 
 ## Why
 
@@ -54,13 +54,12 @@ window laid over the bar.
 
 ### Who owns it
 
-The ROM's GFOpenBar already draws the clock, network, speaker and cog, and is
-started for every Workbench screen. It becomes the owner. GFOpenTitle stops
-drawing its own windows and only adds its items (cog, network, taskspace
-pictures) through the API; GFOpenSpeaker adds the speaker item and keeps only its
-volume panel. The ROM must not grow, so the ROM part keeps only the row, the
-pictures and the drop-down; any bigger piece (Exchange's commodity list, the
-text path) is called through libraries on the disk when they are there.
+GFOpenTitle on disk owns the bar (Dale, 12 November 2026 00:59). It already
+hosts other programs' icons (taskspace); it draws every item in one row window
+instead of one window per item. GFOpenSpeaker adds the speaker item through the
+port and keeps only its volume panel. The ROM's GFOpenBar is unchanged: it stays
+the fallback that draws the clock, network, speaker and cog while GFOpenTitle
+isn't running, so the ROM doesn't grow.
 
 ### The API
 
@@ -106,7 +105,7 @@ built.
 
 ## Steps (each its own PR, each tested in a lab)
 
-1. The owner: GFOpenBar draws every item from one list; the speaker, network,
+1. The owner: GFOpenTitle draws every item from one list, in one window; the speaker, network,
    cog and clock become items. GFOpenTitle and GFOpenSpeaker add theirs through
    the port instead of drawing.
 2. Taskspace version 2 (text items, menus, 32-bit pictures).
