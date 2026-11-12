@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "gs_stack.h"
 #ifdef LT_ONE
 #include "looktabs.h"                       /* a page of GFOpenPrefs (LT_OP): its frame and sections */
 #define LT_REFRESH(w) lt_draw((w), -1)
@@ -49,8 +50,6 @@ static const char version[] __attribute__((used)) = "$VER: GFOpenGlobal 0.1 (12.
 
 #define STACK_ENV "ENV:GFOpenPrefs/Stack"
 #define STACK_ENVARC "ENVARC:GFOpenPrefs/Stack"
-#define STACK_DEFAULT 8192UL                /* GFOpenDOS's "minimum" with no file */
-#define STACK_MAX (1UL << 20)               /* GFOpenDOS takes "minimum" as 1 MB at most */
 #define FILE_MAX 1024
 
 /* ---- the settings file ---------------------------------------------------------------- */
@@ -59,7 +58,7 @@ static char file_text[FILE_MAX + 1];        /* ENV:'s file as read: its other li
 static char test_text[FILE_MAX + 1];        /* ENV:'s file before Test, for Cancel */
 static LONG test_len;                       /* -1: there was no file */
 static int tested;
-static ULONG stack_min;                     /* "minimum" */
+static unsigned long stack_min;             /* "minimum" */
 static int stack_auto;                      /* "auto" */
 
 static LONG read_text(const char *path, char *buf, LONG size)
@@ -92,55 +91,6 @@ static int write_text(const char *path, const char *text, LONG len)
     return got == len;
 }
 
-/* a line's first word is w, any case; *v is the rest's first word */
-static int line_is(const char *s, const char *w, const char **v)
-{
-    while (*s == ' ' || *s == '\t') s++;
-    while (*w && (*s | 0x20) == *w) s++, w++;
-    if (*w || (*s != ' ' && *s != '\t' && *s != '\n' && *s)) return 0;
-    while (*s == ' ' || *s == '\t') s++;
-    *v = s;
-    return 1;
-}
-
-/* "minimum" and "auto" out of the file, as GFOpenDOS reads them */
-static void parse_stack(const char *s)
-{
-    stack_min = STACK_DEFAULT;
-    stack_auto = 1;
-    while (*s) {
-        const char *v;
-        if (line_is(s, "minimum", &v) && *v >= '0' && *v <= '9') {
-            ULONG n = 0;
-            while (*v >= '0' && *v <= '9') { if (n < STACK_MAX) n = n * 10 + (ULONG)(*v - '0'); v++; }
-            stack_min = n > STACK_MAX ? STACK_MAX : n;
-        } else if (line_is(s, "auto", &v))
-            stack_auto = !((*v | 0x20) == 'o' && (v[1] | 0x20) == 'f') && (*v | 0x20) != 'n' && *v != '0';
-        while (*s && *s != '\n') s++;
-        if (*s) s++;
-    }
-}
-
-/* The file again: every line but "minimum" (and "auto" when off) as it was, then ours. Its length. */
-static LONG make_text(char *out, LONG size, ULONG minimum)
-{
-    const char *s = file_text;
-    LONG o = 0;
-    while (*s) {
-        const char *e = s, *v;
-        while (*e && *e != '\n') e++;
-        if (!line_is(s, "minimum", &v) && !(minimum == 0 && line_is(s, "auto", &v)) && e > s && o + (e - s) + 1 < size) {
-            memcpy(out + o, s, e - s);
-            o += e - s;
-            out[o++] = '\n';
-        }
-        s = *e ? e + 1 : e;
-    }
-    o += snprintf(out + o, size - o, "minimum %lu\n", (unsigned long)minimum);
-    if (minimum == 0 && o < size) o += snprintf(out + o, size - o, "auto off\n");
-    return o < size ? o : size - 1;
-}
-
 /* what "auto on" raises the floor to on this machine: GFOpenDOS's ram_size (memory with something free) */
 static ULONG auto_floor(void)
 {
@@ -158,10 +108,9 @@ static int put_stack(ULONG minimum, int how, void (*say)(const char *))
 {
     char out[FILE_MAX + 64];
     LONG n;
-    if (minimum > STACK_MAX) minimum = STACK_MAX;
-    minimum = (minimum + 3) & ~3UL;
+    minimum = gs_round(minimum);
     if (how == 2 && !tested) { test_len = read_text(STACK_ENV, test_text, sizeof test_text); tested = 1; }
-    n = make_text(out, sizeof out, minimum);
+    n = gs_text(file_text, out, sizeof out, minimum);
     if (how == 1 && !write_text(STACK_ENVARC, out, n)) { if (say) say("Couldn't write ENVARC:GFOpenPrefs/Stack."); return 0; }
     if (!write_text(STACK_ENV, out, n)) { if (say) say("Couldn't write ENV:GFOpenPrefs/Stack."); return 0; }
     return 1;
@@ -203,7 +152,7 @@ static void note(ULONG minimum)
     ULONG a = stack_auto && minimum ? auto_floor() : 0;
     if (!minimum) snprintf(note_text, sizeof note_text, "Off: programs get the stack they ask for.");
     else if (a > minimum) snprintf(note_text, sizeof note_text, "At least %lu bytes (raised with this machine's memory).", (unsigned long)a);
-    else snprintf(note_text, sizeof note_text, "Programs get at least %lu bytes.", (unsigned long)((minimum + 3) & ~3UL));
+    else snprintf(note_text, sizeof note_text, "Programs get at least %lu bytes.", gs_round(minimum));
     if (win && gad[G_STACKNOTE]) GT_SetGadgetAttrs(gad[G_STACKNOTE], win, NULL, GTTX_Text, (ULONG)note_text, TAG_DONE);
 }
 
@@ -357,8 +306,8 @@ int main(int argc, char **argv)
     if (!rd && argc > 0) { PrintFault(IoErr(), (STRPTR)"GFOpenGlobal"); return RETURN_FAIL; }
     if (read_text(args[0] ? (const char *)args[0] : STACK_ENV, file_text, sizeof file_text) < 0 && !args[0])
         read_text(STACK_ENVARC, file_text, sizeof file_text);
-    parse_stack(file_text);
-    if (args[1]) stack_min = *(ULONG *)args[1];
+    gs_parse(file_text, &stack_min, &stack_auto);
+    if (args[1]) stack_min = gs_round(*(ULONG *)args[1]);
     if (args[2] || args[3]) rc = put_stack(stack_min, args[3] ? 1 : 0, NULL) ? RETURN_OK : RETURN_ERROR;
     else if (args[1]) {                     /* STACK alone: say what it would be */
         printf("Default stack size %lu bytes\n", (unsigned long)stack_min);
