@@ -335,11 +335,16 @@ static void read_profiles(void)
 /* The chosen profile through Look (Look FROM <file> SAVE), with "profile auto"
  * when by machine. With no profile chosen, by machine still applies: to the
  * Look settings in use. 1 when done, or when there is nothing to do. */
-static int apply_profile(void)
+static int apply_profile_how(int strip_auto);
+static int apply_profile(void) { return apply_profile_how(0); }
+
+/* strip_auto (0.1.9, the answers file's BYMACHINE=no with no PROFILE): with no profile chosen and by machine off,
+ * the Look settings in use lose their "profile auto" line, where the wizard leaves them as they are. */
+static int apply_profile_how(int strip_auto)
 {
     char path[160], cmd[220], *text, *both, *o;
     const char *p;
-    if (profile_sel < 0 && !by_machine) return 1;
+    if (profile_sel < 0 && !by_machine && !strip_auto) return 1;
     if (!exists(found(OPENPREFS))) return profile_sel < 0;
     if (profile_sel >= 0) {
         snprintf(path, sizeof path, PROFILE_DIR "/%s.profile", profile_names[profile_sel]);
@@ -971,7 +976,7 @@ static int unattended(int by, int to_shell)
             if (profile_sel < 0) a.bad++;          /* no such profile: the Look settings in use stay */
         }
         by_machine = a.by_machine >= 0 ? a.by_machine : 1;   /* the wizard's default */
-        if (profile_sel >= 0 || a.by_machine >= 0) ok = apply_profile() && ok;
+        if (profile_sel >= 0 || a.by_machine >= 0) ok = apply_profile_how(profile_sel < 0 && !by_machine) && ok;
     }
 
     /* the startup switches: only the lines the answers switch off */

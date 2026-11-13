@@ -146,7 +146,14 @@ over, `Setup.done` written, one line in the log and a return code.
 | by hand from `SYS:Prefs` | the window, answers file and host flag or not |
 
 The host flag is a file (any contents) that the Cradle writes on a lab or
-test run's disk and the card builder on a freshly written card.
+test run's disk and the card builder on a freshly written card. In `ENV:`
+any program started before Setup could set it too and skip the wizard at
+the first start: that is meant for labs and cards, and costs nothing else,
+since Setup stays in `SYS:Prefs` to run by hand.
+
+`BYMACHINE=no` with no `PROFILE` takes the `profile auto` line out of the
+Look settings in use (the wizard, with nothing chosen, leaves them as they
+are).
 
 The answers file has the wizard's choices, `KEY=value` a line, `;` or `#`
 for comments, keys any case; a key left out takes the default:
