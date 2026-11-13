@@ -21,9 +21,12 @@ if [ -z "${OGT:-}" ] && [ -d "$up/DalsinAI__gfopengadtools" ]; then OGT=$(tree "
 export OGT
 # gfopenlayout (master: its default branch) for GFOpenTitle's drawing: the Cradle's checkout, else a clone
 if [ -z "${LAYOUT:-}" ]; then
-    if [ -d "$up/DalsinAI__gfopenlayout" ]; then LAYOUT=$(tree "$up/DalsinAI__gfopenlayout" gfopenlayout); fi
+    if [ -d "$up/DalsinAI__gfopenlayout" ] && [ ! -f "$HERE/deps/gfopenlayout.ref" ]; then LAYOUT=$(tree "$up/DalsinAI__gfopenlayout" gfopenlayout); fi
     if [ -z "${LAYOUT:-}" ] || [ ! -f "$LAYOUT/include/gfopenlayout_draw.h" ]; then
-        git clone -q --depth 1 -b master https://github.com/DalsinAI/gfopenlayout "$TMP/gfopenlayout-clone" && LAYOUT="$TMP/gfopenlayout-clone"
+        # deps/gfopenlayout.ref, when there, names a branch in place of master (a PR stacked on a gfopenlayout PR)
+        ref=master
+        [ -f "$HERE/deps/gfopenlayout.ref" ] && ref=$(head -n 1 "$HERE/deps/gfopenlayout.ref")
+        git clone -q --depth 1 -b "$ref" https://github.com/DalsinAI/gfopenlayout "$TMP/gfopenlayout-clone" && LAYOUT="$TMP/gfopenlayout-clone"
     fi
 fi
 [ -n "${LAYOUT:-}" ] && echo "build-amiga.sh: gfopenlayout at $(git -C "$LAYOUT" rev-parse --short HEAD 2>/dev/null || echo "$LAYOUT")"
