@@ -57,4 +57,21 @@ static __attribute__((unused)) void tb_zeros(const char *in, char *out, int size
     out[i] = 0;
 }
 
+/* 0.9.2: a slot's place on the screen, as the main task publishes it for the menu button's commodity (which runs in
+ * input.device's task and so never touches a Window). w 0: nothing there. */
+struct tb_rect { volatile short x, y, w, h; };
+
+static __attribute__((unused)) void tb_rect_set(struct tb_rect *r, int x, int y, int w, int h)
+{
+    r->w = 0;                                  /* never a half-written rectangle that is "on" */
+    r->x = x; r->y = y; r->h = h;
+    r->w = w > 0 && h > 0 ? w : 0;
+}
+
+static __attribute__((unused)) int tb_rect_hit(const struct tb_rect *r, int x, int y)
+{
+    int w = r->w;
+    return w > 0 && x >= r->x && x < r->x + w && y >= r->y && y < r->y + r->h;
+}
+
 #endif

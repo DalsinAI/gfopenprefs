@@ -242,6 +242,21 @@ static void pointer_tests(void)
 }
 
 /* 0.9: the bar's memory and time (CM4 item 17) */
+static void rect_tests(void)
+{
+    struct tb_rect r = { 0, 0, 0, 0 };
+    CHECK(!tb_rect_hit(&r, 0, 0));                     /* nothing published: nothing taken */
+    tb_rect_set(&r, 1800, 0, 60, 24);
+    CHECK(tb_rect_hit(&r, 1800, 0) && tb_rect_hit(&r, 1859, 23) && tb_rect_hit(&r, 1830, 11));
+    CHECK(!tb_rect_hit(&r, 1799, 11) && !tb_rect_hit(&r, 1860, 11) && !tb_rect_hit(&r, 1830, 24) && !tb_rect_hit(&r, 1830, -1));
+    tb_rect_set(&r, 0, 0, 0, 0);                       /* cleared before the slot closes */
+    CHECK(!tb_rect_hit(&r, 1830, 11) && !tb_rect_hit(&r, 0, 0));
+    tb_rect_set(&r, 10, 0, 40, 0);                     /* no height: off */
+    CHECK(!tb_rect_hit(&r, 20, 0));
+    tb_rect_set(&r, 10, 0, -5, 20);
+    CHECK(!tb_rect_hit(&r, 10, 5));
+}
+
 static void format_tests(void)
 {
     char t[64];
@@ -269,6 +284,7 @@ int main(void)
     fade_tests();
     pointer_tests();
     format_tests();
+    rect_tests();
     printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words)");
     return failed != 0;
 }

@@ -185,7 +185,7 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.9.1 (12.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.9.2 (13.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -1383,6 +1383,9 @@ static struct cx_item cx_all[CX_ALL];
 static int cx_all_n;
 static int cx_tray[CX_MAX], cx_n;              /* the systray's items: indexes into cx_all */
 static struct Window *cx_w;                    /* the systray's slot */
+/* 0.9.2: the cog's and the systray's places, published by the main task (rb_publish); rb_func reads only these,
+ * never a Window, which the main task closes and opens again (Team 5's review of 0.9.1) */
+static struct tb_rect rb_cog, rb_cx;
 static WORD xx, xy, xw, xh;
 static int cx_drawn = -1;
 static void draw_cx(int force);
@@ -2392,7 +2395,7 @@ static void cx_sync(int read)
     if (!scr || (read && !cx_read())) return;
     if (help_for >= OW_CX) help_close();
     if (!cx_n) {
-        if (cx_w) { slot_close(cx_w); cx_w = NULL; tray("Commodities", 0, CX_ORDER); place_all(); }
+        if (cx_w) { tb_rect_set(&rb_cx, 0, 0, 0, 0); slot_close(cx_w); cx_w = NULL; tray("Commodities", 0, CX_ORDER); place_all(); }
         return;
     }
     cx_place();
@@ -2460,9 +2463,24 @@ static volatile UBYTE rb_held;                 /* we took the press: the release
 static CxObj *rb_broker;
 static struct MsgPort *rb_port;
 
-static int rb_on(const struct Window *w, WORD x, WORD y)
+
+static void rb_publish(void)
 {
-    return w && x >= w->LeftEdge && x < w->LeftEdge + w->Width && y >= w->TopEdge && y < w->TopEdge + w->Height;
+    Forbid();
+    if (cog_w && slot_of(cog_w)) tb_rect_set(&rb_cog, cog_w->LeftEdge, cog_w->TopEdge, cog_w->Width, cog_w->Height);
+    else tb_rect_set(&rb_cog, 0, 0, 0, 0);
+    if (cx_w && slot_of(cx_w)) tb_rect_set(&rb_cx, cx_w->LeftEdge, cx_w->TopEdge, cx_w->Width, cx_w->Height);
+    else tb_rect_set(&rb_cx, 0, 0, 0, 0);
+    Permit();
+}
+
+static void rb_clear(void)
+{
+    Forbid();
+    rb_scr = NULL;
+    tb_rect_set(&rb_cog, 0, 0, 0, 0);
+    tb_rect_set(&rb_cx, 0, 0, 0, 0);
+    Permit();
 }
 
 static void rb_func(CxMsg *m, CxObj *co)
@@ -2473,7 +2491,7 @@ static void rb_func(CxMsg *m, CxObj *co)
     if (!ie || ie->ie_Class != IECLASS_RAWMOUSE) return;
     if (ie->ie_Code == IECODE_RBUTTON) {
         if (!s || IntuitionBase->FirstScreen != s) return;
-        if (!rb_on(cog_w, s->MouseX, s->MouseY) && !rb_on(cx_w, s->MouseX, s->MouseY)) return;
+        if (!tb_rect_hit(&rb_cog, s->MouseX, s->MouseY) && !tb_rect_hit(&rb_cx, s->MouseX, s->MouseY)) return;
         rb_held = 1;
         DisposeCxMsg(m);
         Signal(rb_task, 1UL << rb_sig);
@@ -2508,7 +2526,7 @@ static void rb_start(void)
 static void rb_stop(void)
 {
     struct Message *m;
-    rb_scr = NULL;
+    rb_clear();
     if (rb_broker) DeleteCxObjAll(rb_broker);
     rb_broker = NULL;
     if (rb_port) { while ((m = GetMsg(rb_port))) ReplyMsg(m); DeleteMsgPort(rb_port); }
@@ -2780,7 +2798,7 @@ static void see_tick(void)
 
 static void close_all(void)
 {
-    rb_scr = NULL;                             /* 0.9.1: the menu button left alone from here */
+    rb_clear();                                /* 0.9.2: the menu button left alone before any slot closes */
     see_off();                                 /* 0.7.5: the bar solid again while the screen is still ours */
     if (clock_w) { slot_close(clock_w); clock_w = NULL; tray("Clock", 0, CLOCK_ORDER); }
     if (pop_w) { CloseWindow(pop_w); pop_w = NULL; }
@@ -3108,7 +3126,6 @@ static void place_all(void)
 {
     int i;
     if (!scr) return;
-    rb_scr = scr;                              /* 0.9.1: the cog and the systray take the menu button */
     if (net_w) {
         WORD px = nx, py = ny, pw = nw, ph = nh;
         net_place();
@@ -3137,7 +3154,7 @@ static void place_all(void)
             t->drawn = -1;
         }
     }
-    if (menu_w) return;                        /* the menus hang from Prefs, Power and the systray: they stay */
+    if (menu_w) { rb_publish(); rb_scr = scr; return; }   /* the menus hang from Prefs, Power and the systray: they stay */
     if (cog_w) {
         WORD px = gx, py = gy, pw = gw, ph = gh;
         cog_place();
@@ -3156,6 +3173,8 @@ static void place_all(void)
             cx_drawn = -1;
         }
     }
+    rb_publish();                              /* 0.9.2: the cog's and the systray's places for the menu button */
+    rb_scr = scr;
 }
 
 /* 1 when the bar's title has room for the logo: Workbench's, which GFOpenTitle's
