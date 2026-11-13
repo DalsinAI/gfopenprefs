@@ -16,3 +16,5 @@ ${CC:-cc} -std=gnu99 -O1 -g -Wall -Wextra -Werror -o "$OUT/test_wheel" "$HERE/te
 "$OUT/test_wheel"
 ${CC:-cc} -std=gnu99 -O1 -g -Wall -Wextra -Werror -o "$OUT/test_centre" "$HERE/test_centre.c"
 "$OUT/test_centre"
+${CC:-cc} -std=gnu99 -O1 -g -Wall -Wextra -Werror -o "$OUT/test_comp_prefs" "$HERE/test_comp_prefs.c"
+"$OUT/test_comp_prefs"

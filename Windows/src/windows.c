@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include "../../Common/looktabs.h"
 #include "centre_prefs.h"
+#include "comp_prefs.h"
 
 static const char version[] __attribute__((used)) = "$VER: Windows 0.8 (4.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
@@ -58,6 +59,7 @@ struct wprefs {
     /* layers' composited mode (gfopengfx docs/design/compositing.md): the switch, and the look's lines,
      * which have no gadget and are kept as written */
     int composite, shadows, shadow_size, shadow_strength, drag_opacity, inactive_opacity;
+    int composited;                         /* screen.mode: 0 direct (the default, row 11), 1 composited; no gadget, kept as written */
     /* Intuition's gradient title bars on true-colour public screens (gradient on|off; amicradle-guest
      * docs/design/gradient-title-bars.md); it takes effect when the Workbench opens next */
     int gradient;
@@ -149,6 +151,7 @@ static void parse(struct wprefs *p, char *text)
         else if (!strcmp(line, "drive.title")) p->drive_title = !strncmp(v, "on", 2);
         else if (!strcmp(line, "drag.solid")) p->solid = !strncmp(v, "on", 2);
         else if (!strcmp(line, "composite")) p->composite = !strncmp(v, "on", 2);
+        else if (!strcmp(line, "screen.mode")) p->composited = comp_prefs_mode(v);
         else if (!strcmp(line, "gradient")) p->gradient = !strncmp(v, "on", 2);
         else if (!strcmp(line, "shadows")) p->shadows = !strncmp(v, "on", 2);
         else if (!strcmp(line, "shadow.size")) p->shadow_size = atoi(v);
@@ -182,12 +185,13 @@ static void make_text(const struct wprefs *p, char *out, int size)
         "places %s\nplaces.drawers %s\ndrawer %d %d\n"
         "doubleclick.front %s\nedges %s\nedges.pointer %s\ndrive.title %s\ndrag.solid %s\n"
         "composite %s\nshadows %s\nshadow.size %d\nshadow.strength %d\ndrag.opacity %d\ninactive.opacity %d\n"
-        "gradient %s\n",
+        "gradient %s\nscreen.mode %s\n",
         p->snap ? "on" : "off", p->snap_dist, p->halves ? "on" : "off", p->switcher ? "on" : "off", p->key,
         p->wheel_target == 2 ? "off" : "on", p->wheel_target == 1 ? "pointer" : "focus", p->wheel_lines, p->places ? "on" : "off", p->places_wb ? "on" : "off", p->drawer_w, p->drawer_h,
         p->dblfront ? "on" : "off", p->edges ? "on" : "off", p->edge_ptr ? "on" : "off", p->drive_title ? "on" : "off",
         p->solid ? "on" : "off", p->composite ? "on" : "off", p->shadows ? "on" : "off", p->shadow_size,
-        p->shadow_strength, p->drag_opacity, p->inactive_opacity, p->gradient ? "on" : "off");
+        p->shadow_strength, p->drag_opacity, p->inactive_opacity, p->gradient ? "on" : "off",
+        comp_prefs_mode_name(p->composited));
     /* GFOpenWindows 0.10: centring and the snapshot gadget (no snapshot.gadget line while it follows centring) */
     /* 0.8: "centre.v 2" marks them as chosen here, so GFOpenWindows 0.12 keeps them (centre_prefs.h) */
     len += snprintf(out + len, size - len, "centre %s\ncentre.v %d\ncentre.asked %s\ncentre.parent %s\ncentre.custom %s\n",
@@ -253,7 +257,7 @@ static struct Gadget *gad[G_COUNT];
 static STRPTR wheel_labels[] = { (STRPTR)"Area clicked", (STRPTR)"Under pointer", (STRPTR)"Nothing", NULL };
 static struct Window *win;
 static char status_text[120];
-static char compoff_text[64];           /* the switch's words with why this screen isn't composited (comp_off) */
+static char compoff_text[80];           /* the switch's words with why this screen isn't composited (comp_off) */
 
 #define SET(id, ...) do { if (gad[id]) GT_SetGadgetAttrs(gad[id], win, NULL, __VA_ARGS__, TAG_DONE); } while (0)
 static int advanced;                     /* the view: Simple shows the four switches, Advanced every setting */
@@ -335,12 +339,11 @@ static void forget_places(void)
 /* Why layers.library doesn't composite this screen, as the switch's words in compoff_text ("Transparency
  * and shadows (off on this screen: 8-bit)"); empty while it does, or when layers can't say. GFOpenLayers
  * 47.102 and up: ComposeLayerInfo(li, NULL, LAYERS_COMPOSE_WHY) (-246; gfopengfx
- * include/graphics/openlayers.h, LAYERS_WHY_ 1-8 in this order). Its own open of layers.library: built
+ * include/graphics/openlayers.h, LAYERS_WHY_ 1-9 in this order; 9, screen direct mode, from 47.109). Its own open of layers.library: built
  * into GFOpenBench, this file declares no library base. */
 static void comp_off(struct Screen *scr)
 {
-    static const char why[] = "not asked\0switched off\0not RTG\0" "8-bit\0pixel layout\0no GPU driver\0no GFOpenGPU\0no memory";
-    const char *p = why;
+    const char *p;
     struct Library *lb = OpenLibrary((STRPTR)"layers.library", 47);
     ULONG w = 0;
     compoff_text[0] = 0;
@@ -355,8 +358,7 @@ static void comp_off(struct Screen *scr)
         w = d0;
     }
     if (lb) CloseLibrary(lb);
-    if (w >= 1 && w <= 8) {
-        while (--w) p += strlen(p) + 1;
+    if ((p = comp_prefs_why(w))) {
         strcpy(compoff_text, "Transparency and shadows (off on this screen: ");
         strcat(compoff_text, p);
         strcat(compoff_text, ")");
