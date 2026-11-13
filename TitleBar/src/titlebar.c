@@ -35,7 +35,7 @@
 #include "tb_prefs.h"
 #include "../../Common/looktabs.h"
 
-static const char version[] __attribute__((used)) = "$VER: TitleBar 0.3.4 (25.10.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: TitleBar 0.3.5 (12.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 static tb_prefs cur;
 
@@ -172,11 +172,13 @@ static int gui(void)
     g = lt_make(g, &ng, 10, row, W - 20, lh, LT_TITLEBAR);
     row += lt_space(scr->Font, W - 20, lh) + 8;     /* below the tabs (looktabs.h): one row, or two */
     G(CHECKBOX_KIND, G_LOGO, X, row, 26, lh, "AmiCradle logo at the left", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
-    G(CHECKBOX_KIND, G_MEMORY, X, row, 26, lh, "Free chip and fast memory", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
-    G(CHECKBOX_KIND, G_CLOCK, X, row, 26, lh, "Clock at the right", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
-    G(CHECKBOX_KIND, G_DATE, X, row, 26, lh, "Day and date with the clock", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
+    G(CHECKBOX_KIND, G_MEMORY, X, row, 26, lh, "Memory (total and in use)", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
+    G(CHECKBOX_KIND, G_CLOCK, X, row, 26, lh, "Time", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
+    G(CHECKBOX_KIND, G_DATE, X, row, 26, lh, "Date with the time", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
     G(CHECKBOX_KIND, G_NET, X, row, 26, lh, "Network icons (LAN, Wi-Fi)", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
-    /* the cog: always on the bar (Dale, 17 October 2026, 08:26), so no switch; the file keeps its "cog" line */
+    /* the cog: always on the bar (Dale, 17 October 2026, 08:26), so no switch; the file keeps its "cog" line. 0.3
+     * (GFOpenTitle 0.9, CM4 item 17): the memory and the date and time are switched here; the systray (the commodities)
+     * and Prefs and Power stay with both off */
     row += 6;
     G(CHECKBOX_KIND, G_BORDER, X, row, 26, lh, "Black border around the screen", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
     /* 0.3.4: GFOpenTitle 0.7.5's see-through bar (the user, 24 October 2026): only where the screen can, an RTG screen
@@ -193,7 +195,7 @@ static int gui(void)
     if (!g) { rc = RETURN_FAIL; goto out; }
     wt = scr->BarHeight + 20;
     lt_place(&wl, &wt);
-    win = lt_open(scr, wl, wt, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | BUTTONIDCMP | CHECKBOXIDCMP, "GFOpenPrefs Title bar 0.2");
+    win = lt_open(scr, wl, wt, W, row - scr->WBorTop - fh - 1, glist, IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW | IDCMP_MENUPICK | BUTTONIDCMP | CHECKBOXIDCMP, "GFOpenPrefs Title bar 0.3");
     if (!win) { rc = RETURN_FAIL; goto out; }
     if ((menu = CreateMenus(menus, TAG_DONE)) && LayoutMenus(menu, vi, GTMN_NewLookMenus, TRUE, TAG_DONE)) SetMenuStrip(win, menu);
     GT_RefreshWindow(win, NULL);

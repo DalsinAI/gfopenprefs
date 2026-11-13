@@ -2,9 +2,10 @@
  *
  * ENV:GFOpenPrefs/TitleBar (and ENVARC: when saved), one setting a line:
  *   logo on|off            AmiCradle's logo at the title bar's far left
- *   memory on|off          free chip and fast memory after Workbench's title
- *   clock on|off           the time at the right end, left of GFOpenSpeaker
- *   clock.date on|off      the day and date before the time
+ *   memory on|off          (GFOpenTitle 0.9) the memory at the bar's right end: "3 GB RAM (0.3 MB in use)"
+ *                          (before 0.9: free chip and fast memory after Workbench's title)
+ *   clock on|off           the time at the right end, after the memory: "1059"
+ *   clock.date on|off      the date before the time: "Nov 12 1059"
  *   network on|off         LAN and Wi-Fi icons between the clock and GFOpenSpeaker
  *   cog on|off             a cog at the bar's far end, right of GFOpenSpeaker:
  *                          a click lists the settings editors
