@@ -31,7 +31,6 @@
 #define SETUP_AUTO_H
 
 #include <string.h>
-#include <stdio.h>
 
 #define SA_ANSWERS "ENVARC:GFOpenUp/Answers"
 #define SA_FLAG "ENV:AmiCradle/Unattended"
@@ -154,16 +153,45 @@ static inline int sa_line_has(const char *line, const char *words)
 /* The log's one line, without its newline:
  *   GFOpenUp Setup: unattended (answers) view=simple profile=Modern bymachine=yes off=1 ignored=0: ok
  * "kept" for what was left as it was. rc is the run's return code (0 ok). */
+/* s onto buf (size bytes in all), cut to fit; no snprintf, so GCC 16's -Wformat-truncation has nothing to say */
+static inline void sa_cat(char *buf, int size, const char *s)
+{
+    int n = (int)strlen(buf);
+    while (*s && n < size - 1) buf[n++] = *s++;
+    buf[n] = 0;
+}
+
+static inline void sa_catn(char *buf, int size, int v)
+{
+    char d[12];
+    int i = sizeof d - 1;
+    unsigned u = v < 0 ? 0u - (unsigned)v : (unsigned)v;
+    d[i] = 0;
+    do d[--i] = (char)('0' + u % 10); while ((u /= 10) && i > 1);
+    if (v < 0) d[--i] = '-';
+    sa_cat(buf, size, d + i);
+}
+
 static inline void sa_log_line(char *buf, int size, const sa_answers *a, int by, const char *profile_used, int rc)
 {
     static const char *const why[] = { "?", "AUTO", "answers", "host flag" };
-    snprintf(buf, size, "GFOpenUp Setup: unattended (%s) view=%s profile=%s bymachine=%s off=%d ignored=%d: %s",
-             why[by >= 0 && by <= SA_BY_FLAG ? by : 0],
-             a->view < 0 ? "kept" : a->view ? "advanced" : "simple",
-             profile_used && *profile_used ? profile_used : "kept",
-             a->by_machine < 0 ? (profile_used && *profile_used ? "yes" : "kept") : a->by_machine ? "yes" : "no",
-             a->noff, a->bad,
-             rc == 0 ? "ok" : rc < 10 ? "done, some answers ignored" : "failed, Setup not marked done");
+    int named = profile_used && *profile_used;
+    if (size <= 0) return;
+    buf[0] = 0;
+    sa_cat(buf, size, "GFOpenUp Setup: unattended (");
+    sa_cat(buf, size, why[by >= 0 && by <= SA_BY_FLAG ? by : 0]);
+    sa_cat(buf, size, ") view=");
+    sa_cat(buf, size, a->view < 0 ? "kept" : a->view ? "advanced" : "simple");
+    sa_cat(buf, size, " profile=");
+    sa_cat(buf, size, named ? profile_used : "kept");
+    sa_cat(buf, size, " bymachine=");
+    sa_cat(buf, size, a->by_machine < 0 ? (named ? "yes" : "kept") : a->by_machine ? "yes" : "no");
+    sa_cat(buf, size, " off=");
+    sa_catn(buf, size, a->noff);
+    sa_cat(buf, size, " ignored=");
+    sa_catn(buf, size, a->bad);
+    sa_cat(buf, size, ": ");
+    sa_cat(buf, size, rc == 0 ? "ok" : rc < 10 ? "done, some answers ignored" : "failed, Setup not marked done");
 }
 
 #endif

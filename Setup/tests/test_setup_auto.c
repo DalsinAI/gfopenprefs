@@ -94,6 +94,11 @@ static void log_tests(void)
     sa_log_line(buf, sizeof buf, &a, SA_BY_SWITCH, NULL, 10);
     CHECK(strstr(buf, "(AUTO)") && strstr(buf, ": failed, Setup not marked done"), buf);
     CHECK(!strchr(buf, '\n'), "one line");
+    sa_log_line(buf, 20, &a, SA_BY_SWITCH, NULL, 0);
+    CHECK(strlen(buf) == 19 && !strncmp(buf, "GFOpenUp Setup: una", 19), "cut to the buffer");
+    sa_init(&a); a.bad = 123;
+    sa_log_line(buf, sizeof buf, &a, SA_BY_FLAG, "", 5);
+    CHECK(strstr(buf, " ignored=123: ") != NULL, "numbers of more than one digit");
 }
 
 int main(void)
