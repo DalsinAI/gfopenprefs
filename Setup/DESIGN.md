@@ -126,6 +126,61 @@ GFOpenBench's built-in GFOpenUp-Setup (the one SYS:WBStartup starts where
 GFOpenBench is the Workbench, as on GFOS) changes with GFOpenBench's next
 build: until then the hang stays there.
 
+## 0.1.9 (13 November 2026): unattended
+
+Dale's rule of 13 November (amicradle-teams
+`teams/DECISION-UNATTENDED-SETUP-20261113-1959.md`): a CM5 card booted on the
+Pi 5 stopped at step 1 waiting for a click. Setup now has an unattended mode:
+no window, no wait, the Simple path, nothing of the user's removed or written
+over, `Setup.done` written, one line in the log and a return code.
+
+    GFOpenUp-Setup [FIRSTSTART] [ADVANCED] [AUTO]
+
+| Start | What happens |
+| --- | --- |
+| `AUTO` (any start, even after `Setup.done`) | unattended |
+| first start (`SYS:WBStartup` or `FIRSTSTART`) after `Setup.done` | nothing, as before |
+| first start with `ENVARC:GFOpenUp/Answers` | unattended, with those answers |
+| first start with the host flag `ENV:AmiCradle/Unattended` (or `ENVARC:AmiCradle/Unattended`) | unattended, the defaults |
+| first start with none of them | the window, as before |
+| by hand from `SYS:Prefs` | the window, answers file and host flag or not |
+
+The host flag is a file (any contents) that the Cradle writes on a lab or
+test run's disk and the card builder on a freshly written card. In `ENV:`
+any program started before Setup could set it too and skip the wizard at
+the first start: that is meant for labs and cards, and costs nothing else,
+since Setup stays in `SYS:Prefs` to run by hand.
+
+`BYMACHINE=no` with no `PROFILE` takes the `profile auto` line out of the
+Look settings in use (the wizard, with nothing chosen, leaves them as they
+are).
+
+The answers file has the wizard's choices, `KEY=value` a line, `;` or `#`
+for comments, keys any case; a key left out takes the default:
+
+    ; ENVARC:GFOpenUp/Answers
+    VIEW=simple          ; or advanced: the view the GFOpenPrefs editors open in
+    PROFILE=Modern       ; a profile in SYS:Prefs/Presets/GFOpenPrefs
+    BYMACHINE=yes        ; "Choose by machine at every start" (yes when PROFILE is given)
+    OFF=GFOpenMenus      ; switch off every startup-block line with these words (up to 16)
+
+The defaults keep what is there: with no `PROFILE` and no `BYMACHINE` the
+Look settings stay as they are (GFOpenLook's default theme where there are
+none); with no `VIEW` an existing `PrefsView` stays (`simple` is written
+where there is none); with no `OFF` `S:User-Startup` isn't touched.
+
+It appends one line to `ENVARC:GFOpenUp/Setup.log` (and prints it when run
+from a Shell), for example
+
+    GFOpenUp Setup: unattended (host flag) view=simple profile=kept bymachine=kept off=0 ignored=0: ok
+
+and returns 0 (done), 5 (done, some answers not understood or a profile not
+found) or 10 (something couldn't be written; `Setup.done` isn't written, so
+the next start tries again). The parsing and the choice of mode are in
+`src/setup_auto.h`, tested on the host by `Setup/tests/run.sh`.
+GFOpenBench's built-in GFOpenUp-Setup gets it with GFOpenBench's next build
+(the built-in has no `AUTO`; the answers file and the host flag work there).
+
 ## Next
 
 GFOpenUp Picks (ticking programs to add) joins as a page once the Picks list

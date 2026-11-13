@@ -19,10 +19,16 @@
  * them: Setup writes no settings of its own but its startup switches
  * (ENVARC:GFOpenAmiga/Startup.off) and that it has run (ENVARC:GFOpenAmiga/Setup.done).
  *
- *   GFOpenUp-Setup [FIRSTSTART] [ADVANCED]
+ *   GFOpenUp-Setup [FIRSTSTART] [ADVANCED] [AUTO]
  *
  * FIRSTSTART (or being started from SYS:WBStartup) does nothing once Setup
  * has been finished or told not to come back.
+ *
+ * 0.1.9: unattended (setup_auto.h): AUTO, or at the first start the answers
+ * file ENVARC:GFOpenUp/Answers or the host flag ENV:AmiCradle/Unattended, runs
+ * the Simple path with no window and no wait, keeps what the user has, writes
+ * Setup.done and one line to ENVARC:GFOpenUp/Setup.log, and returns 0 (done),
+ * 5 (done, some answers ignored) or 10 (something couldn't be written).
  *
  * Built into GFOpenBench (IN_OPENBENCH; the Team, 11 October 2026: the Open
  * preferences in GFOpenBench natively) as GFOpenUp-Setup, it follows GFOpenBench's
@@ -55,9 +61,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
+#include "setup_auto.h"                       /* 0.1.9: the unattended mode's answers file and choice */
 
 #ifndef IN_OPENBENCH
-const char version[] __attribute__((used)) = "$VER: GFOpenUp-Setup 0.1.8 (9.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenUp-Setup 0.1.9 (13.11.2026) GFOpenPrefs, AmiCradle Team";
 #endif
 
 #define USER_STARTUP "S:User-Startup"
@@ -328,11 +335,16 @@ static void read_profiles(void)
 /* The chosen profile through Look (Look FROM <file> SAVE), with "profile auto"
  * when by machine. With no profile chosen, by machine still applies: to the
  * Look settings in use. 1 when done, or when there is nothing to do. */
-static int apply_profile(void)
+static int apply_profile_how(int strip_auto);
+static int apply_profile(void) { return apply_profile_how(0); }
+
+/* strip_auto (0.1.9, the answers file's BYMACHINE=no with no PROFILE): with no profile chosen and by machine off,
+ * the Look settings in use lose their "profile auto" line, where the wizard leaves them as they are. */
+static int apply_profile_how(int strip_auto)
 {
     char path[160], cmd[220], *text, *both, *o;
     const char *p;
-    if (profile_sel < 0 && !by_machine) return 1;
+    if (profile_sel < 0 && !by_machine && !strip_auto) return 1;
     if (!exists(found(OPENPREFS))) return profile_sel < 0;
     if (profile_sel >= 0) {
         snprintf(path, sizeof path, PROFILE_DIR "/%s.profile", profile_names[profile_sel]);
@@ -902,9 +914,91 @@ static int from_wbstartup(void)
 }
 #endif
 
+/* ---- unattended (0.1.9, Dale 13 Nov 2026) ------------------------------------------------------
+ * No window, no wait: the Simple path with what the answers file says, nothing of the user's taken away or
+ * written over that the answers don't ask for, Setup.done, and one line in the log. */
+
+static int exists_quiet(const char *path)
+{
+    struct Process *me = (struct Process *)FindTask(NULL);
+    APTR w = me->pr_WindowPtr;
+    int e;
+    me->pr_WindowPtr = (APTR)-1;                  /* no "please insert volume" for a missing ENVARC: or ENV: */
+    e = exists(path);
+    me->pr_WindowPtr = w;
+    return e;
+}
+
+static void make_drawer(const char *path)
+{
+    BPTR l;
+    if (exists_quiet(path)) return;
+    if ((l = CreateDir((STRPTR)path))) UnLock(l);
+}
+
+static void log_line(const char *line, int to_shell)
+{
+    BPTR fh;
+    make_drawer("ENVARC:GFOpenUp");
+    if ((fh = Open((STRPTR)SA_LOG, MODE_READWRITE))) {
+        Seek(fh, 0, OFFSET_END);
+        Write(fh, (APTR)line, strlen(line));
+        Write(fh, (APTR)"\n", 1);
+        Close(fh);
+    }
+#ifndef IN_OPENBENCH
+    if (to_shell && Output()) { PutStr((STRPTR)line); PutStr((STRPTR)"\n"); }
+#else
+    (void)to_shell;
+#endif
+}
+
+static int unattended(int by, int to_shell)
+{
+    static sa_answers a;
+    char *text, line[300];
+    const char *used = "";
+    int ok = 1, rc;
+    sa_init(&a);
+    if ((text = read_file(SA_ANSWERS, NULL))) { sa_parse(text, &a); FreeVec(text); }
+
+    /* the view: as the answers say; else an existing one stays; else Simple */
+    if (a.view < 0 && !exists_quiet(VIEW_ENVARC)) a.view = 0;
+    if (a.view >= 0) { advanced = a.view; write_view(); }
+
+    /* the desktop: only when the answers name a profile or by machine; else the Look settings stay */
+    if (a.profile[0] || a.by_machine >= 0) {
+        profile_sel = -1;
+        if (a.profile[0]) {
+            read_profiles();
+            for (int i = 0; i < nprofiles; i++)
+                if (sa_is(profile_names[i], strlen(profile_names[i]), a.profile)) { profile_sel = i; used = profile_names[i]; }
+            if (profile_sel < 0) a.bad++;          /* no such profile: the Look settings in use stay */
+        }
+        by_machine = a.by_machine >= 0 ? a.by_machine : 1;   /* the wizard's default */
+        if (profile_sel >= 0 || a.by_machine >= 0) ok = apply_profile_how(profile_sel < 0 && !by_machine) && ok;
+    }
+
+    /* the startup switches: only the lines the answers switch off */
+    if (a.noff) {
+        read_startup();
+        for (int i = 0; i < nlines; i++)
+            for (int j = 0; j < a.noff; j++)
+                if (sa_line_has(lines[i].text, a.off[j])) lines[i].on = 0;
+        ok = write_startup() && ok;
+    }
+
+    make_drawer("ENVARC:GFOpenAmiga");
+    if (ok) ok = write_file(DONE_FILE, "GFOpenUp Setup finished unattended\n", strlen("GFOpenUp Setup finished unattended\n"));
+    rc = !ok ? RETURN_ERROR : a.bad ? RETURN_WARN : RETURN_OK;
+    sa_log_line(line, sizeof line, &a, by, used, rc);
+    log_line(line, to_shell);
+    return rc;
+}
+
 int main(int argc, char **argv)
 {
-    int first = 0, rc;
+    int first = 0, rc, auto_switch = 0, by;
 #ifdef IN_OPENBENCH
     /* Built in, it starts as ob_builtin.c starts it: argc 0, argv NULL and no WBStartup message, so the
      * window, as from Workbench, with nothing read from the Shell or written to Output(). Its statics outlive
@@ -925,16 +1019,22 @@ int main(int argc, char **argv)
     page_glist = NULL;
 #endif
     if (argc > 0) {                              /* from the Shell */
-        LONG args[2] = { 0, 0 };
-        struct RDArgs *rd = ReadArgs((STRPTR)"FIRSTSTART/S,ADVANCED/S", args, NULL);
+        LONG args[3] = { 0, 0, 0 };
+        struct RDArgs *rd = ReadArgs((STRPTR)"FIRSTSTART/S,ADVANCED/S,AUTO/S", args, NULL);
         if (!rd) { PrintFault(IoErr(), (STRPTR)"GFOpenUp-Setup"); return RETURN_FAIL; }
         first = args[0] != 0;
         read_view();
         if (args[1]) advanced = 1;
+        auto_switch = args[2] != 0;
         FreeArgs(rd);
     } else { first = from_wbstartup(); read_view(); }
     (void)argv;
-    if (first && exists(DONE_FILE)) return RETURN_OK;
+    /* 0.1.9: AUTO, or at the first start the answers file or the host flag: no window */
+    switch (sa_mode(auto_switch, first, exists_quiet(DONE_FILE), exists_quiet(SA_ANSWERS),
+                    exists_quiet(SA_FLAG) || exists_quiet(SA_FLAG_ARC), &by)) {
+    case SA_SKIP: return RETURN_OK;
+    case SA_AUTO: return unattended(by, argc > 0);
+    }
     read_summary();
     read_profiles();
     read_startup();
