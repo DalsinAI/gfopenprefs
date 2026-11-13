@@ -4,6 +4,7 @@
 #include "tb_prefs.h"
 #include "tb_fade.h"
 #include "tb_format.h"
+#include "tb_shapes.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -278,6 +279,69 @@ static void format_tests(void)
     tb_zeros("Nov 12 1059", t, sizeof t); CHECK(!strcmp(t, "Nov 00 0000"));
 }
 
+/* the boxes' pixels in a grid, each counted */
+#define GW 32
+static int grid[GW][GW];
+static int paint(const struct tb_box *b, int n)
+{
+    int i, x, y, overlap = 0;
+    memset(grid, 0, sizeof grid);
+    for (i = 0; i < n; i++)
+        for (y = b[i].y; y < b[i].y + b[i].h; y++)
+            for (x = b[i].x; x < b[i].x + b[i].w; x++)
+                if (x >= 0 && x < GW && y >= 0 && y < GW && grid[y][x]++) overlap = 1;
+    return overlap;
+}
+static int lit(int x, int y) { return x >= 0 && x < GW && y >= 0 && y < GW && grid[y][x]; }
+static int count(void)
+{
+    int x, y, c = 0;
+    for (y = 0; y < GW; y++) for (x = 0; x < GW; x++) c += grid[y][x] != 0;
+    return c;
+}
+
+static void shapes_tests(void)
+{
+    static const char *const g[4] = { ".##.", "####", "#..#", "..##" };
+    struct tb_box b[32];
+    int n, x, y, ok;
+    /* a glyph: one box per run, each one row high, where the '#'s are */
+    n = tb_glyph_boxes(g, 4, 3, 2, 99, b, 32);
+    CHECK(n == 5 && !paint(b, n) && count() == 10);
+    for (ok = 1, y = 0; y < 4; y++) for (x = 0; x < 4; x++) ok &= lit(3 + x, 2 + y) == (g[y][x] == '#');
+    CHECK(ok);
+    for (ok = 1, x = 0; x < n; x++) ok &= b[x].h == 1;
+    CHECK(ok);
+    /* rows from h on are cut off; no room past max */
+    n = tb_glyph_boxes(g, 4, 0, 1, 3, b, 32);
+    CHECK(n == 2 && !paint(b, n) && count() == 6 && !lit(0, 3));
+    CHECK(tb_glyph_boxes(g, 4, 0, 0, 99, b, 2) == 2);
+    /* the rounded box: as 0.9.1's Move/Draw/WritePixel drew it, size 9 at 4,5 */
+    n = tb_rbox_boxes(4, 5, 9, b, 32);
+    CHECK(n == 8 && !paint(b, n));
+    for (ok = 1, y = 0; y < 9; y++)
+        for (x = 0; x < 9; x++) {
+            int edge = (y == 0 || y == 8) ? (x >= 2 && x <= 6) : (x == 0 || x == 8) ? (y >= 2 && y <= 6) : 0;
+            int corner = (x == 1 || x == 7) && (y == 1 || y == 7);
+            ok &= lit(4 + x, 5 + y) == (edge || corner);
+        }
+    CHECK(ok && count() == 24);
+    CHECK(tb_rbox_boxes(0, 0, 4, b, 32) == 4);              /* too small for sides: only the corners */
+    /* the tick: two strokes a row apart, its corner at (4, cy0 + 2), from (2, cy0) to (8, cy0 - 3) */
+    n = tb_tick_boxes(10, b, 32);
+    paint(b, n);
+    CHECK(n == 16 && count() == 15);              /* the strokes meet at (6, cy0) */
+    CHECK(lit(2, 10) && lit(3, 11) && lit(4, 12) && lit(8, 7) && lit(2, 11) && lit(4, 13) && lit(8, 8));
+    CHECK(!lit(1, 10) && !lit(9, 7) && !lit(4, 14) && !lit(8, 6));
+    /* each stroke joined: every pixel but the ends has a neighbour row above and below */
+    for (ok = 1, y = 8; y <= 11; y++) {
+        int any = 0;
+        for (x = 0; x < GW; x++) any |= lit(x, y);
+        ok &= any;
+    }
+    CHECK(ok);
+}
+
 int main(void)
 {
     prefs_tests();
@@ -285,6 +349,7 @@ int main(void)
     pointer_tests();
     format_tests();
     rect_tests();
-    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words)");
+    shapes_tests();
+    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes)");
     return failed != 0;
 }

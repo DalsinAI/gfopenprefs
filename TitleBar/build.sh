@@ -13,6 +13,7 @@ SPECS="-specs=$HERE/../specs/m68k-soft-m68040.specs"
 STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32}
 CC="$STOVE/prefix/bin/m68k-amigaos-gcc"
 OGT=${OGT:-$HERE/../../gfopengadtools}      # a checkout of DalsinAI/gfopengadtools: its theme reader (lib/ogt_theme.c)
+LAYOUT=${LAYOUT:-$HERE/../../gfopenlayout}  # a checkout of DalsinAI/gfopenlayout (master): GFOpenTitle draws through its oldraw
 OUT=${1:-$HERE/build/os3}
 CFLAGS="-noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common -I$HERE/src -I$HERE/include -I$HERE/../Common -I$OGT/lib"
 # GFOpenAmigaGCC 16.2.0-open3's late-combine pass can store a copy one place late (GCC PR 123853; Common/wbclose.h's
@@ -20,6 +21,11 @@ CFLAGS="-noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -f
 if "$CC" -fno-late-combine-instructions -S -o /dev/null -x c /dev/null 2>/dev/null; then CFLAGS="$CFLAGS -fno-late-combine-instructions"; fi
 mkdir -p "$OUT"
 "$CC" $CFLAGS -o "$OUT/TitleBar" "$HERE/src/titlebar.c"
-# GFOpenTitle reads where GFOpenMenus' bar is with the Menus editor's om_prefs.c
-"$CC" $CFLAGS -I"$HERE/../Menus/src" -o "$OUT/GFOpenTitle" "$HERE/src/opentitle.c" "$HERE/../Menus/src/om_prefs.c" "$OGT/lib/ogt_theme.c"
+# GFOpenTitle reads where GFOpenMenus' bar is with the Menus editor's om_prefs.c, and draws what 0.9 added through
+# GFOpenLayout's oldraw (include/gfopenlayout_draw.h; draw/oldraw.c and amiga/oldraw_amiga.c, as its build-amiga.sh
+# puts them in libgfopenlayout_draw.a)
+[ -f "$LAYOUT/include/gfopenlayout_draw.h" ] || { echo "build.sh: no gfopenlayout at $LAYOUT (LAYOUT= to say where)" >&2; exit 1; }
+"$CC" $CFLAGS -I"$HERE/../Menus/src" -I"$LAYOUT/include" -DOLDRAW_AMIGA -I"$LAYOUT/draw" -o "$OUT/GFOpenTitle" \
+    "$HERE/src/opentitle.c" "$HERE/../Menus/src/om_prefs.c" "$OGT/lib/ogt_theme.c" "$LAYOUT/draw/oldraw.c" \
+    "$LAYOUT/amiga/oldraw_amiga.c"
 echo "$OUT/TitleBar ($(wc -c < "$OUT/TitleBar") bytes), $OUT/GFOpenTitle ($(wc -c < "$OUT/GFOpenTitle") bytes)"

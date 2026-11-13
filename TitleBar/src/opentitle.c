@@ -171,6 +171,8 @@
 #include "tb_prefs.h"
 #include "tb_fade.h"
 #include "tb_format.h"
+#include "tb_shapes.h"
+#include <gfopenlayout_draw.h>
 #include "om_prefs.h"
 #include "logo.h"
 #include "logo_big.h"
@@ -185,7 +187,7 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.9.2 (13.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.9.3 (13.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -1398,37 +1400,66 @@ static void cx_sync(int read);
 static int menu_owner;
 #define COG_GAP 6                              /* before Prefs and Power: their band apart from the systray's */
 
+/* 0.9.3: what 0.9 added to the bar (the hot band, the cog's and power's glyphs, the raised cell, Active's tick, a
+ * commodity's box) draws through GFOpenLayout (gfopenlayout_draw.h), not with graphics.library (the Team's drawing
+ * rule, 13 November 2026; Team 5's review of 0.9.2). An oldraw on a slot's window, for one redraw. */
+static oldraw *od_open(struct Window *win)
+{
+    return win ? oldraw_new_rastport(win->RPort, win->WScreen, win->Width, win->Height) : NULL;
+}
+
+/* a pen the bar already has (its text pen, the theme's menu pens) as an oldraw colour: the pen's own RGB, which
+ * oldraw gives back as that pen (a palette screen) or draws as it is (true colour) */
+static oldraw_colour pen_colour(LONG pen)
+{
+    ULONG rgb[3];
+    if (!scr) return OLDRAW_PEN(OLDRAW_PEN_TEXT);
+    GetRGB32(scr->ViewPort.ColorMap, (ULONG)pen, 1, rgb);
+    return OLDRAW_RGB(((rgb[0] >> 24) << 16) | ((rgb[1] >> 24) << 8) | (rgb[2] >> 24));
+}
+
+static void od_boxes(oldraw *d, const struct tb_box *b, int n, oldraw_colour c)
+{
+    int i;
+    for (i = 0; i < n; i++) {
+        oldraw_rect r;
+        r.x = b[i].x; r.y = b[i].y; r.w = b[i].w; r.h = b[i].h;
+        oldraw_fill(d, &r, c);
+    }
+}
+
 /* 0.9: a band of the bar's own colour, a shade lighter (darker on a light bar), across x..x+w-1 of an item */
 static void band(struct Window *win, WORD x, WORD w, WORD h, int shade)
 {
     WORD top = h > 12 ? 2 : 1, bh = h - 2 * top - (bar_edge == OM_BAR_TITLE ? 1 : 0);
     if (w <= 0 || bh <= 0) return;
     if (CyberGfxBase && bp_n) bp_paint_kept(win, 0, dri->dri_Pens[BARBLOCKPEN], x, top, w, bh, shade);
-    else if (shade >= BAND_HOT) { SetAPen(win->RPort, dri->dri_Pens[FILLPEN]); RectFill(win->RPort, x, top, x + w - 1, top + bh - 1); }
-}
-
-/* a glyph's '#' rows, centred in the box x..x+w-1, 0..h-1 */
-static void glyph(struct RastPort *rp, const char *const *rows, int size, WORD x, WORD w, WORD h)
-{
-    WORD ox = x + (w - size) / 2, oy = (h - size) / 2, gx0, gy0;
-    if (oy < 0) oy = 0;
-    for (gy0 = 0; gy0 < size && oy + gy0 < h; gy0++)
-        for (gx0 = 0; gx0 < size; ) {
-            WORD run;
-            if (rows[gy0][gx0] != '#') { gx0++; continue; }
-            for (run = gx0; run < size && rows[gy0][run] == '#'; run++) ;
-            RectFill(rp, ox + gx0, oy + gy0, ox + run - 1, oy + gy0);
-            gx0 = run;
+    else if (shade >= BAND_HOT) {
+        oldraw *d = od_open(win);
+        if (d) {
+            oldraw_rect r;
+            r.x = x; r.y = top; r.w = w; r.h = bh;
+            oldraw_fill(d, &r, OLDRAW_PEN(OLDRAW_PEN_FILL));
+            oldraw_free(d);
         }
+    }
 }
 
-/* raised under the pointer, as the taskspace's icons are */
-static void raised(struct RastPort *rp, WORD x, WORD w, WORD h)
+/* a glyph's '#' rows, centred in the box x..x+w-1, 0..h-1, in c */
+static void glyph(oldraw *d, oldraw_colour c, const char *const *rows, int size, WORD x, WORD w, WORD h)
 {
-    SetAPen(rp, dri->dri_Pens[SHINEPEN]);
-    Move(rp, x + 1, h - 1); Draw(rp, x + 1, 0); Draw(rp, x + w - 2, 0);
-    SetAPen(rp, dri->dri_Pens[SHADOWPEN]);
-    Draw(rp, x + w - 2, h - 1); Draw(rp, x + 2, h - 1);
+    struct tb_box b[64];
+    WORD ox = x + (w - size) / 2, oy = (h - size) / 2;
+    if (oy < 0) oy = 0;
+    od_boxes(d, b, tb_glyph_boxes(rows, size, ox, oy, h, b, 64), c);
+}
+
+/* raised under the pointer, as the taskspace's icons are: a one-pixel bevel over x+1..x+w-2 */
+static void raised(oldraw *d, WORD x, WORD w, WORD h)
+{
+    oldraw_rect r;
+    r.x = x + 1; r.y = 0; r.w = w - 2; r.h = h;
+    oldraw_frame(d, &r, 0);
 }
 
 /* 0.7.10 (Dale, 11 November 2026: "we need a reboot / power cycle option. Also ... a safe eject for USB"): the
@@ -1583,21 +1614,23 @@ static int owner_at_pointer(void)
  * no longer the fill pen, Dale: "the colour on the prefs bit needs sorting") */
 static void draw_cog(int force)
 {
-    struct RastPort *rp;
+    oldraw *d;
     int hot = cog_cell(), open = menu_w && menu_owner <= OW_POWER ? menu_owner : 0, state = hot + 3 * open, size, c;
     if (!cog_w || !slot_of(cog_w) || (!force && state == cog_drawn)) return;
     cog_drawn = state;
-    rp = cog_w->RPort;
     bar_paint(cog_w, 0, 0, gw, gh);
     band(cog_w, COG_GAP, 2 * TRAY_CELL, gh, BAND_SHADE);
     size = cog_size();
-    for (c = OW_PREFS; c <= OW_POWER; c++) {
-        WORD x = COG_GAP + (c - 1) * TRAY_CELL;
-        if (open == c) band(cog_w, x, TRAY_CELL, gh, BAND_HOT);
-        else if (hot == c) raised(rp, x, TRAY_CELL, gh);
-        SetAPen(rp, bar_text());
-        if (c == OW_PREFS) glyph(rp, size == 13 ? cog13 : size == 11 ? cog11 : cog9, size, x, TRAY_CELL, gh);
-        else glyph(rp, size == 13 ? pw13 : size == 11 ? pw11 : pw9, size, x, TRAY_CELL, gh);
+    if ((d = od_open(cog_w))) {
+        oldraw_colour ink = pen_colour(bar_text());
+        for (c = OW_PREFS; c <= OW_POWER; c++) {
+            WORD x = COG_GAP + (c - 1) * TRAY_CELL;
+            if (open == c) band(cog_w, x, TRAY_CELL, gh, BAND_HOT);
+            else if (hot == c) raised(d, x, TRAY_CELL, gh);
+            if (c == OW_PREFS) glyph(d, ink, size == 13 ? cog13 : size == 11 ? cog11 : cog9, size, x, TRAY_CELL, gh);
+            else glyph(d, ink, size == 13 ? pw13 : size == 11 ? pw11 : pw9, size, x, TRAY_CELL, gh);
+        }
+        oldraw_free(d);
     }
     see_key(cog_w);
 }
@@ -1616,6 +1649,7 @@ static void draw_menu(void)
 {
     struct RastPort *rp;
     WORD w, h;
+    LONG ink;
     int i;
     if (!menu_w) return;
     rp = menu_w->RPort;
@@ -1644,12 +1678,16 @@ static void draw_menu(void)
             continue;
         }
         if (i == menu_hot) { SetAPen(rp, pt_ok ? pt_hot_pen() : dri->dri_Pens[FILLPEN]); RectFill(rp, 2, y0, w - 3, y1); }
-        SetAPen(rp, pt_ok ? (i == menu_hot ? pt_hot_text_pen() : pt_text_pen()) : dri->dri_Pens[i == menu_hot ? FILLTEXTPEN : BARDETAILPEN]);
+        ink = pt_ok ? (i == menu_hot ? pt_hot_text_pen() : pt_text_pen()) : dri->dri_Pens[i == menu_hot ? FILLTEXTPEN : BARDETAILPEN];
+        SetAPen(rp, ink);
         aat_box(rp, scr, COG_PAD, y0, y1 - y0 + 1, t, strlen(t));
         if (menu_idx[i] >= XR_BASE && xrow[menu_idx[i] - XR_BASE].tick) {   /* 0.9: Active's tick */
-            WORD cy0 = (y0 + y1) / 2;
-            Move(rp, 2, cy0); Draw(rp, 4, cy0 + 2); Draw(rp, 8, cy0 - 3);
-            Move(rp, 2, cy0 + 1); Draw(rp, 4, cy0 + 3); Draw(rp, 8, cy0 - 2);
+            oldraw *d = od_open(menu_w);
+            if (d) {
+                struct tb_box b[18];
+                od_boxes(d, b, tb_tick_boxes((y0 + y1) / 2, b, 18), pen_colour(ink));
+                oldraw_free(d);
+            }
         }
     }
 }
@@ -2357,6 +2395,8 @@ static char cx_letter(const char *name)
 static void draw_cx(int force)
 {
     struct RastPort *rp;
+    oldraw *d;
+    oldraw_colour ink;
     int hot = cx_over(), open = menu_w && menu_owner >= OW_CX ? menu_owner - OW_CX : -1, state = (hot + 1) * 64 + open + 1, k;
     WORD size;
     if (!cx_w || !slot_of(cx_w) || (!force && state == cx_drawn)) return;
@@ -2365,26 +2405,25 @@ static void draw_cx(int force)
     bar_paint(cx_w, 0, 0, xw, xh);
     band(cx_w, 0, xw, xh, BAND_SHADE);
     size = cog_size();
-    SetDrMd(rp, JAM1);
+    d = od_open(cx_w);
+    ink = pen_colour(bar_text());
     for (k = 0; k < cx_n; k++) {
         const struct cx_item *c = &cx_all[cx_tray[k]];
         WORD x = k * TRAY_CELL, ox = x + (TRAY_CELL - size) / 2, oy = (xh - (bar_edge == OM_BAR_TITLE ? 1 : 0) - size) / 2, lw;
         char letter = cx_letter(c->name);
         if (oy < 0) oy = 0;
         if (open == k) band(cx_w, x, TRAY_CELL, xh, BAND_HOT);
-        else if (hot == k) raised(rp, x, TRAY_CELL, xh);
-        SetAPen(rp, bar_text());
-        if (c->flags & COF_ACTIVE) {
-            Move(rp, ox + 2, oy); Draw(rp, ox + size - 3, oy);
-            Move(rp, ox + size - 1, oy + 2); Draw(rp, ox + size - 1, oy + size - 3);
-            Move(rp, ox + size - 3, oy + size - 1); Draw(rp, ox + 2, oy + size - 1);
-            Move(rp, ox, oy + size - 3); Draw(rp, ox, oy + 2);
-            WritePixel(rp, ox + 1, oy + 1); WritePixel(rp, ox + size - 2, oy + 1);
-            WritePixel(rp, ox + 1, oy + size - 2); WritePixel(rp, ox + size - 2, oy + size - 2);
+        else if (hot == k && d) raised(d, x, TRAY_CELL, xh);
+        if ((c->flags & COF_ACTIVE) && d) {
+            struct tb_box b[8];
+            od_boxes(d, b, tb_rbox_boxes(ox, oy, size, b, 8), ink);
         }
+        SetAPen(rp, bar_text());                /* the letter: the bar's text, as its other words */
+        SetDrMd(rp, JAM1);
         lw = aat_length(rp, &letter, 1);
         aat_box(rp, scr, ox + (size - lw + 1) / 2, oy, size, &letter, 1);
     }
+    if (d) oldraw_free(d);
     see_key(cx_w);
 }
 
