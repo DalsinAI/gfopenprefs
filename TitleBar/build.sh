@@ -1,7 +1,7 @@
 #!/bin/sh
 # GFOpenPrefs Title bar and GFOpenTitle, with the os32 stove (m68k-amigaos-gcc, NDK 3.2).
 #   TitleBar/build.sh [OUT_DIR]     (default build/os3)
-# src/logo.h comes from tools/mklogo.py and AmiCradle's logo; it is kept in
+# src/logo.h and src/logo_big.h come from tools/cradle_mark.py (the GFOS mark); they are kept in
 # the repository, so the build needs no Python.
 # MIT, Copyright (c) 2026 AmiCradle Team.
 # CPU= and OPT= change -m68040 and -O2 (the ROM's build: OPT=-Os).

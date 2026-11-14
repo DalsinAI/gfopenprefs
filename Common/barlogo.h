@@ -32,7 +32,7 @@
 #include <intuition/intuitionbase.h>
 #include <proto/intuition.h>
 
-#define BARLOGO_PIC_W 64                /* the logo's picture (GFOpenTitle's logo_big.h) */
+#define BARLOGO_PIC_W 58                /* the logo's picture (GFOpenTitle's logo_big.h: the Deep cradle, 14 Nov 2026) */
 #define BARLOGO_PIC_H 44
 #define BARLOGO_GAP 6                   /* between the logo's window and the title's first letter */
 #define BARLOGO_MIN_SPACES 9
