@@ -43,5 +43,6 @@ int op_apply(void)
         if (r > RETURN_WARN && r > rc) rc = r;
     }
     lt_args = NULL;
+    if ((r = power_apply()) > RETURN_WARN && r > rc) rc = r;   /* 3.0: the saved power level (CM4 item 9) */
     return rc;
 }

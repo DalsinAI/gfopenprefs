@@ -3,7 +3,7 @@
 #ifndef OPENPREFS_H
 #define OPENPREFS_H
 
-#define OP_VERSION "2.9"                   /* higher than every editor it replaces (GFOpenLook 1.2, Windows 0.6.5, ...) */
+#define OP_VERSION "3.0"                   /* higher than every editor it replaces (GFOpenLook 1.2, Windows 0.6.5, ...) */
 
 int look_main(int argc, char **argv);
 int windows_main(int argc, char **argv);
@@ -24,6 +24,8 @@ int icontrol_main(int argc, char **argv);
 int icons_main(int argc, char **argv);    /* the Icons page (2.3): labels' place and gap, the column grid; (2.5) no icons */
 int printing_main(int argc, char **argv); /* the Printing page (2.4): printer.prefs' and printergfx.prefs' paper */
 int global_main(int argc, char **argv);   /* the Global Settings page (2.9): the default stack size */
+int power_main(int argc, char **argv);    /* the Power page (3.0): the host's power level (CM4 item 9) */
+int power_apply(void);                    /* GFOpenPrefs APPLY: the saved power level to the host */
 
 /* A page by its name ("Date & Time", "Title Bar"), letters in either case; -1 for none (opframe.c) */
 int lt_page_named(const char *name);
