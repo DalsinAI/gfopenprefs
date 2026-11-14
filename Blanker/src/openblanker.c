@@ -42,11 +42,12 @@
 #include <proto/diskfont.h>
 #include "openfont_text.h"
 #include "bl_wordmark.h"
+#include "bl_mark.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.5 (14.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.6 (14.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -103,9 +104,12 @@ static const card show[] = {
 #define FADE 55      /* frames: about 1.1 s at 50 Hz */
 #define GAP 18
 
-/* pens 0 to 5: background, text, red, steel, dim; their full colours */
-static const UBYTE full[6][3] = { {13,16,19}, {233,236,239}, {200,32,43}, {154,166,178}, {120,130,140}, {233,236,239} };
-enum { P_BG, P_INK, P_RED, P_STEEL, P_DIM };
+/* pens 0 to 7: background, text, red, steel, dim, (text), and since 1.6 the GFOS mark's arc and dot (the Deep
+ * cradle, #0b5ed7 and #ff7a1a); their full colours */
+#define NPENS 8
+static const UBYTE full[NPENS][3] = { {13,16,19}, {233,236,239}, {200,32,43}, {154,166,178}, {120,130,140}, {233,236,239},
+                                      {11,94,215}, {255,122,26} };
+enum { P_BG, P_INK, P_RED, P_STEEL, P_DIM, P_INK2, P_ARC, P_DOT };
 
 static struct Screen *scr;
 static struct Window *win;
@@ -117,7 +121,7 @@ static ULONG c32(UBYTE v) { return (ULONG)v * 0x01010101UL; }
 static void set_level(int level)   /* 0..256: how far the pens have come up from the background */
 {
     int p;
-    for (p = 1; p < 6; p++) {
+    for (p = 1; p < NPENS; p++) {
         int r = full[0][0] + (full[p][0] - full[0][0]) * level / 256;
         int g = full[0][1] + (full[p][1] - full[0][1]) * level / 256;
         int b = full[0][2] + (full[p][2] - full[0][2]) * level / 256;
@@ -215,6 +219,15 @@ static int wrap(struct RastPort *rp, const char *s, int w, const char *start[6],
     return n;
 }
 
+/* 1.6: a run of the GFOS mark in its pen */
+struct mark_ctx { struct RastPort *rp; int x, y; };
+static void mark_span(void *ctx, int x0, int x1, int y, int what)
+{
+    struct mark_ctx *m = ctx;
+    SetAPen(m->rp, what == BLM_DOT ? P_DOT : P_ARC);
+    RectFill(m->rp, m->x + x0, m->y + y, m->x + x1, m->y + y);
+}
+
 static void draw_card(const card *c)
 {
     struct RastPort *rp = &scr->RastPort;
@@ -250,7 +263,17 @@ static void draw_card(const card *c)
             int w[BL_WORDMARK_PARTS], k;
             SetFont(rp, f_title); SetSoftStyle(rp, FSF_BOLD, AskSoftStyle(rp));
             for (k = 0; k < BL_WORDMARK_PARTS; k++) w[k] = TextLength(rp, (STRPTR)bl_wordmark[k].text, (ULONG)bl_wordmark[k].len);
-            Move(rp, bl_wordmark_left(W, w, BL_WORDMARK_PARTS), y + f_title->tf_Baseline);
+            {
+                /* 1.6: the GFOS mark, the Deep cradle, as high as the title's capitals, before the wordmark */
+                int mh = f_title->tf_Baseline + 1, gap = mh / 3, all[BL_WORDMARK_PARTS + 1], left;
+                struct mark_ctx mc;
+                all[0] = bl_mark_geometry(mh).w + gap;
+                for (k = 0; k < BL_WORDMARK_PARTS; k++) all[k + 1] = w[k];
+                left = bl_wordmark_left(W, all, BL_WORDMARK_PARTS + 1);
+                mc.rp = rp; mc.x = left; mc.y = y + f_title->tf_Baseline + 1 - mh;
+                bl_mark_spans(mh, mark_span, &mc);
+                Move(rp, left + all[0], y + f_title->tf_Baseline);
+            }
             for (k = 0; k < BL_WORDMARK_PARTS; k++) {
                 SetAPen(rp, bl_wordmark[k].pen == BLW_RED ? P_RED : P_INK);
                 Text(rp, (STRPTR)bl_wordmark[k].text, (ULONG)bl_wordmark[k].len);
@@ -372,7 +395,7 @@ static void custom(CxMsg *msg, CxObj *co)
 }
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.5", (STRPTR)"Blanks the screen with a show: Gods and Angels",
+    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.6", (STRPTR)"Blanks the screen with a show: Gods and Angels",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 
