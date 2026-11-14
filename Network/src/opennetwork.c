@@ -399,7 +399,7 @@ static void bar_events(void)
     struct TaskspaceEvent *e;
     while ((e = (struct TaskspaceEvent *)GetMsg(events))) {
         struct SysBarEvent *b = (struct SysBarEvent *)e;
-        if (e->tse_Message.mn_Length == sizeof *b && b->sbe_Magic == SBE_MAGIC) {   /* 0.2: the library's: never replied */
+        if (SysBarBase && e->tse_Message.mn_Length == sizeof *b && b->sbe_Magic == SBE_MAGIC) {   /* 0.2: the library's: never replied */
             int which = !strcmp(b->sbe_Name, WIFI_NAME) ? 1 : 0;
             if (bar_mode == BAR_LIBRARY && b->sbe_Item == sbi[which] && (b->sbe_Kind == SBE_PLACE || b->sbe_Kind == SBE_CLICK)) {
                 box[which][0] = b->sbe_Left; box[which][1] = b->sbe_Top; box[which][2] = b->sbe_Width; box[which][3] = b->sbe_Height;
@@ -540,7 +540,7 @@ out:
         RemPort(events);
         while ((m = GetMsg(events))) {          /* the library's events are given back, never replied (Marcus) */
             struct SysBarEvent *b = (struct SysBarEvent *)m;
-            if (m->mn_Length == sizeof *b && b->sbe_Magic == SBE_MAGIC) SB_DoneEvent(b);
+            if (SysBarBase && m->mn_Length == sizeof *b && b->sbe_Magic == SBE_MAGIC) SB_DoneEvent(b);
             else ReplyMsg(m);
         }
         DeleteMsgPort(events);
