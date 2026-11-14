@@ -9,7 +9,7 @@
 #define SB_TEXTLEN   32      /* a text item's text (the clock is one) */
 #define SB_MAXW      16      /* the grid's cell (Common/traygrid.h) */
 #define SB_MAXH      16
-#define SB_STATES    4       /* pictures an item can have */
+#define SB_STATES    6       /* pictures an item can have (GFOpenSpeaker has 5: muted, off, 1 to 3 waves) */
 #define SB_COLOURS   12      /* the RGB of pixels 4 to 15, as the taskspace has them; 0 to 3 are the bar's pens */
 #define SB_MENUMAX   16      /* menu entries */
 #define SB_MENULEN   32      /* with its 0: one entry */
