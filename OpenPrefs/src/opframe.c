@@ -43,6 +43,8 @@
 #define LT_OP 1
 #include "looktabs.h"
 #include "op_why.h"
+#include "op_about.h"
+#include <gfopenlayout_about.h>
 
 struct Window *lt_win;
 int lt_next = -1;
@@ -82,6 +84,7 @@ static const UBYTE lt_group_end[LT_N] = { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
 #define LT_LIST_MIN 760                    /* a screen at least this wide has the list beside the page */
 
 static int lt_me = -1, lt_set, lt_list, lt_lw, lt_rowh, lt_ly, lt_lh, lt_cy, lt_ch, lt_cx, lt_cw, lt_fh;
+static int lt_aw;                          /* the About button's width beside the cycle gadget */
 static int lt_ry[LT_N];                    /* each section's row top, by section */
 static struct TextAttr lt_ta;
 static char lt_font[64];
@@ -116,6 +119,7 @@ static void lt_setup(struct Screen *scr)
         if ((w = TextLength(&rp, (STRPTR)lt_label[i], strlen(lt_label[i]))) > lt_lw) lt_lw = w;
     lt_cw = lt_lw + 40;                    /* the cycle gadget: its glyph and the longest name */
     lt_cx = 10 + TextLength(&rp, (STRPTR)"Section", 7) + 8;
+    lt_aw = TextLength(&rp, (STRPTR)OP_ABOUT_LABEL, strlen(OP_ABOUT_LABEL)) + 2 * 10;
     if (tf) CloseFont(tf);
     lt_lw += 2 * 10;
     lt_rowh = lt_fh + 5;
@@ -160,10 +164,18 @@ int lt_place(int *left, int *top) { (void)left; (void)top; return 0; }
 
 void lt_go(struct Window *win, int to) { (void)win; if (to >= 0 && to < LT_N) lt_next = to; }
 
+/* GFOpenPrefs' About window over the page, until OK (the page's window waits: olabout_show is a requester) */
+static void lt_about(void)
+{
+    static const olabout about = { OP_ABOUT_NAME, OP_ABOUT_VERSION, OP_ABOUT_TEXT };
+    olabout_show(lt_win ? lt_win->WScreen : NULL, &about);
+}
+
 int lt_hit(struct Gadget *g, UWORD code)
 {
     int to = -1;
     if (!g) return -1;
+    if (g->GadgetID == LT_ABOUT) { lt_about(); return -1; }
     if (g->GadgetID == LT_CYCLE) to = code < LT_N ? lt_order[code] : -1;
     else if (g->GadgetID >= LT_ID && g->GadgetID < LT_ID + LT_N) to = g->GadgetID - LT_ID;
     return to == lt_me ? -1 : to;
@@ -244,6 +256,13 @@ static int lt_frame_gadgets(struct Screen *scr)
         ng.ng_GadgetText = (STRPTR)"Section"; ng.ng_Flags = PLACETEXT_LEFT; ng.ng_GadgetID = LT_CYCLE;
         g = lt_cyc = CreateGadget(CYCLE_KIND, g, &ng, GTCY_Labels, (ULONG)labels, GTCY_Active, lt_pos(lt_me), TAG_DONE);
     }
+    /* About: under the list, as wide as it; beside the cycle gadget on a narrow screen */
+    if (g) {
+        ng.ng_GadgetText = (STRPTR)OP_ABOUT_LABEL; ng.ng_Flags = PLACETEXT_IN; ng.ng_GadgetID = LT_ABOUT;
+        if (lt_list) { ng.ng_LeftEdge = LT_LX; ng.ng_TopEdge = op_about_y(lt_ly, lt_lh); ng.ng_Width = lt_lw; ng.ng_Height = lt_rowh + 2; }
+        else { ng.ng_LeftEdge = lt_cx + lt_cw + 8; ng.ng_TopEdge = lt_cy; ng.ng_Width = lt_aw; ng.ng_Height = lt_ch; }
+        g = CreateGadget(BUTTON_KIND, g, &ng, TAG_DONE);
+    }
     for (lt_flast = lt_fg; lt_flast && lt_flast->NextGadget; lt_flast = lt_flast->NextGadget) ;
     return g != NULL;
 }
@@ -266,7 +285,8 @@ struct Window *lt_open(struct Screen *scr, int left, int top, int W, int H, stru
     lt_setup(scr);
     w = W + lt_dx;
     h = H;
-    if (lt_list && h < lt_lh + 8 + (lt_ly - scr->WBorTop - lt_fh - 1)) h = lt_lh + 8 + (lt_ly - scr->WBorTop - lt_fh - 1);
+    if (lt_list && h < op_about_min_h(lt_ly, lt_lh, lt_rowh + 2, scr->WBorTop + lt_fh + 1))
+        h = op_about_min_h(lt_ly, lt_lh, lt_rowh + 2, scr->WBorTop + lt_fh + 1);   /* the list and the About button */
     idcmp |= IDCMP_GADGETUP;
     lt_dirty = 0;
     if (lt_win) {

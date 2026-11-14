@@ -16,6 +16,9 @@ P=$HERE/..
 STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32}
 CC="$STOVE/prefix/bin/m68k-amigaos-gcc"
 OGT=${OGT:-$P/../gfopengadtools}
+# 3.1: the About window with the GFOS mark, GFOpenLayout's olabout (include/gfopenlayout_about.h; gfopenlayout #65)
+LAYOUT=${LAYOUT:-$P/../gfopenlayout}
+[ -f "$LAYOUT/include/gfopenlayout_about.h" ] || { echo "build.sh: no gfopenlayout with gfopenlayout_about.h at $LAYOUT (LAYOUT= to say where)" >&2; exit 1; }
 OUT=${1:-$HERE/build/os3}
 O=$OUT/obj
 mkdir -p "$O/app"
@@ -81,8 +84,13 @@ page "$P/Global/src/gs_stack.c" -I"$P/Global/src"
 # the Power page (3.0): the host's power level through accontrol.device 1.6 (CM4 item 9)
 page "$P/Power/src/power.c" -Dmain=power_main -Dversion=power_version -I"$P/Power/src"
 page "$P/Power/src/pw_info.c" -I"$P/Power/src"
+# the About window: GFOpenLayout's olabout and the oldraw it draws through
+mkdir -p "$O/layout"
+for f in draw/oldraw.c amiga/oldraw_amiga.c about/olabout.c amiga/olabout_amiga.c; do
+  "$CC" $BASE -DOLDRAW_AMIGA -I"$LAYOUT/include" -I"$LAYOUT/draw" -c -o "$O/layout/$(basename "$f" .c).o" "$LAYOUT/$f"
+done
 # the frame and the program, not moved: openprefs.c first, so its $VER is the file's first
-"$CC" $FRAME -o "$OUT/GFOpenPrefs" "$HERE/src/openprefs.c" "$HERE/src/op_apply.c" "$HERE/src/opframe.c" "$HERE/src/op_why.c" "$O"/app/*.o \
-  "$OGT/lib/ogt_theme.c"
+"$CC" $FRAME -I"$LAYOUT/include" -o "$OUT/GFOpenPrefs" "$HERE/src/openprefs.c" "$HERE/src/op_apply.c" "$HERE/src/opframe.c" \
+  "$HERE/src/op_why.c" "$O"/app/*.o "$OGT/lib/ogt_theme.c" "$O"/layout/*.o
 
 echo "$OUT/GFOpenPrefs ($(wc -c < "$OUT/GFOpenPrefs") bytes)"

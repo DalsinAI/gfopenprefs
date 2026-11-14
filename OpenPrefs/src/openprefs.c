@@ -46,7 +46,7 @@
 #include "looktabs.h"
 #include "openprefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (12.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (14.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct Library *UtilityBase;
 
