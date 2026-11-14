@@ -15,7 +15,7 @@ the top, holding a dot. Arc #0b5ed7, dot #ff7a1a. Our own drawing.
 import math
 import sys
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image
 
 ARC = (0x0b, 0x5e, 0xd7)
 DOT = (0xff, 0x7a, 0x1a)
@@ -44,8 +44,9 @@ MARK16 = [
 
 
 def geometry(h):
-    """(width, circle radius, centre y, stroke) for a mark h pixels high: the arc's ends sit (90 - OPEN/2) degrees
-    above its centre, so the mark is r * (1 + sin) high and 2r wide, plus the stroke"""
+    """(width, the band's middle radius r, centre y, stroke) for a mark h pixels high: the arc's ends sit
+    (90 - OPEN/2) degrees above its centre, their tops at row 0 and the band's bottom at the last row, so the mark
+    is r * (1 + sin) + stroke high and 2r + stroke wide (Blanker/src/bl_mark.h's bl_mark_geometry)"""
     heavy = h <= 16
     up = math.sin(math.radians(90 - OPEN / 2))
     stroke = h * (0.17 if heavy else 0.13)
@@ -56,26 +57,37 @@ def geometry(h):
 
 
 def mark(h, bar=False):
-    """the mark h pixels high, RGBA, its width from its shape"""
+    """the mark h pixels high, RGBA, its width from its shape: the same test per point as GFOpenBlanker's
+    Blanker/src/bl_mark.h (a band the stroke wide round a circle of radius r, round ends at 62 degrees either side
+    of up, the dot resting low inside), taken at 16 x 16 points a pixel and averaged"""
+    import numpy as np
     k = 16
-    w, r, cy, stroke = geometry(h)
+    w, r, cy, s = geometry(h)
     W = int(math.ceil(w))
-    big = Image.new("RGBA", (W * k, h * k))
-    d = ImageDraw.Draw(big)
-    cx = W * k / 2
-    R, S, CY = r * k, stroke * k, cy * k
-    a0, a1 = -90 + OPEN / 2, 270 - OPEN / 2       # PIL: 0 at three o'clock, clockwise; the gap centred at the top
-    box = [cx - R, CY - R, cx + R, CY + R]
-    arc = WHITE if bar else ARC
-    d.arc(box, a0, a1, fill=arc + (255,), width=int(S))
-    for a in (a0, a1):                            # round ends
-        ex = cx + (R - S / 2) * math.cos(math.radians(a))
-        ey = CY + (R - S / 2) * math.sin(math.radians(a))
-        d.ellipse([ex - S / 2, ey - S / 2, ex + S / 2, ey + S / 2], fill=arc + (255,))
-    dr = (R - S) * 0.52                           # the dot, resting low in the arc
-    dy = CY + (R - S) - dr - S * 0.55
-    d.ellipse([cx - dr, dy - dr, cx + dr, dy + dr], fill=DOT + (255,))
-    return big.resize((W, h), Image.LANCZOS)
+    cx = W / 2
+    ys, xs = np.mgrid[0:h * k, 0:W * k]
+    px = (xs + 0.5) / k - cx
+    py = (ys + 0.5) / k - cy
+    d2 = px * px + py * py
+    up = math.sin(math.radians(90 - OPEN / 2))
+    side = math.cos(math.radians(90 - OPEN / 2))
+    ro, ri = r + s / 2, r - s / 2
+    band = (d2 <= ro * ro) & (d2 >= ri * ri) & ~((py < 0) & (py * py > up * up * d2))
+    ex, ey = r * side, -r * up
+    caps = ((px - ex) ** 2 + (py - ey) ** 2 <= (s / 2) ** 2) | ((px + ex) ** 2 + (py - ey) ** 2 <= (s / 2) ** 2)
+    dr = ri * 0.46
+    dy = cy + ri - dr - s * 0.7
+    dot = px * px + ((ys + 0.5) / k - dy) ** 2 <= dr * dr
+    arc = (band | caps) & ~dot
+    rgba = np.zeros((h * k, W * k, 4), np.float32)
+    rgba[arc] = (WHITE if bar else ARC) + (255,)
+    rgba[dot] = DOT + (255,)
+    # average each k x k block, colour weighted by its alpha
+    blk = rgba.reshape(h, k, W, k, 4)
+    a = blk[..., 3].mean(axis=(1, 3))
+    col = (blk[..., :3] * blk[..., 3:4]).sum(axis=(1, 3)) / np.maximum(blk[..., 3].sum(axis=(1, 3)), 1)[..., None]
+    out = np.dstack([col, a]).round().clip(0, 255).astype(np.uint8)
+    return Image.fromarray(out, "RGBA")
 
 
 def h16():
