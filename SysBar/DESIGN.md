@@ -15,7 +15,7 @@ An item has:
 - a name, unique, up to 15 letters;
 - a help line;
 - an optional text (a text item, as the clock is);
-- up to 4 pictures of up to 16 x 16 pixels, one byte a pixel (0 to 3 the bar's pens, 4 to 15 its 12 colours, as
+- up to 6 pictures of up to 16 x 16 pixels, one byte a pixel (0 to 3 the bar's pens, 4 to 15 its 12 colours, as
   the taskspace has them), and the one shown;
 - an optional menu of up to 16 entries;
 - an order in the row (lower is further left; the same order, added first);
