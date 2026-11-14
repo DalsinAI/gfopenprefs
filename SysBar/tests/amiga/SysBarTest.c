@@ -85,6 +85,15 @@ int main(void)
                 c = SB_FindItem((CONST_STRPTR)"T-child");
                 SB_UnlockList();
                 CHECK(child_done && !c, "a task's item goes when the task has gone");
+                /* an item added by a task that then ended, before any lock: SendEvent refuses, never PutMsgs into its
+                 * gone port (Marcus's review) */
+                child_done = 0;
+                if (CreateNewProcTags(NP_Entry, (ULONG)child, NP_Name, (ULONG)"SysBarTest child", TAG_DONE)) {
+                    for (n = 0; n < 250 && !child_done; n++) Delay(1);
+                    Delay(10);
+                    c = SB_FindItem((CONST_STRPTR)"T-child");
+                    CHECK(!c || SB_SendEvent(c, SBE_CLICK, 0, box) == SBR_UNKNOWN, "an event for a gone task's item is refused");
+                }
             } else CHECK(0, "the child task starts");
             CHECK(SB_Disown() == SBR_OK, "the owner lets go");
         }

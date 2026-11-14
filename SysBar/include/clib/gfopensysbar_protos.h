@@ -13,14 +13,16 @@ LONG   SB_RemItem(struct SysBarItem *item);                                 /* -
 /* the owner */
 LONG   SB_Own(ULONG signal);                                                /* -48  d0: told of changes by this signal */
 LONG   SB_Disown(void);                                                     /* -54 */
-ULONG  SB_LockList(void);                                                   /* -60  the SBC_* since the last lock */
+ULONG  SB_LockList(void);                                                   /* -60  the SBC_* since the last lock (the
+                                                                             * owner's; 0 for anyone else) */
 struct SysBarItem *SB_NextItem(struct SysBarItem *prev);                    /* -66  a0; NULL: the first */
 void   SB_UnlockList(void);                                                 /* -72 */
 LONG   SB_SendEvent(struct SysBarItem *item, ULONG kind, ULONG entry, const WORD *box);   /* -78  a0 d0 d1 a1 */
 /* both */
-void   SB_DoneEvent(struct SysBarEvent *event);                             /* -84  a0 */
-STRPTR SB_MenuEntry(struct SysBarItem *item, ULONG n);                      /* -90  a0 d0; under the lock */
-struct SysBarItem *SB_FindItem(CONST_STRPTR name);                          /* -96  a0; under the lock */
+void   SB_DoneEvent(struct SysBarEvent *event);                             /* -84  a0: every event, never ReplyMsg
+                                                                             * (it has no reply port: replied, it leaks) */
+STRPTR SB_MenuEntry(struct SysBarItem *item, ULONG n);                      /* -90  a0 d0; NULL for an item gone */
+struct SysBarItem *SB_FindItem(CONST_STRPTR name);                          /* -96  a0 */
 APTR   SB_OwnerTask(void);                                                  /* -102 the owner's task, or NULL */
 
 #endif
