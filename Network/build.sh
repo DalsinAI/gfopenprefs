@@ -11,7 +11,7 @@ STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32}
 CC="$STOVE/prefix/bin/m68k-amigaos-gcc"
 OGT=${OGT:-$HERE/../../gfopengadtools}      # a checkout of DalsinAI/gfopengadtools: its theme reader (lib/ogt_theme.c)
 OUT=${1:-$HERE/build/os3}
-CFLAGS="-noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common -I$HERE/src -I$HERE/../TitleBar/include -I$HERE/../Common -I$OGT/lib"
+CFLAGS="-noixemul ${CPU:--m68040} $SPECS -std=gnu99 -Wall -Werror ${OPT:--O2} -fno-delete-null-pointer-checks -fno-common -I$HERE/src -I$HERE/../TitleBar/include -I$HERE/../SysBar/include -I$HERE/../Common -I$OGT/lib"
 if "$CC" -fno-late-combine-instructions -S -o /dev/null -x c /dev/null 2>/dev/null; then CFLAGS="$CFLAGS -fno-late-combine-instructions"; fi
 mkdir -p "$OUT"
 "$CC" $CFLAGS -o "$OUT/GFOpenNetwork" "$HERE/src/opennetwork.c" "$OGT/lib/ogt_theme.c"

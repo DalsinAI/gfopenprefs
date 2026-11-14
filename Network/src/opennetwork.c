@@ -17,6 +17,16 @@
  * 0.1.1 (12 November 2026): the panel's text anti-aliased through GFOpenLayout 19, as GFOpenTitle 0.8.1's
  *   (Common/aatext.h); Text() where it can't.
  *
+ * 0.2 (14 November 2026, Dale, 03:44: "make sure the new gfopensystray is that CX Exchange replacement. it still
+ *   looks like the network, sound aren't commodities"): a full commodity, as GFOpenSpeaker 0.3.
+ *   - Its icons are gfopensysbar.library's items when the library has an owner (GFOpenTitle 0.10), else the
+ *     taskspace's as before; it moves between the two when the owner comes or goes (looked at every 5 s).
+ *   - Exchange's commands (or the bar's Commodities menu, the same messages): Disable takes the broker and both
+ *     icons off the bar, Enable puts them back; Show opens the panel under the LAN icon, Hide closes it; Kill quits
+ *     (src/net_cx.h). Before 0.2 Hide took the icons away and Disable left them.
+ *   - The tool types (Common/cx_opts.h), from its icon (WBStartup's copy included) or the Shell's KEY=VALUE words:
+ *     CX_PRIORITY (default 0) and CX_POPUP (YES: the panel at the start, once the bar has said where the icon is).
+ *
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -28,12 +38,17 @@
 #include <intuition/intuition.h>
 #include <intuition/screens.h>
 #include <libraries/commodities.h>
+#include <workbench/startup.h>
+#include <workbench/workbench.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/intuition.h>
 #include <proto/graphics.h>
 #include <proto/commodities.h>
 #include <proto/bsdsocket.h>
+#include <proto/icon.h>
+#include <libraries/gfopensysbar.h>
+#include <proto/gfopensysbar.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -42,12 +57,15 @@
 #include "popuptheme.h"
 #include "net_pics.h"
 #include "aatext.h"
+#include "cx_opts.h"
+#include "net_cx.h"
 
-const char version[] __attribute__((used)) = "$VER: GFOpenNetwork 0.1.1 (12.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenNetwork 0.2 (14.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
 struct Library *CxBase, *SocketBase, *CyberGfxBase;
+struct Library *SysBarBase, *IconBase;         /* 0.2: gfopensysbar.library when there; icon.library for the tool types */
 
 #define NET_TOOL    "SYS:Tools/Commodities/GFOpenSocketControl"
 #define WIFI_DEVICE "gfopensocketwifi.device"    /* GFOpenSocket's: the PC's (or the card's) Wi-Fi */
@@ -75,7 +93,13 @@ static struct MsgPort *events;
 static int lan_in, wifi_in;                    /* our icons are in GFOpenTitle's row */
 static int lan_shown = -1, wifi_shown = -1;
 static WORD box[2][4];                         /* LAN, Wi-Fi: left, top, width, height on the screen (TSE_PLACE) */
-static int hidden;                             /* Exchange's Hide */
+static int disabled;                           /* 0.2: Exchange's Disable: off the bar until Enable */
+#define BAR_TASKSPACE 1                        /* 0.2: where the icons are: GFOpenTitle's taskspace port, */
+#define BAR_LIBRARY   2                        /* or gfopensysbar.library's items, drawn by its owner */
+static int bar_mode;                           /* the BAR_* the icons are in now; 0 none */
+static struct SysBarItem *sbi[2];              /* LAN, Wi-Fi: our items while bar_mode is BAR_LIBRARY */
+static cxo_opts opts;
+static int popup_due;                          /* CX_POPUP: the panel once the LAN icon's place is known */
 
 static struct Screen *pscr;
 static struct DrawInfo *pdri;
@@ -184,23 +208,79 @@ static LONG ts_send(int wifi, UWORD command)
     return m.tsm_Result;
 }
 
+/* 0.2: an icon as gfopensysbar.library's item: added, its picture and help changed, or removed. 1 when done. */
+static int sb_send(int wifi, UWORD command)
+{
+    static UBYTE pics[2][4 * NP_W * NP_H];
+    char help[SB_HELPLEN];
+    int i, states = wifi ? 4 : 3, state = wifi ? np_arcs(wifi_state > 0, wifi_signal) : lan_state;
+    if (!SysBarBase) return 0;
+    if (command == TSC_REMOVE) {
+        if (sbi[wifi]) SB_RemItem(sbi[wifi]);
+        sbi[wifi] = NULL;
+        return 1;
+    }
+    if (wifi) wifi_line(help, sizeof help); else lan_line(help, sizeof help);
+    if (!sbi[wifi]) {
+        LONG err = SBR_OK;
+        struct TagItem t[] = {
+            { SBA_Name, (ULONG)(wifi ? WIFI_NAME : LAN_NAME) }, { SBA_Help, (ULONG)help },
+            { SBA_Order, wifi ? WIFI_ORDER : LAN_ORDER }, { SBA_Width, NP_W }, { SBA_Height, NP_H },
+            { SBA_States, (ULONG)states }, { SBA_Pixels, (ULONG)pics[wifi] }, { SBA_State, (ULONG)state },
+            { SBA_Port, (ULONG)events }, { SBA_Error, (ULONG)&err }, { TAG_DONE, 0 } };
+        for (i = 0; i < states; i++) {
+            if (wifi) np_wifi(pics[1] + i * NP_W * NP_H, i);
+            else np_lan(pics[0] + i * NP_W * NP_H, i);
+        }
+        if (!(sbi[wifi] = SB_AddItemA(t))) return 0;
+    } else {
+        struct TagItem t[] = { { SBA_State, (ULONG)state }, { SBA_Help, (ULONG)help }, { TAG_DONE, 0 } };
+        if (SB_SetItemA(sbi[wifi], t) != SBR_OK) { sbi[wifi] = NULL; return 0; }   /* taken out meanwhile: added again next time */
+    }
+    if (wifi) wifi_shown = state; else lan_shown = state;
+    return 1;
+}
+
+/* an icon, in whichever row we are in: 1 when done */
+static int item_send(int wifi, UWORD command)
+{
+    if (bar_mode == BAR_LIBRARY) return sb_send(wifi, command);
+    if (bar_mode == BAR_TASKSPACE) return ts_send(wifi, command) == TSR_OK;
+    return 0;
+}
+
+/* 0.2: who draws the bar's row: BAR_LIBRARY (gfopensysbar.library has an owner), BAR_TASKSPACE (an older
+ * GFOpenTitle's port), or 0 (nobody yet: the ROM's GFOpenBar shows the network) */
+static int bar_owner_here(void)
+{
+    struct MsgPort *p;
+    if (SysBarBase && SB_OwnerTask()) return BAR_LIBRARY;
+    Forbid();
+    p = FindPort((STRPTR)TASKSPACE_PORT);
+    Permit();
+    return p ? BAR_TASKSPACE : 0;
+}
+
 static void icons_out(void)
 {
-    if (lan_in) { ts_send(0, TSC_REMOVE); lan_in = 0; }
-    if (wifi_in) { ts_send(1, TSC_REMOVE); wifi_in = 0; }
+    if (lan_in) { item_send(0, TSC_REMOVE); lan_in = 0; }
+    if (wifi_in) { item_send(1, TSC_REMOVE); wifi_in = 0; }
     lan_shown = wifi_shown = -1;
 }
 
-/* what the icons show now: added, changed or taken away */
+/* what the icons show now: added, changed or taken away; moved to the row that is there now */
 static void icons_update(void)
 {
-    if (hidden) { icons_out(); return; }
-    if (!lan_in) lan_in = ts_send(0, TSC_ADD) == TSR_OK;
-    else ts_send(0, TSC_SET);              /* the picture or the help (the address) may have changed */
+    int mode = bar_owner_here();
+    if (disabled) { icons_out(); return; }
+    if (mode != bar_mode) { icons_out(); bar_mode = mode; }
+    if (!bar_mode) return;
+    if (!lan_in) lan_in = item_send(0, TSC_ADD);
+    else if (!item_send(0, TSC_SET)) lan_in = 0;   /* the picture or the help (the address) may have changed */
     if (wifi_state >= 0) {
-        if (!wifi_in) wifi_in = ts_send(1, TSC_ADD) == TSR_OK;
-        else ts_send(1, TSC_SET);
-    } else if (wifi_in) { ts_send(1, TSC_REMOVE); wifi_in = 0; wifi_shown = -1; }
+        if (!wifi_in) wifi_in = item_send(1, TSC_ADD);
+        else if (!item_send(1, TSC_SET)) wifi_in = 0;
+    } else if (wifi_in) { item_send(1, TSC_REMOVE); wifi_in = 0; wifi_shown = -1; }
 }
 
 /* ---- the panel under an icon ---- */
@@ -314,11 +394,27 @@ static void bar_events(void)
 {
     struct TaskspaceEvent *e;
     while ((e = (struct TaskspaceEvent *)GetMsg(events))) {
+        struct SysBarEvent *b = (struct SysBarEvent *)e;
+        if (e->tse_Message.mn_Length == sizeof *b && b->sbe_Magic == SBE_MAGIC) {   /* 0.2: the library's: never replied */
+            int which = !strcmp(b->sbe_Name, WIFI_NAME) ? 1 : 0;
+            if (bar_mode == BAR_LIBRARY && b->sbe_Item == sbi[which] && (b->sbe_Kind == SBE_PLACE || b->sbe_Kind == SBE_CLICK)) {
+                box[which][0] = b->sbe_Left; box[which][1] = b->sbe_Top; box[which][2] = b->sbe_Width; box[which][3] = b->sbe_Height;
+                if (b->sbe_Kind == SBE_CLICK) {
+                    int again = pop && pop_for == which;
+                    if (pop) pop_close();
+                    if (!again) { net_poll(); pop_open(which); }
+                }
+                if (b->sbe_Kind == SBE_PLACE && !which && popup_due) { popup_due = 0; net_poll(); if (!pop) pop_open(0); }
+            }
+            SB_DoneEvent(b);
+            continue;
+        }
         if (e->tse_Magic == TASKSPACE_MAGIC) {
             int which = !strcmp(e->tse_Name, WIFI_NAME) ? 1 : 0;
             if (e->tse_Kind == TSE_PLACE || e->tse_Kind == TSE_CLICK) {
                 box[which][0] = e->tse_Left; box[which][1] = e->tse_Top; box[which][2] = e->tse_Width; box[which][3] = e->tse_Height;
             }
+            if (e->tse_Kind == TSE_PLACE && !which && popup_due) { popup_due = 0; net_poll(); if (!pop) pop_open(0); }
             if (e->tse_Kind == TSE_CLICK) {
                 int again = pop && pop_for == which;
                 if (pop) pop_close();
@@ -334,11 +430,50 @@ static void bar_events(void)
 }
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenNetwork", (STRPTR)"GFOpenNetwork 0.1", (STRPTR)"The network and Wi-Fi in the system bar",
-    NBU_UNIQUE | NBU_NOTIFY, COF_SHOW_HIDE, 0, NULL, 0
+    NB_VERSION, (STRPTR)"GFOpenNetwork", (STRPTR)"GFOpenNetwork 0.2", (STRPTR)"The network and Wi-Fi in the system bar",
+    NBU_UNIQUE | NBU_NOTIFY, COF_SHOW_HIDE, NCX_PRI_DEFAULT, NULL, 0
 };
 
-int main(void)
+/* 0.2: the tool types (from Workbench: our icon's, WBStartup's copy included) or the Shell's KEY=VALUE words */
+static void read_options(int argc, char **argv)
+{
+    cxo_defaults(&opts, NCX_PRI_DEFAULT);
+    if (argc == 0 && argv) {
+        struct WBStartup *wb = (struct WBStartup *)argv;
+        struct DiskObject *dob;
+        BPTR old;
+        if (!(IconBase = OpenLibrary((STRPTR)"icon.library", 37)) || wb->sm_NumArgs < 1) return;
+        old = CurrentDir(wb->sm_ArgList[0].wa_Lock);
+        if ((dob = GetDiskObject((STRPTR)wb->sm_ArgList[0].wa_Name))) {
+            char **tt;
+            for (tt = (char **)dob->do_ToolTypes; tt && *tt; tt++) cxo_word(&opts, *tt);
+            FreeDiskObject(dob);
+        }
+        CurrentDir(old);
+    } else {
+        int i;
+        for (i = 1; i < argc; i++) cxo_word(&opts, argv[i]);
+    }
+}
+
+/* 0.2: one of Exchange's commands (src/net_cx.h) */
+static void command(CxObj *broker, LONG id, int *quit)
+{
+    int d = ncx_do(id, disabled);
+    if (d & NCX_QUIT) *quit = 1;
+    if (d & NCX_BROKER_OFF) { ActivateCxObj(broker, 0); disabled = 1; }
+    if (d & NCX_BROKER_ON) { ActivateCxObj(broker, 1); disabled = 0; }
+    if ((d & NCX_PANEL_CLOSE) && pop) pop_close();
+    if (d & NCX_ICONS_OFF) icons_out();
+    if (d & NCX_ICONS_ON) { net_poll(); icons_update(); }
+    if ((d & NCX_PANEL_OPEN) && !pop) {
+        net_poll();
+        if (lan_in && box[0][2]) pop_open(0);
+        else popup_due = 1;                  /* once the bar says where the LAN icon is */
+    }
+}
+
+int main(int argc, char **argv)
 {
     struct MsgPort *cxport = NULL, *tport = NULL;
     struct timerequest *tr = NULL;
@@ -350,6 +485,10 @@ int main(void)
     CyberGfxBase = OpenLibrary((STRPTR)"cybergraphics.library", 41);   /* the panel's exact colours */
     aat_open();                                         /* the panel's text through GFOpenLayout 19, else Text() */
     if (!IntuitionBase || !GfxBase || !CxBase) goto out;
+    read_options(argc, argv);                           /* 0.2 */
+    nb.nb_Pri = opts.pri;
+    popup_due = opts.popup;
+    SysBarBase = OpenLibrary((STRPTR)SYSBARNAME, SYSBAR_VERSION);   /* 0.2: none is fine: the taskspace port */
     if (!(cxport = CreateMsgPort())) goto out;
     nb.nb_Port = cxport;
     if (!(broker = CxBroker(&nb, NULL))) goto out;            /* one GFOpenNetwork: a second one just ends */
@@ -372,15 +511,7 @@ int main(void)
         while ((cm = (CxMsg *)GetMsg(cxport))) {
             ULONG type = CxMsgType(cm), id = CxMsgID(cm);
             ReplyMsg((struct Message *)cm);
-            if (type != CXM_COMMAND) continue;
-            switch (id) {
-            case CXCMD_KILL: quit = 1; break;
-            case CXCMD_DISABLE: ActivateCxObj(broker, 0); break;
-            case CXCMD_ENABLE: ActivateCxObj(broker, 1); break;
-            case CXCMD_DISAPPEAR: hidden = 1; if (pop) pop_close(); icons_update(); break;
-            case CXCMD_APPEAR: hidden = 0; net_poll(); icons_update(); break;
-            case CXCMD_UNIQUE: hidden = 0; net_poll(); icons_update(); break;   /* started again: show */
-            }
+            if (type == CXM_COMMAND) command(broker, (LONG)id, &quit);
         }
         bar_events();
         if (pop) pop_events();
@@ -412,6 +543,8 @@ out:
         DeleteMsgPort(cxport);
     }
     aat_close();
+    if (SysBarBase) CloseLibrary(SysBarBase);           /* after icons_out: our items are gone */
+    if (IconBase) CloseLibrary(IconBase);
     if (SocketBase) CloseLibrary(SocketBase);
     if (CyberGfxBase) CloseLibrary(CyberGfxBase);
     if (CxBase) CloseLibrary(CxBase);
