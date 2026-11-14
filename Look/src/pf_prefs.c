@@ -138,6 +138,44 @@ int pf_font_is_standard(const pf_font *f)
            (!strcmp(f->name, PF_STANDARD_FONT) || !strcmp(f->name, PF_OPEN_STANDARD_FONT));
 }
 
+int pf_profile_of(int rtg, long width, long height, unsigned long rx, unsigned long ry)
+{
+    if (rtg) return width <= 1024 ? PF_PROFILE_RTG_SMALL : width <= 1920 ? PF_PROFILE_RTG_1080 : PF_PROFILE_RTG_LARGE;
+    if (!rx || !ry) rx = ry = 1;
+    if (4 * ry >= 3 * rx && 4 * ry <= 5 * rx) return width <= 400 ? PF_PROFILE_LORES : PF_PROFILE_LACED;   /* 1:1 */
+    if (2 * ry >= 3 * rx && 2 * ry <= 5 * rx) return PF_PROFILE_HIRES;                                    /* 1:2 */
+    if (height >= 384) return PF_PROFILE_LACED;
+    return ry > rx ? PF_PROFILE_HIRES : PF_PROFILE_LORES;
+}
+
+void pf_font_gfos(pf_font *f, int type, int profile)
+{
+    memset(f->name, 0, sizeof f->name);
+    f->type = type;
+    f->style = 0;
+    f->flags = 0x02;              /* FPF_DISKFONT */
+    if (type == PF_SYSFONT) {
+        if (profile == PF_PROFILE_LORES) {
+            strcpy(f->name, "topaz.font");
+            f->ysize = 8;
+            f->flags = 0x01;      /* FPF_ROMFONT */
+        } else {
+            strcpy(f->name, PF_GFOS_MONO);
+            f->ysize = profile == PF_PROFILE_RTG_LARGE ? 16 : 13;
+        }
+    } else {
+        strcpy(f->name, PF_GFOS_SANS);
+        f->ysize = type == PF_SCREENFONT && profile >= PF_PROFILE_RTG_SMALL ? 13 : 11;
+    }
+}
+
+int pf_font_is_gfos(const pf_font *f, int profile)
+{
+    pf_font g = *f;
+    pf_font_gfos(&g, f->type, profile);
+    return f->ysize == g.ysize && f->style == 0 && !strcmp(f->name, g.name);
+}
+
 /* ---- palette.prefs ---------------------------------------------------------------------------------- */
 
 void pf_palette_defaults(pf_palette *p)

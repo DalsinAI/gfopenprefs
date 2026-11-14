@@ -34,6 +34,8 @@
 #include <libraries/asl.h>
 #include <graphics/text.h>
 #include <graphics/view.h>
+#include <graphics/displayinfo.h>
+#include <graphics/modeid.h>
 #include <devices/timer.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
@@ -88,7 +90,7 @@ enum {
     /* Pointer (G_PCOLR, G_PCOLG, G_PCOLB in that order) */
     G_PSETS, G_PUSESET, G_PONLY, G_PTYPES, G_PHOTX, G_PHOTY, G_PHOT, G_PCOLR, G_PCOLG, G_PCOLB, G_PCLEAR,
     /* Fonts */
-    G_FSCREEN, G_FSCREENPICK, G_FSCREENSTD, G_FICON, G_FICONPICK, G_FICONSTD, G_FSYS, G_FSYSPICK, G_FLABELS, G_FTEXTPEN, G_FFIELDPEN,
+    G_FSCREEN, G_FSCREENPICK, G_FSCREENSTD, G_FICON, G_FICONPICK, G_FICONSTD, G_FSYS, G_FSYSPICK, G_FSYSSTD, G_FLABELS, G_FTEXTPEN, G_FFIELDPEN,
     /* Colours */
     G_CPAL, G_CR, G_CG, G_CB, G_COS, G_CPENS, G_CPEN4, G_CPEN8,
     /* Backdrops */
@@ -667,6 +669,8 @@ static int label_style(const pf_font *f)
     return f->drawmode == 1 ? 1 : 0;               /* JAM2: a field behind the label */
 }
 
+static int screen_profile(void);
+
 static void describe_font(int type, char *out)
 {
     pf_font f;
@@ -674,7 +678,7 @@ static void describe_font(int type, char *out)
     if (!pf_font_get(&cur, type, &f) || !f.name[0]) { strcpy(out, "(the OS's own)"); return; }
     strcpy(n, f.name);
     if ((dot = strstr(n, ".font")) && !dot[5]) *dot = 0;
-    snprintf(out, 80, pf_font_is_standard(&f) ? "%s %d (standard)" : "%s %d", n, f.ysize);
+    snprintf(out, 80, pf_font_is_standard(&f) || pf_font_is_gfos(&f, screen_profile()) ? "%s %d (standard)" : "%s %d", n, f.ysize);
 }
 
 static int fonts_make(int row)
@@ -696,7 +700,8 @@ static int fonts_make(int row)
     G(BUTTON_KIND, G_FICONSTD, X1 + boxw + bw + 12, row, sw, lh, "Standard", 0, GA_Disabled, damaged); row += lh + 4;
     if (advanced) {
         G(TEXT_KIND, G_FSYS, X1, row, boxw, lh, "System font", PLACETEXT_LEFT, GTTX_Border, TRUE, GTTX_Text, (ULONG)font_text[PF_SYSFONT]);
-        G(BUTTON_KIND, G_FSYSPICK, X1 + boxw + 6, row, bw, lh, "Choose...", 0, GA_Disabled, damaged); row += lh + 8;
+        G(BUTTON_KIND, G_FSYSPICK, X1 + boxw + 6, row, bw, lh, "Choose...", 0, GA_Disabled, damaged);
+        G(BUTTON_KIND, G_FSYSSTD, X1 + boxw + bw + 12, row, sw, lh, "Standard", 0, GA_Disabled, damaged); row += lh + 8;
         G(CYCLE_KIND, G_FLABELS, X1, row, 160, lh, "Icon labels", PLACETEXT_LEFT, GTCY_Labels, (ULONG)label_labels); row += lh + 4;
         G(PALETTE_KIND, G_FTEXTPEN, X1, row, pw, lh, "Label colour", PLACETEXT_LEFT, GTPA_NumColors, nc); row += lh + 4;
         G(PALETTE_KIND, G_FFIELDPEN, X1, row, pw, lh, "Field colour", PLACETEXT_LEFT, GTPA_NumColors, nc); row += lh + 4;
@@ -730,17 +735,49 @@ static void pick_font(int type, const char *title, int fixed)
     status("Use, Test or Save: the font is used when the Workbench screen opens again.");
 }
 
-/* The Team's standard font for the screen or the icons (pf_font_standard), its pens and mode kept: OS 3.2.3's
- * CGTriumvirate where FONTS: has it, else AmiSans, TeX Gyre Heros (an open disk) */
+/* This screen's display profile (pf_profile_of, as openintuition chooses it): RTG when its monitor is past the
+ * chipset's (amicradle-guest screen_core.h OI_PROFILE_RTG_FIRST), the mode's ticks per pixel from DisplayInfo */
+static int screen_profile(void)
+{
+    /* The Workbench's own profile, from its visible size, as openintuition picks it. */
+    struct Screen *wb = LockPubScreen((STRPTR)"Workbench"), *s = wb ? wb : scr;
+    ULONG id = GetVPModeID(&s->ViewPort);
+    struct DisplayInfo di;
+    ULONG rx = 1, ry = 1;
+    int w = s->ViewPort.DWidth ? s->ViewPort.DWidth : s->Width;
+    int h2 = s->ViewPort.DHeight ? s->ViewPort.DHeight : s->Height, prof;
+    DisplayInfoHandle h = id != INVALID_ID ? FindDisplayInfo(id) : NULL;
+    if (h && GetDisplayInfoData(h, (UBYTE *)&di, sizeof di, DTAG_DISP, INVALID_ID)) {
+        rx = (UWORD)di.Resolution.x;
+        ry = (UWORD)di.Resolution.y;
+    }
+    prof = pf_profile_of(id != INVALID_ID && (id & MONITOR_ID_MASK) >= 0x00100000UL, w, h2, rx, ry);
+    if (wb) UnlockPubScreen(NULL, wb);
+    return prof;
+}
+
+static int in_fonts(const char *name)
+{
+    char path[160];
+    BPTR l;
+    snprintf(path, sizeof path, "FONTS:%s", name);
+    if ((l = Lock((STRPTR)path, ACCESS_READ))) UnLock(l);
+    return l != 0;
+}
+
+/* The Team's standard font, its pens and mode kept: GFOS's own (pf_font_gfos, sized by this screen's display
+ * profile) where FONTS: has GFOS Sans, else OS 3.2.3's CGTriumvirate where FONTS: has it, else AmiSans, TeX Gyre
+ * Heros (an open disk; pf_font_standard). The system font's is GFOS Mono, with no fallback but topaz. */
 static void standard_font(int type)
 {
     pf_font f;
-    BPTR l = Lock((STRPTR)"FONTS:" PF_STANDARD_FONT, ACCESS_READ);
-    if (l) UnLock(l);
+    int gfos = in_fonts(type == PF_SYSFONT ? PF_GFOS_MONO : PF_GFOS_SANS);
+    if (type == PF_SYSFONT && !gfos) { status("FONTS: has no GFOS Mono: GFOpenUp's GFOSFonts part brings it."); return; }
     if (!pf_font_get(&cur, type, &f)) {
         f.front = 1; f.back = 0; f.drawmode = type == PF_WBFONT ? 0 : 1;
     }
-    pf_font_standard(&f, l != 0);
+    if (gfos) pf_font_gfos(&f, type, screen_profile());
+    else pf_font_standard(&f, in_fonts(PF_STANDARD_FONT));
     if (!pf_font_put(&cur, &f)) { status("No memory for that."); return; }
     status("Use, Test or Save: the standard font is used when the Workbench screen opens again.");
 }
@@ -753,6 +790,7 @@ static void fonts_handle(int id, UWORD code)
     else if (id == G_FICONSTD) standard_font(PF_WBFONT);
     else if (id == G_FICONPICK) pick_font(PF_WBFONT, "The icons' font", 0);
     else if (id == G_FSYSPICK) pick_font(PF_SYSFONT, "The system font (fixed width)", 1);
+    else if (id == G_FSYSSTD) standard_font(PF_SYSFONT);
     else if ((id == G_FLABELS || id == G_FTEXTPEN || id == G_FFIELDPEN) && pf_font_get(&cur, PF_WBFONT, &wb)) {
         if (id == G_FLABELS) {
             wb.drawmode = code == 1 ? 1 : 0;

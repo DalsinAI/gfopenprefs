@@ -468,6 +468,51 @@ static void pointer_drawing(void)
     pf_free(&f); pf_free(&was);
 }
 
+/* GFOS's own fonts by display profile (DISPLAY-PROFILES 2.2) */
+static void gfos_fonts(void)
+{
+    static const struct { int rtg; long w, h; unsigned long rx, ry; int want; const char *what; } m[] = {
+        { 0, 320, 256, 44, 44, PF_PROFILE_LORES, "PAL lores" }, { 0, 640, 256, 22, 44, PF_PROFILE_HIRES, "PAL hires" },
+        { 0, 640, 512, 22, 22, PF_PROFILE_LACED, "hires laced" }, { 0, 1280, 256, 11, 44, PF_PROFILE_HIRES, "super-hires 1:4" },
+        { 0, 1280, 512, 11, 22, PF_PROFILE_HIRES, "super-hires laced" }, { 0, 320, 512, 44, 22, PF_PROFILE_LACED, "lores laced" },
+        { 0, 640, 480, 0, 0, PF_PROFILE_LACED, "no ticks" },
+        { 1, 800, 600, 1, 1, PF_PROFILE_RTG_SMALL, "800x600" }, { 1, 1024, 768, 1, 1, PF_PROFILE_RTG_SMALL, "1024x768" },
+        { 1, 1280, 720, 1, 1, PF_PROFILE_RTG_1080, "720p" }, { 1, 1920, 1080, 1, 1, PF_PROFILE_RTG_1080, "1080p" },
+        { 1, 3840, 2160, 1, 1, PF_PROFILE_RTG_LARGE, "4K" },
+    };
+    /* screen, icon, system: name and size per profile 1-6 */
+    static const struct { int s, i, y; const char *yn; } want[7] = {
+        { 0, 0, 0, 0 }, { 11, 11, 8, "topaz.font" }, { 11, 11, 13, PF_GFOS_MONO }, { 11, 11, 13, PF_GFOS_MONO },
+        { 13, 11, 13, PF_GFOS_MONO }, { 13, 11, 13, PF_GFOS_MONO }, { 13, 11, 16, PF_GFOS_MONO } };
+    unsigned i;
+    int pr;
+    pf_font f;
+    for (i = 0; i < sizeof m / sizeof m[0]; i++)
+        CHECK(pf_profile_of(m[i].rtg, m[i].w, m[i].h, m[i].rx, m[i].ry) == m[i].want, "profile of %s: %d, not %d",
+              m[i].what, pf_profile_of(m[i].rtg, m[i].w, m[i].h, m[i].rx, m[i].ry), m[i].want);
+    for (pr = 1; pr <= 6; pr++) {
+        memset(&f, 0, sizeof f);
+        f.front = 3; f.back = 1; f.drawmode = 1; f.special = 2;
+        strcpy(f.name, "topaz.font"); f.ysize = 9; f.style = 1; f.flags = 0x41;
+        pf_font_gfos(&f, PF_SCREENFONT, pr);
+        CHECK(!strcmp(f.name, PF_GFOS_SANS) && f.ysize == want[pr].s && f.style == 0 && f.flags == 2 && f.type == PF_SCREENFONT
+              && f.front == 3 && f.back == 1 && f.drawmode == 1 && f.special == 2 && pf_font_is_gfos(&f, pr),
+              "profile %d screen font: %s %d", pr, f.name, f.ysize);
+        pf_font_gfos(&f, PF_WBFONT, pr);
+        CHECK(!strcmp(f.name, PF_GFOS_SANS) && f.ysize == want[pr].i && f.type == PF_WBFONT && pf_font_is_gfos(&f, pr),
+              "profile %d icon font: %s %d", pr, f.name, f.ysize);
+        pf_font_gfos(&f, PF_SYSFONT, pr);
+        CHECK(!strcmp(f.name, want[pr].yn) && f.ysize == want[pr].y && f.flags == (pr == 1 ? 1 : 2) && pf_font_is_gfos(&f, pr),
+              "profile %d system font: %s %d", pr, f.name, f.ysize);
+    }
+    pf_font_gfos(&f, PF_SCREENFONT, PF_PROFILE_RTG_1080);
+    CHECK(!pf_font_is_gfos(&f, PF_PROFILE_HIRES), "GFOS Sans 13 isn't the hires screen's GFOS font");
+    f.style = 1;
+    CHECK(!pf_font_is_gfos(&f, PF_PROFILE_RTG_1080), "GFOS Sans in bold isn't it");
+    pf_font_standard(&f, 0);
+    CHECK(!pf_font_is_gfos(&f, PF_PROFILE_RTG_1080), "AmiSans isn't it");
+}
+
 int main(int argc, char **argv)
 {
     dir = argc > 1 ? argv[1] : ".";
@@ -476,6 +521,7 @@ int main(int argc, char **argv)
     list();
     fonts();
     fonts_as_classic();
+    gfos_fonts();
     palette();
     wbpattern();
     workbench();

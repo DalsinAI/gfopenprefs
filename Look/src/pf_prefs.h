@@ -42,6 +42,24 @@ int pf_font_put(pf_file *f, const pf_font *in);             /* 1, or 0 with no m
 void pf_font_standard(pf_font *f, int have_os_font);
 int pf_font_is_standard(const pf_font *f);                   /* 1 when f is either standard font, size and plain style */
 
+/* GFOS's own fonts (gfosfonts, Dale 14 Nov 2026 04:36; GFOpenUp's GFOSFonts part puts them in FONTS:). Where
+ * FONTS:GFOSSans.font is, "Standard" gives these, sized by the screen's display profile as amicradle-teams
+ * designs/DISPLAY-PROFILES-20261113.md section 2.2 sets them: the screen font GFOS Sans 11 on the chipset
+ * profiles and 13 on RTG (1080p and up stay 13, Dale 02:43), the icon font GFOS Sans 11, and the system font
+ * GFOS Mono 13 (16 on RTG large), topaz 8 on chipset lores. */
+#define PF_GFOS_SANS "GFOSSans.font"
+#define PF_GFOS_MONO "GFOSMono.font"
+/* the display profile of a screen, as openintuition's oi_profile_of (amicradle-guest screen_core.c) chooses
+ * it: rtg, the screen's width and height, and the mode's ticks per pixel across (rx) and down (ry). 1 chipset
+ * lores, 2 hires (1:2), 3 laced, 4 RTG up to 1024 wide, 5 RTG up to 1920, 6 RTG wider */
+enum { PF_PROFILE_LORES = 1, PF_PROFILE_HIRES, PF_PROFILE_LACED, PF_PROFILE_RTG_SMALL, PF_PROFILE_RTG_1080,
+       PF_PROFILE_RTG_LARGE };
+int pf_profile_of(int rtg, long width, long height, unsigned long rx, unsigned long ry);
+/* f's name, size, style 0 and flags for type (PF_SCREENFONT, PF_WBFONT, PF_SYSFONT) on a screen of profile;
+ * its pens, mode and label style kept */
+void pf_font_gfos(pf_font *f, int type, int profile);
+int pf_font_is_gfos(const pf_font *f, int profile);         /* 1 when f is what pf_font_gfos gives its type */
+
 /* ---- palette.prefs: PALT, struct PalettePrefs (400 bytes) ---- */
 #define PF_PALT PF_ID('P', 'A', 'L', 'T')
 #define PF_PALT_LEN 400
