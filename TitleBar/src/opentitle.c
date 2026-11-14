@@ -143,6 +143,9 @@
  *   lists the same brokers and its messages do the same.
  * 0.11.1 (Marcus's review of 0.11): the menu button is taken over a picture item only when its program has a broker;
  *   on any other it goes on to the screen's menus.
+ * 0.11.2 (Team 5, 14 November 2026: About windows with the GFOS mark): a click on the mark at the bar's left
+ *   opens GFOpenLayout's About window (tb_about.h; olabout), and a second click closes it; the clock and the tray go
+ *   on while it is open.
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -205,7 +208,9 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.11.1 (14.11.2026) GFOpenPrefs, AmiCradle Team";
+#include "tb_about.h"
+#include "gfopenlayout_about.h"
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle " TB_ABOUT_VERSION " (14.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -240,6 +245,14 @@ static struct Screen *scr;
 static int icon_in_bar;                        /* 0.7.8: Intuition draws the logo now (SA_TitleIcon) */
 static struct DrawInfo *dri;
 static struct Window *logo_w, *clock_w;
+/* 0.11.2: the About window, open while the bar goes on (a click on the mark; tb_about.h) */
+static olabout_win *about_w;
+static const olabout about = { TB_ABOUT_NAME, TB_ABOUT_VERSION, TB_ABOUT_TEXT };
+static void about_click(void)
+{
+    if (!tb_about_click(about_w != NULL)) { olabout_close(about_w); about_w = NULL; }
+    else about_w = olabout_open(scr, &about);
+}
 static WORD cx, cy, cw, ch;                    /* the clock window's place */
 static int bar_edge = OM_BAR_TITLE;
 static int border_set;                         /* we made the border black */
@@ -3026,6 +3039,7 @@ static void see_tick(void)
 
 static void close_all(void)
 {
+    if (about_w) { olabout_close(about_w); about_w = NULL; }     /* 0.11.2: before the screen goes */
     rb_clear();                                /* 0.9.2: the menu button left alone before any slot closes */
     see_off();                                 /* 0.7.5: the bar solid again while the screen is still ours */
     if (clock_w) { slot_close(clock_w); clock_w = NULL; tray("Clock", 0, CLOCK_ORDER); }
@@ -3338,6 +3352,7 @@ static void events(struct Window *w)
             EndRefresh(w, TRUE);
         }
         else if (cls == IDCMP_MOUSEBUTTONS && code == SELECTDOWN) {
+            if (w == logo_w) { about_click(); return; }     /* 0.11.2: the mark opens About (and closes it) */
             if (w == net_w) { if (pop_w) pop_close(); else pop_open(); return; }
             if (w == pop_w) { pop_click(my); return; }
             {   /* a program's icon: tell it; drop the icon when the program is gone */
@@ -3428,7 +3443,10 @@ static void logo_follow(void)
     int want = prefs.logo && !icon_in_bar && wb_title_shown();
     if (want && !logo_w) {
         bar_sample_now();
-        if ((logo_w = see_new(bar_window(0, 0, logo_window_w(), scr->BarHeight)))) draw_logo();
+        if ((logo_w = see_new(bar_window(0, 0, logo_window_w(), scr->BarHeight)))) {
+            ModifyIDCMP(logo_w, IDCMP_REFRESHWINDOW | IDCMP_ACTIVEWINDOW | IDCMP_MOUSEBUTTONS);  /* 0.11.2: About */
+            draw_logo();
+        }
     } else if (!want && logo_w) {
         CloseWindow(logo_w);
         logo_w = NULL;
@@ -3446,10 +3464,10 @@ static int is_window(struct Window *w)
 /* the windows that wake the task */
 static ULONG window_sigs(void)
 {
-    struct Window *const ws[5] = { logo_w, row_w, pop_w, help_w, menu_w };
+    struct Window *const ws[6] = { logo_w, row_w, pop_w, help_w, menu_w, olabout_window(about_w) };
     ULONG m = 0;
     int i;
-    for (i = 0; i < 5; i++) if (ws[i] && ws[i]->UserPort) m |= 1UL << ws[i]->UserPort->mp_SigBit;
+    for (i = 0; i < 6; i++) if (ws[i] && ws[i]->UserPort) m |= 1UL << ws[i]->UserPort->mp_SigBit;
     return m | os_sigs();
 }
 
@@ -3575,6 +3593,7 @@ int main(void)
         menu_events();
         rb_events(sig);                        /* 0.9.1: the menu button on the cog or the systray */
         events(logo_w);
+        if (about_w && olabout_handle(about_w)) { olabout_close(about_w); about_w = NULL; }   /* 0.11.2 */
         events(row_w);                         /* 0.8: the cog, the network and the programs' icons */
         os_events();                           /* 0.7: the cogs on the other public screens */
         if (pop_w) events(pop_w);
