@@ -2333,16 +2333,17 @@ static int sb_owner;
 static void sb_sync(void)
 {
     struct SysBarItem *it;
-    int i, changed = 0;
+    int i, changed = 0, help_drop = 0;
     if (!sb_owner) return;
     for (i = 0; i < TS_ICONS; i++) if (ts[i]) ts[i]->seen = 0;
+    /* under the lock only the fields are copied; windows are drawn, closed and opened after it */
     SB_LockList();
     for (it = SB_NextItem(NULL); it; it = SB_NextItem(it)) {
         struct ts_icon *t;
         ULONG n = 0;
         int ok = it->si_Pixels && it->si_Width && it->si_Width <= SB_MAXW && it->si_Height && it->si_Height <= SB_MAXH
                  && it->si_States && it->si_States <= SB_STATES;
-        int fr, at = ok ? ts_find(it->si_Name) : -1;
+        int fr, moved = 0, at = ok ? ts_find(it->si_Name) : -1;
         if (ok) n = (ULONG)it->si_Width * it->si_Height * it->si_States;
         for (fr = 0; fr < TS_ICONS && ts[fr]; fr++) ;
         t = at >= 0 ? ts[at] : NULL;
@@ -2354,13 +2355,11 @@ static void sb_sync(void)
             if (!(t = AllocVec(sizeof *t, MEMF_ANY | MEMF_CLEAR))) break;
             ts[fr] = t;
             strlcpy(t->name, it->si_Name, sizeof t->name);
-            t->sbi = it;
-            t->task = (struct Task *)it->si_Task;
             t->version = 2;                    /* it hears its place */
             changed = 1;
             /* fall through: its fields, as for a moved one */
         case TBS_MOVE:
-            if (t->win) ts_close_one(t, 1);    /* opened again after the lock, below */
+            moved = 1;                         /* closed and opened again after the lock, below */
             changed = 1;
             /* fall through */
         case TBS_REDRAW:
@@ -2370,24 +2369,32 @@ static void sb_sync(void)
             t->drawn = -1;
             /* fall through */
         case TBS_KEEP:
-            t->seen = 1;
+            if (tbs_rebind((void **)&t->sbi, (void **)&t->task, it, it->si_Task)) changed = 1;
+            t->seen = moved ? 2 : 1;
             if (strcmp(t->help, it->si_Help)) {
                 strlcpy(t->help, it->si_Help, sizeof t->help);
-                if (at >= 0 && help_for == at) help_close();
+                if (at >= 0 && help_for == at) help_drop = 1;
             }
             t->state = it->si_State < t->states ? it->si_State : 0;
-            ts_draw(t, 0);
             break;
         default:                               /* TBS_SKIP, TBS_FULL */
             break;
         }
     }
     SB_UnlockList();
-    /* the windows after the lock: opening one sends SBE_PLACE, and SB_LockList there may take out items */
-    for (i = 0; i < TS_ICONS; i++)
-        if (ts[i] && ts[i]->sbi && !ts[i]->seen) { ts_drop(i); changed = 1; }
-        else if (ts[i] && ts[i]->sbi && !ts[i]->win) ts_open_one(ts[i]);
-    if (changed) cx_sync(1);                   /* a commodity with an item leaves the systray */
+    /* opening a window sends SBE_PLACE, and SB_LockList there may take out items */
+    if (help_drop) help_close();
+    for (i = 0; i < TS_ICONS; i++) {
+        if (!ts[i]) continue;
+        switch (tbs_after(ts[i]->sbi != NULL, ts[i]->seen, ts[i]->win != NULL)) {
+        case TBA_DROP: ts_drop(i); changed = 1; break;
+        case TBA_REOPEN: ts_close_one(ts[i], 1); /* fall through */
+        case TBA_OPEN: ts_open_one(ts[i]); break;
+        case TBA_DRAW: ts_draw(ts[i], 0); break;
+        default: break;
+        }
+    }
+    if (changed) cx_sync(1);                   /* a commodity with an item leaves the systray, or comes back */
 }
 
 static void sb_start(void)
