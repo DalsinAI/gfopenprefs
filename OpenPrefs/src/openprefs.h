@@ -3,7 +3,8 @@
 #ifndef OPENPREFS_H
 #define OPENPREFS_H
 
-#define OP_VERSION "3.0"                   /* higher than every editor it replaces (GFOpenLook 1.2, Windows 0.6.5, ...) */
+#define OP_VERSION "3.1"                   /* higher than every editor it replaces (GFOpenLook 1.2, Windows 0.6.5, ...);
+                                            * 3.1: the About button (op_about.h) */
 
 int look_main(int argc, char **argv);
 int windows_main(int argc, char **argv);

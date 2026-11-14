@@ -2,6 +2,7 @@
 # GFOpenPrefs's host checks:
 #   - every section name maps to a page;
 #   - the pages' names (opframe.c's lt_label) are the 25 the user named, each one once;
+#   - the About button (op_about.h, about_test.c; it opens GFOpenLayout's olabout and picks no page);
 #   - Global Settings' stack size file (Global/tests/stack_test.c);
 #   - the Power page's sensors and levels (Power/tests/pw_test.c);
 #   - with a stove (STOVE=, default ~/AmiCradle/stoves/os32-gcc16): the app's first $VER is GFOpenPrefs's, and its
@@ -54,10 +55,30 @@ if command -v "$HCC" >/dev/null 2>&1; then
   if "$HCC" -std=c99 -Wall -Werror -I"$P/Global/src" -o "$W/stack_test" "$P/Global/tests/stack_test.c" "$P/Global/src/gs_stack.c" && "$W/stack_test"; then :; else fail=1; fi
   # the Power page: the host's sensors' JSON (Team 5's readings of 12 November 2026) and the levels' names
   if "$HCC" -std=c99 -Wall -Werror -I"$P/Power/src" -o "$W/pw_test" "$P/Power/tests/pw_test.c" "$P/Power/src/pw_info.c" && "$W/pw_test"; then :; else fail=1; fi
+  # the About button's words and place (op_about.h)
+  if "$HCC" -std=c99 -Wall -Werror -I"$HERE/src" -o "$W/about_test" "$HERE/tests/about_test.c" && "$W/about_test"; then :; else fail=1; fi
   rm -rf "$W"
 else
   echo "skipped why_test and stack_test: no host compiler ($HCC)"
 fi
+# the About button: a frame gadget the pages pass to lt_hit (LT_IS), which opens olabout and picks no page
+python3 - "$HERE/src/opframe.c" "$P/Common/looktabs.h" <<'EOF' || fail=1
+import re, sys
+fr, lt = open(sys.argv[1]).read(), open(sys.argv[2]).read()
+bad = []
+if not re.search(r'#define LT_IS\(id\).*\(id\) == LT_ABOUT', lt): bad.append('LT_IS leaves out LT_ABOUT')
+hit = fr[fr.index('int lt_hit('):]
+hit = hit[:hit.index('\n}\n')]
+if not re.search(r'LT_ABOUT\) \{ lt_about\(\); return -1; \}', hit): bad.append('lt_hit does not open About and stay')
+if 'olabout_show(' not in fr: bad.append("About is not GFOpenLayout's olabout")
+gad = fr[fr.index('static int lt_frame_gadgets('):]
+gad = gad[:gad.index('\n}\n')]
+if 'ng.ng_GadgetID = LT_ABOUT' not in gad or 'BUTTON_KIND' not in gad: bad.append("no About button among the frame's gadgets")
+if 'op_about_min_h(' not in fr: bad.append('the window is not made tall enough for the About button')
+if bad:
+    print('FAIL ' + '; '.join(bad)); sys.exit(1)
+print('ok   the About button opens olabout and leaves the page as it is')
+EOF
 python3 - "$HERE/src/openprefs.c" "$HERE/src/opshift.h" <<'EOF' || fail=1
 import re, sys
 src = open(sys.argv[1]).read()
@@ -97,6 +118,9 @@ STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32-gcc16}
 if [ ! -x "$STOVE/prefix/bin/m68k-amigaos-gcc" ]; then echo "skipped the build: no stove at $STOVE"; exit $fail; fi
 OGT=${OGT:-$P/../gfopengadtools}
 [ -f "$OGT/lib/ogt_theme.c" ] || { echo "skipped the build: no gfopengadtools at $OGT (OGT=)"; exit $fail; }
+LAYOUT=${LAYOUT:-$P/../gfopenlayout}
+[ -f "$LAYOUT/include/gfopenlayout_about.h" ] || { echo "skipped the build: no gfopenlayout with olabout at $LAYOUT (LAYOUT=)"; exit $fail; }
+export LAYOUT
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 STOVE=$STOVE OGT=$OGT CPU=-m68040 OPT=-Os sh "$HERE/build.sh" "$T/out" > "$T/build.log" 2>&1 || { tail -20 "$T/build.log"; echo "FAIL the build"; exit 1; }
 python3 - "$T/out" "$P" <<'EOF' || fail=1

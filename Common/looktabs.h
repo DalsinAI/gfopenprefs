@@ -54,7 +54,8 @@ enum { LT_LOOK, LT_WINDOWS, LT_TITLEBAR, LT_MENUS, LT_POINTER, LT_FONTS, LT_COLO
        LT_SCREENMODE, LT_ICONTROL, LT_ICONS, LT_PRINTING, LT_GLOBAL, LT_POWER, LT_N };
 #define LT_ID 900
 #define LT_CYCLE (LT_ID + 64)              /* the sections as a cycle gadget (a narrow screen) */
-#define LT_IS(id) (((id) >= LT_ID && (id) < LT_ID + LT_N) || (id) == LT_CYCLE)
+#define LT_ABOUT (LT_ID + 65)              /* the About button under the list (OpenPrefs/src/op_about.h): no page */
+#define LT_IS(id) (((id) >= LT_ID && (id) < LT_ID + LT_N) || (id) == LT_CYCLE || (id) == LT_ABOUT)
 extern struct Window *lt_win;              /* the one window, open across pages */
 extern int lt_next;                        /* the section picked: the page to open next, or -1 */
 extern int lt_win_w, lt_win_h;
