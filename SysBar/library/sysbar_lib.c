@@ -178,6 +178,17 @@ static STRPTR L_MenuEntry(REG(a0, struct SysBarItem *it), REG(d0, ULONG n), REG(
     return (STRPTR)sb_menu_entry(it, n);
 }
 
+/* the bar's owner's task, or NULL: a program can tell whether anyone will draw its items (an owner that ended
+ * counts as none) */
+static APTR L_OwnerTask(REG(a6, struct SysBarBase *b))
+{
+    APTR t;
+    ObtainSemaphore(&b->lock);
+    if ((t = sb_owner(&b->list)) && !alive(NULL, t)) { sb_disown(&b->list, t); t = NULL; }
+    ReleaseSemaphore(&b->lock);
+    return t;
+}
+
 static struct SysBarItem *L_FindItem(REG(a0, CONST_STRPTR name), REG(a6, struct SysBarBase *b))
 {
     return sb_find(&b->list, (const char *)name);
@@ -242,6 +253,7 @@ static const APTR lib_vectors[] = {
     (APTR)L_DoneEvent,      /* -84 */
     (APTR)L_MenuEntry,      /* -90 */
     (APTR)L_FindItem,       /* -96 */
+    (APTR)L_OwnerTask,      /* -102 */
     (APTR)-1,
 };
 static const struct { ULONG size; const APTR *vectors; APTR data; APTR init; } lib_inittable = {

@@ -56,7 +56,7 @@ int main(void)
         if (r == SBR_OWNED) printf("     (the bar has an owner already: the owner checks are skipped)\n");
         else {
             struct TagItem t[] = { { SBA_Text, (ULONG)"two" }, { TAG_DONE, 0 } };
-            CHECK(r == SBR_OK, "this task owns the bar");
+            CHECK(r == SBR_OK && SB_OwnerTask() == FindTask(NULL), "this task owns the bar, and SB_OwnerTask says so");
             ch = SB_LockList();
             SB_UnlockList();
             SetSignal(0, 1UL << sig);

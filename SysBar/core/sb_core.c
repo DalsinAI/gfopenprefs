@@ -318,6 +318,8 @@ int sb_disown(sb_list *l, void *task)
     return SBR_OK;
 }
 
+void *sb_owner(const sb_list *l) { return l->sl_Owner; }
+
 unsigned long sb_take_changes(sb_list *l)
 {
     unsigned long c = l->sl_Changed;
