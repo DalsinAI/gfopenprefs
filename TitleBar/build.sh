@@ -24,8 +24,9 @@ mkdir -p "$OUT"
 # GFOpenTitle reads where GFOpenMenus' bar is with the Menus editor's om_prefs.c, and draws what 0.9 added through
 # GFOpenLayout's oldraw (include/gfopenlayout_draw.h; draw/oldraw.c and amiga/oldraw_amiga.c, as its build-amiga.sh
 # puts them in libgfopenlayout_draw.a)
-[ -f "$LAYOUT/include/gfopenlayout_draw.h" ] || { echo "build.sh: no gfopenlayout at $LAYOUT (LAYOUT= to say where)" >&2; exit 1; }
+# 0.11.2: and its About window with the GFOS mark (include/gfopenlayout_about.h; gfopenlayout #65)
+[ -f "$LAYOUT/include/gfopenlayout_about.h" ] || { echo "build.sh: no gfopenlayout with gfopenlayout_about.h at $LAYOUT (LAYOUT= to say where)" >&2; exit 1; }
 "$CC" $CFLAGS -I"$HERE/../Menus/src" -I"$HERE/../SysBar/include" -I"$LAYOUT/include" -DOLDRAW_AMIGA -I"$LAYOUT/draw" -o "$OUT/GFOpenTitle" \
     "$HERE/src/opentitle.c" "$HERE/../Menus/src/om_prefs.c" "$OGT/lib/ogt_theme.c" "$LAYOUT/draw/oldraw.c" \
-    "$LAYOUT/amiga/oldraw_amiga.c"
+    "$LAYOUT/amiga/oldraw_amiga.c" "$LAYOUT/about/olabout.c" "$LAYOUT/amiga/olabout_amiga.c"
 echo "$OUT/TitleBar ($(wc -c < "$OUT/TitleBar") bytes), $OUT/GFOpenTitle ($(wc -c < "$OUT/GFOpenTitle") bytes)"

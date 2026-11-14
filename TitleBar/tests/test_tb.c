@@ -7,6 +7,7 @@
 #include "tb_shapes.h"
 #include "tb_sbsync.h"
 #include "tb_owner.h"
+#include "tb_about.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -407,6 +408,14 @@ int main(void)
     shapes_tests();
     sbsync_tests();
     owner_tests();
+    {   /* 0.11.2: the About window's lines, and the mark's click toggling it */
+        const char *t = TB_ABOUT_TEXT, *q;
+        int lines = 1, run = 0, longest = 0;
+        for (q = t; *q; q++) { if (*q == '\n') { lines++; run = 0; } else if (++run > longest) longest = run; }
+        CHECK(!strcmp(TB_ABOUT_NAME, "GFOpenTitle") && lines == 3 && longest * 8 <= 640 - 120);
+        CHECK(strstr(t, "MIT, Copyright (c) 2026 AmiCradle Team.") != NULL && strchr(t, '%') == NULL);
+        CHECK(tb_about_click(0) == 1 && tb_about_click(1) == 0);
+    }
     printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, system bar items)");
     return failed != 0;
 }
