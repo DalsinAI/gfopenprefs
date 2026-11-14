@@ -92,7 +92,9 @@ int main(void)
                     for (n = 0; n < 250 && !child_done; n++) Delay(1);
                     Delay(10);
                     c = SB_FindItem((CONST_STRPTR)"T-child");
-                    CHECK(!c || SB_SendEvent(c, SBE_CLICK, 0, box) == SBR_UNKNOWN, "an event for a gone task's item is refused");
+                    CHECK(child_done && c, "the gone task's item is still listed before any lock");
+                    CHECK(c && SB_SendEvent(c, SBE_CLICK, 0, box) == SBR_UNKNOWN, "an event for a gone task's item is refused");
+                    CHECK(!SB_FindItem((CONST_STRPTR)"T-child"), "and the refused item is gone");
                 }
             } else CHECK(0, "the child task starts");
             CHECK(SB_Disown() == SBR_OK, "the owner lets go");
