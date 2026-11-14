@@ -15,6 +15,13 @@ marketing material). Each card fades in, holds and fades out, by the palette,
 as Amiga demos always have: the card is drawn with its pens at the background
 colour, then `SetRGB32` brings them up, frame by frame on the vertical blank.
 
+The first and last cards draw the wordmark, and the last card's credit line
+reads "The AmiCradle Team". Since 1.5 (14 November 2026) the wordmark is the
+plain text "GFOS", in `src/bl_wordmark.h`, until a GFOS logo is picked; the
+logo goes in there and nothing else changes. Nothing the blanker draws or
+prints spells the old name, split or joined: `tests/run.sh` checks the source,
+and the built binary when it's given one. (The screenshot above is from 1.0.)
+
 ## How it works
 
 - **A commodity**: `CxCustom` sees every key and mouse event and resets the
