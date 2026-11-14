@@ -25,7 +25,7 @@ mkdir -p "$OUT"
 # GFOpenLayout's oldraw (include/gfopenlayout_draw.h; draw/oldraw.c and amiga/oldraw_amiga.c, as its build-amiga.sh
 # puts them in libgfopenlayout_draw.a)
 [ -f "$LAYOUT/include/gfopenlayout_draw.h" ] || { echo "build.sh: no gfopenlayout at $LAYOUT (LAYOUT= to say where)" >&2; exit 1; }
-"$CC" $CFLAGS -I"$HERE/../Menus/src" -I"$LAYOUT/include" -DOLDRAW_AMIGA -I"$LAYOUT/draw" -o "$OUT/GFOpenTitle" \
+"$CC" $CFLAGS -I"$HERE/../Menus/src" -I"$HERE/../SysBar/include" -I"$LAYOUT/include" -DOLDRAW_AMIGA -I"$LAYOUT/draw" -o "$OUT/GFOpenTitle" \
     "$HERE/src/opentitle.c" "$HERE/../Menus/src/om_prefs.c" "$OGT/lib/ogt_theme.c" "$LAYOUT/draw/oldraw.c" \
     "$LAYOUT/amiga/oldraw_amiga.c"
 echo "$OUT/TitleBar ($(wc -c < "$OUT/TitleBar") bytes), $OUT/GFOpenTitle ($(wc -c < "$OUT/GFOpenTitle") bytes)"

@@ -5,6 +5,7 @@
 #include "tb_fade.h"
 #include "tb_format.h"
 #include "tb_shapes.h"
+#include "tb_sbsync.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -342,6 +343,38 @@ static void shapes_tests(void)
     CHECK(ok);
 }
 
+/* 0.10: gfopensysbar.library's items in the row (tb_sbsync.h) */
+static void sbsync_tests(void)
+{
+    /* tbs_plan(slot, slot_is_lib, free_slot, has_picture, same_place, same_picture) */
+    CHECK(tbs_plan(-1, 0, 1, 1, 0, 0) == TBS_NEW);              /* a new item, a slot free */
+    CHECK(tbs_plan(-1, 0, 0, 1, 0, 0) == TBS_FULL);             /* every slot taken */
+    CHECK(tbs_plan(-1, 0, 1, 0, 0, 0) == TBS_SKIP);             /* a text item (no picture) isn't shown yet */
+    CHECK(tbs_plan(3, 0, 1, 1, 1, 1) == TBS_SKIP);              /* the taskspace's icon of that name stays */
+    CHECK(tbs_plan(3, 1, 0, 1, 1, 1) == TBS_KEEP);              /* unchanged, even with no slot free */
+    CHECK(tbs_plan(3, 1, 0, 1, 1, 0) == TBS_REDRAW);            /* new pixels in the same place */
+    CHECK(tbs_plan(3, 1, 0, 1, 0, 1) == TBS_MOVE);              /* a new width or order */
+    CHECK(tbs_plan(3, 1, 0, 1, 0, 0) == TBS_MOVE);              /* both: moved, which draws the new picture too */
+    CHECK(tbs_plan(3, 1, 1, 0, 1, 1) == TBS_SKIP);              /* pixels taken away: not shown, and closed */
+    /* taskspace events as the library's: TSE_CLICK 1 -> SBE_CLICK 1, TSE_PLACE 3 -> SBE_PLACE 3, TSE_GONE 2 -> none */
+    CHECK(tbs_event(1) == 1 && tbs_event(3) == 3 && tbs_event(2) == 0 && tbs_event(0) == 0);
+    /* tbs_after(is_lib, seen, has_win): the windows after the lock */
+    CHECK(tbs_after(0, 0, 1) == TBA_NONE);                      /* a taskspace icon isn't the library's to drop */
+    CHECK(tbs_after(1, 0, 1) == TBA_DROP);                      /* gone from the list */
+    CHECK(tbs_after(1, 1, 0) == TBA_OPEN && tbs_after(1, 2, 0) == TBA_OPEN);   /* new: opened */
+    CHECK(tbs_after(1, 2, 1) == TBA_REOPEN);                    /* moved: closed and opened where it now goes */
+    CHECK(tbs_after(1, 1, 1) == TBA_DRAW);                      /* kept: drawn (ts_draw skips an unchanged key) */
+    /* removed and added again under the same name between two reads: the plan is KEEP, and the icon takes the new
+     * item and task (Marcus's review: the old pointer was kept, clicks went to a freed item) */
+    {
+        int old_item, new_item, old_task, new_task;
+        void *sbi = &old_item, *task = &old_task;
+        CHECK(tbs_plan(3, 1, 0, 1, 1, 1) == TBS_KEEP);
+        CHECK(tbs_rebind(&sbi, &task, &new_item, &new_task) == 1 && sbi == &new_item && task == &new_task);
+        CHECK(tbs_rebind(&sbi, &task, &old_item, &new_task) == 0 && sbi == &old_item && task == &new_task);
+    }
+}
+
 int main(void)
 {
     prefs_tests();
@@ -350,6 +383,7 @@ int main(void)
     format_tests();
     rect_tests();
     shapes_tests();
-    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes)");
+    sbsync_tests();
+    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, system bar items)");
     return failed != 0;
 }
