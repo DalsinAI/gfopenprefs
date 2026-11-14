@@ -16,7 +16,7 @@ Team.
 | --- | --- | --- |
 | Snapping | A window dropped near a screen edge, or near another window's edge, lines up with it | `snap on 12` (the distance in pixels) |
 | Halves | A window dropped with the pointer at the screen's left or right edge fills that half (resizable windows only) | `snap.halves on` |
-| Switcher | Amiga+Tab brings the window at the back to the front and activates it; Amiga+Shift+Tab sends the front window to the back | `switcher on`, `switcher.key lcommand tab` (commodity words) |
+| Switcher | Amiga+Tab brings the window at the back to the front and activates it; Amiga+Shift+Tab sends the front window to the back. Only windows with a system gadget (drag bar, depth, close or size) take part, so the desktop's furniture (tray buttons, GFOpenMeters) stays put (0.12.4, `src/switch_rule.h`) | `switcher on`, `switcher.key lcommand tab` (commodity words) |
 | Wheel (0.11) | The mouse wheel scrolls the scroll focus: the scroller last pushed, or beside the place last clicked, in the active window; until then the window's main one. Or the window under the pointer, or nothing (the raw keys alone). Below | `wheel.scroll on`, `wheel.target focus` (or `pointer`), `wheel.lines 3`, `wheel.self <program>` |
 | Places | A program's window opens where it was last left, and at the same size when it can be resized | `places on`, `never <program>` lines |
 | Drawers too (0.3) | Workbench's drawer windows are remembered the same way, with no Snapshot needed | `places.drawers on` |

@@ -1,7 +1,7 @@
 #!/bin/sh
 # GFOpenPrefs Windows and the GFOpenWindows commodity, with the os32 stove
 # (m68k-amigaos-gcc, NDK 3.2).
-#   Windows/build.sh [OUT_DIR]     (default build/os3)
+#   Windows/build.sh [OUT_DIR]     (default $OUT, else build/os3)
 # MIT, Copyright (c) 2026 AmiCradle Team.
 # CPU= and OPT= change -m68040 and -O2 (the ROM's build: OPT=-Os).
 set -eu
@@ -11,7 +11,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 SPECS="-specs=$HERE/../specs/m68k-soft-m68040.specs"
 STOVE=${STOVE:-$HOME/AmiCradle/stoves/os32}
 CC="$STOVE/prefix/bin/m68k-amigaos-gcc"
-OUT=${1:-$HERE/build/os3}
+OUT=${1:-${OUT:-$HERE/build/os3}}   # the stove build (Cradle) sets OUT=
 mkdir -p "$OUT"
 # GFOpenAmigaGCC 16.2.0-open3's late-combine pass can store a copy one place late (GCC PR 123853; Common/wbclose.h's
 # strcpy of "OpenWBNotify" came out so): off until open4 (gfopengcc #29), on a compiler that knows the option.

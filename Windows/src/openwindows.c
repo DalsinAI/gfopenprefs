@@ -103,8 +103,9 @@
 #include "places.h"
 #include "wheel.h"
 #include "centre_prefs.h"
+#include "switch_rule.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.12.3 (8.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenWindows 0.12.4 (14.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define PREFS_ENV "ENV:GFOpenPrefs/Windows"
 #define PLACES_ENV "ENV:GFOpenPrefs/WindowPlaces"
@@ -1119,13 +1120,11 @@ static void resize(void)
     }
 }
 
-/* A window Amiga+Tab offers: not a backdrop, not tiny, and not Workbench's
-   own root window (a Workbench window with no close gadget). */
+/* A window Amiga+Tab offers (switch_rule.h): not a backdrop, not tiny, not Workbench's own root window, and
+   one with a system gadget, so the desktop's furniture (tray buttons, panels) stays where it is. */
 static int switchable(struct Window *w)
 {
-    if (!w || (w->Flags & WFLG_BACKDROP) || w->Width < 8 || w->Height < 8) return 0;
-    if ((w->Flags & WFLG_WBENCHWINDOW) && !(w->Flags & WFLG_CLOSEGADGET)) return 0;
-    return 1;
+    return w && switch_rule_offers((unsigned long)w->Flags, w->Width, w->Height);
 }
 
 /* Amiga+Tab: the screen's windows from front to back, by their layers. */
