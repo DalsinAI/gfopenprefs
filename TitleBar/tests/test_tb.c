@@ -358,6 +358,21 @@ static void sbsync_tests(void)
     CHECK(tbs_plan(3, 1, 1, 0, 1, 1) == TBS_SKIP);              /* pixels taken away: not shown, and closed */
     /* taskspace events as the library's: TSE_CLICK 1 -> SBE_CLICK 1, TSE_PLACE 3 -> SBE_PLACE 3, TSE_GONE 2 -> none */
     CHECK(tbs_event(1) == 1 && tbs_event(3) == 3 && tbs_event(2) == 0 && tbs_event(0) == 0);
+    /* tbs_after(is_lib, seen, has_win): the windows after the lock */
+    CHECK(tbs_after(0, 0, 1) == TBA_NONE);                      /* a taskspace icon isn't the library's to drop */
+    CHECK(tbs_after(1, 0, 1) == TBA_DROP);                      /* gone from the list */
+    CHECK(tbs_after(1, 1, 0) == TBA_OPEN && tbs_after(1, 2, 0) == TBA_OPEN);   /* new: opened */
+    CHECK(tbs_after(1, 2, 1) == TBA_REOPEN);                    /* moved: closed and opened where it now goes */
+    CHECK(tbs_after(1, 1, 1) == TBA_DRAW);                      /* kept: drawn (ts_draw skips an unchanged key) */
+    /* removed and added again under the same name between two reads: the plan is KEEP, and the icon takes the new
+     * item and task (Marcus's review: the old pointer was kept, clicks went to a freed item) */
+    {
+        int old_item, new_item, old_task, new_task;
+        void *sbi = &old_item, *task = &old_task;
+        CHECK(tbs_plan(3, 1, 0, 1, 1, 1) == TBS_KEEP);
+        CHECK(tbs_rebind(&sbi, &task, &new_item, &new_task) == 1 && sbi == &new_item && task == &new_task);
+        CHECK(tbs_rebind(&sbi, &task, &old_item, &new_task) == 0 && sbi == &old_item && task == &new_task);
+    }
 }
 
 int main(void)
