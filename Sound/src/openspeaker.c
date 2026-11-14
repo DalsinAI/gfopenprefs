@@ -114,7 +114,7 @@
 #define SP_OLD_PORT "OpenSpeaker"            /* 0.1.8: SP_SPEAKER_PORT before the GF rename */
 static struct MsgPort *old_port;
 
-const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.3 (14.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.3.1 (14.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct Library *CyberGfxBase;
@@ -672,7 +672,7 @@ static void bar_events(void)
     if (!ts_events) return;
     while ((e = (struct TaskspaceEvent *)GetMsg(ts_events))) {
         struct SysBarEvent *b = (struct SysBarEvent *)e;
-        if (e->tse_Message.mn_Length == sizeof *b && b->sbe_Magic == SBE_MAGIC) {   /* 0.3: the library's: not replied */
+        if (SysBarBase && e->tse_Message.mn_Length == sizeof *b && b->sbe_Magic == SBE_MAGIC) {   /* 0.3: the library's: not replied */
             if (in_bar == BAR_LIBRARY && b->sbe_Item == sb_item && (b->sbe_Kind == SBE_PLACE || b->sbe_Kind == SBE_CLICK)) {
                 sx = b->sbe_Left; sy = b->sbe_Top; sw = b->sbe_Width; sh = b->sbe_Height;
                 Disable(); hx0 = sx; hy0 = sy; hx1 = sx + sw; hy1 = sy + sh; Enable();
@@ -973,7 +973,11 @@ out:
     if (ts_events) {
         struct Message *m;
         RemPort(ts_events);
-        while ((m = GetMsg(ts_events))) ReplyMsg(m);
+        while ((m = GetMsg(ts_events))) {          /* the library's events are given back, never replied (Marcus) */
+            struct SysBarEvent *b = (struct SysBarEvent *)m;
+            if (SysBarBase && m->mn_Length == sizeof *b && b->sbe_Magic == SBE_MAGIC) SB_DoneEvent(b);
+            else ReplyMsg(m);
+        }
         DeleteMsgPort(ts_events);
     }
     if (timer) { if (!CheckIO((struct IORequest *)tr)) AbortIO((struct IORequest *)tr); WaitIO((struct IORequest *)tr); CloseDevice((struct IORequest *)tr); }

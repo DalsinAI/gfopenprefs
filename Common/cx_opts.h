@@ -1,7 +1,7 @@
 /* The tool types every GFOpenPrefs commodity reads (Exchange's own words): CX_PRIORITY (-128 to 127) and CX_POPUP
  * (YES opens its interface at the start), from the icon's tool types or the Shell's KEY=VALUE words. Plain C, so
- * the host tests (Common/tests/cx_opts_test.c) run it. GFOpenNetwork 0.2 first; GFOpenSpeaker's sp_cx.h has the same
- * rules and moves onto this once gfopenprefs #202 is in.
+ * the host tests (Common/tests/cx_opts_test.c) run it. GFOpenNetwork 0.2 and GFOpenSpeaker 0.3 (Sound/src/sp_cx.h)
+ * read them through this.
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef CX_OPTS_H
 #define CX_OPTS_H

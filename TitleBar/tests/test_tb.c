@@ -344,7 +344,7 @@ static void shapes_tests(void)
     CHECK(ok);
 }
 
-/* 0.10: gfopensysbar.library's items in the row (tb_sbsync.h) */
+/* 0.11: whose menu, which broker, which letters (tb_owner.h) */
 static void owner_tests(void)
 {
     int a, b, c;
@@ -365,6 +365,7 @@ static void owner_tests(void)
     CHECK(!tbo_in_strip(1, 1, 0));                              /* GFOpenTitle's own broker */
 }
 
+/* 0.10: gfopensysbar.library's items in the row (tb_sbsync.h) */
 static void sbsync_tests(void)
 {
     /* tbs_plan(slot, slot_is_lib, free_slot, has_picture, same_place, same_picture) */
