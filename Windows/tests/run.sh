@@ -1,6 +1,6 @@
 #!/bin/sh
 # GFOpenWindows' gesture table (src/gestures.c), places (src/places.c), wheel (src/wheel.c) and centring defaults
-# (src/centre_prefs.h) built
+# (src/centre_prefs.h) and Amiga+Tab rule (src/switch_rule.h) built
 # for the host and run.
 #   Windows/tests/run.sh          needs a host C compiler (cc or gcc)
 # MIT, Copyright (c) 2026 AmiCradle Team.
@@ -18,3 +18,5 @@ ${CC:-cc} -std=gnu99 -O1 -g -Wall -Wextra -Werror -o "$OUT/test_centre" "$HERE/t
 "$OUT/test_centre"
 ${CC:-cc} -std=gnu99 -O1 -g -Wall -Wextra -Werror -o "$OUT/test_comp_prefs" "$HERE/test_comp_prefs.c"
 "$OUT/test_comp_prefs"
+${CC:-cc} -std=gnu99 -O1 -g -Wall -Wextra -Werror -o "$OUT/test_switch_rule" "$HERE/test_switch_rule.c"
+"$OUT/test_switch_rule"
