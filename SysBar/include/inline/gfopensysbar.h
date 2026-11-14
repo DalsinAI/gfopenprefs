@@ -58,4 +58,7 @@
     register struct SysBarItem *_r __asm("d0"); register CONST_STRPTR _a0 __asm("a0") = __n; \
     __asm__ __volatile__ ("jsr -96(%%a6)" : "=r"(_r), "+r"(_a0) : "r"(_b) : "a1", __SB_X); _r; })
 
+#define SB_OwnerTask() ({ void *__sb = (SYSBAR_BASE_NAME); __SB_B; register APTR _r __asm("d0"); \
+    __asm__ __volatile__ ("jsr -102(%%a6)" : "=r"(_r) : "r"(_b) : "a0", "a1", __SB_X); _r; })
+
 #endif

@@ -215,7 +215,8 @@ int main(void)
     }
 
     /* the owner */
-    CHECK(sb_own(&l, &task_owner, 20) == SBR_OK && l.sl_Owner == &task_owner && l.sl_OwnerSig == 20, "an owner takes the bar");
+    CHECK(!sb_owner(&l), "no owner yet");
+    CHECK(sb_own(&l, &task_owner, 20) == SBR_OK && sb_owner(&l) == &task_owner && l.sl_OwnerSig == 20, "an owner takes the bar");
     CHECK(sb_own(&l, &task_a, 21) == SBR_OWNED, "a second owner is refused");
     CHECK(sb_disown(&l, &task_a) == SBR_OWNED, "only the owner lets go");
     CHECK(sb_disown(&l, &task_owner) == SBR_OK && !l.sl_Owner, "the owner lets go");

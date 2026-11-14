@@ -39,6 +39,7 @@ The library copies everything it is given. Up to 32 items at once.
 | `SB_DoneEvent(event)` | -84 | a program | Gives an event back once read (events are not replied). |
 | `SB_MenuEntry(item, n)` | -90 | under the lock | The menu's entry n, or NULL. |
 | `SB_FindItem(name)` | -96 | under the lock | An item by its name. |
+| `SB_OwnerTask()` | -102 | a program | The owner's task, or NULL: whether anyone draws the bar (GFOpenSpeaker keeps its own window until then). |
 
 The inline header (inline/gfopensysbar.h, through proto/gfopensysbar.h) calls it straight; or link
 `libgfopensysbar.a` (stub/) and call the functions.

@@ -19,3 +19,4 @@ LONG (SB_SendEvent)(struct SysBarItem *item, ULONG kind, ULONG entry, const WORD
 void (SB_DoneEvent)(struct SysBarEvent *event) { SB_DoneEvent(event); }
 STRPTR (SB_MenuEntry)(struct SysBarItem *item, ULONG n) { return SB_MenuEntry(item, n); }
 struct SysBarItem *(SB_FindItem)(CONST_STRPTR name) { return SB_FindItem(name); }
+APTR (SB_OwnerTask)(void) { return SB_OwnerTask(); }
