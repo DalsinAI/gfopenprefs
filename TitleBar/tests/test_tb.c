@@ -6,6 +6,7 @@
 #include "tb_format.h"
 #include "tb_shapes.h"
 #include "tb_sbsync.h"
+#include "tb_owner.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -344,6 +345,26 @@ static void shapes_tests(void)
 }
 
 /* 0.10: gfopensysbar.library's items in the row (tb_sbsync.h) */
+static void owner_tests(void)
+{
+    int a, b, c;
+    const void *tasks[3] = { &a, &b, NULL };
+    /* tbo_owner(cog, cx, ts): the cog first, then a letter, then a picture item */
+    CHECK(tbo_owner(1, 2, 3) == 1 && tbo_owner(2, -1, -1) == 2);
+    CHECK(tbo_owner(0, 2, 3) == TBO_CX + 2);
+    CHECK(tbo_owner(0, -1, 3) == TBO_TS + 3 && tbo_owner(0, -1, 0) == TBO_TS);
+    CHECK(tbo_owner(0, -1, -1) == 0);
+    CHECK(TBO_TS + 8 <= TBO_CX);                                /* the two ranges never meet (TS_ICONS is 8) */
+    /* tbo_broker_of: the program's broker, none for a program without one or no task */
+    CHECK(tbo_broker_of(tasks, 3, &b) == 1 && tbo_broker_of(tasks, 3, &a) == 0);
+    CHECK(tbo_broker_of(tasks, 3, &c) == -1 && tbo_broker_of(tasks, 3, NULL) == -1 && tbo_broker_of(tasks, 0, &a) == -1);
+    /* tbo_in_strip(ours, active, has_icons) */
+    CHECK(tbo_in_strip(0, 1, 0));                               /* ClickToFront, active: a letter */
+    CHECK(!tbo_in_strip(0, 0, 0));                              /* disabled: off the bar, in All commodities... */
+    CHECK(!tbo_in_strip(0, 1, 1));                              /* GFOpenSpeaker: its own picture instead */
+    CHECK(!tbo_in_strip(1, 1, 0));                              /* GFOpenTitle's own broker */
+}
+
 static void sbsync_tests(void)
 {
     /* tbs_plan(slot, slot_is_lib, free_slot, has_picture, same_place, same_picture) */
@@ -384,6 +405,7 @@ int main(void)
     rect_tests();
     shapes_tests();
     sbsync_tests();
+    owner_tests();
     printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, system bar items)");
     return failed != 0;
 }

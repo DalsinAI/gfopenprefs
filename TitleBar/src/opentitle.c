@@ -133,6 +133,14 @@
  *   taskspace's icons, drawn the same way: their help under them, their state, a click and their place sent back to
  *   the item's port (SBE_CLICK, SBE_PLACE). The items are the library's, so they are there again when GFOpenTitle
  *   starts again. Text items and items' menus come in a later step. The taskspace port works as before.
+ *
+ * 0.11 (14 November 2026, Dale, 03:44: "make sure the new gfopensystray is that CX Exchange replacement. it still
+ *   looks like the network, sound aren't commodities"): the systray is where commodities live (src/tb_owner.h).
+ *   The menu button on a picture item (GFOpenSpeaker's, GFOpenNetwork's, any program's) opens its program's
+ *   broker's menu, as on a letter: Show, Hide, Active, Information, Remove. A disabled broker leaves the strip, as a
+ *   disabled GFOpenSpeaker or GFOpenNetwork takes its own icons away; every broker, ours and third-party, active or
+ *   not, stays in the cog's "All commodities..." to enable again. commodities.library is untouched, so Exchange
+ *   lists the same brokers and its messages do the same.
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -179,6 +187,7 @@
 #include "tb_format.h"
 #include "tb_shapes.h"
 #include "tb_sbsync.h"                     /* 0.10 */
+#include "tb_owner.h"                      /* 0.11 */
 #include <gfopenlayout_draw.h>
 #include "om_prefs.h"
 #include "logo.h"
@@ -194,7 +203,7 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.10 (14.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.11 (14.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -1396,6 +1405,7 @@ static struct Window *cx_w;                    /* the systray's slot */
 /* 0.9.2: the cog's and the systray's places, published by the main task (rb_publish); rb_func reads only these,
  * never a Window, which the main task closes and opens again (Team 5's review of 0.9.1) */
 static struct tb_rect rb_cog, rb_cx;
+static struct tb_rect rb_ts[TS_ICONS];          /* 0.11: the picture items' places, for their brokers' menus */
 static WORD xx, xy, xw, xh;
 static int cx_drawn = -1;
 static void draw_cx(int force);
@@ -1404,7 +1414,8 @@ static void cx_sync(int read);
 /* 0.9: who a menu is for: Prefs (the cog), Power, or a systray item (OW_CX + its place in the systray) */
 #define OW_PREFS 1
 #define OW_POWER 2
-#define OW_CX    100
+#define OW_CX    TBO_CX
+#define OW_TS    TBO_TS                        /* 0.11: a picture item's (OW_TS + its slot): its program's broker */
 static int menu_owner;
 #define COG_GAP 6                              /* before Prefs and Power: their band apart from the systray's */
 
@@ -1609,13 +1620,13 @@ static int cx_over(void)
     return x / TRAY_CELL;
 }
 
-/* whose menu a click here opens: OW_PREFS, OW_POWER, OW_CX + k, or 0 */
+static int ts_at_pointer(void);
+
+/* whose menu a click here opens: OW_PREFS, OW_POWER, OW_CX + k, OW_TS + slot (0.11), or 0 */
 static int owner_at_pointer(void)
 {
     int k = cog_cell();
-    if (k) return k;
-    k = cx_over();
-    return k >= 0 ? OW_CX + k : 0;
+    return tbo_owner(k, k ? -1 : cx_over(), k || cx_over() >= 0 ? -1 : ts_at_pointer());
 }
 
 /* Prefs (the cog) and Power on their band; raised under the pointer; a deeper shade while its menu is open (0.9:
@@ -1734,8 +1745,10 @@ static void xr_add(const char *label, int act, int tick)
 static int cx_find(const char *name);
 
 /* the box the menu hangs from: its right edge, top and height (0.9: Prefs, Power or a systray item) */
+static int ts_box(int i, WORD *right, WORD *top, WORD *h);
 static void owner_box(int owner, WORD *right, WORD *top, WORD *h)
 {
+    if (owner >= OW_TS && owner < OW_TS + TS_ICONS && ts_box(owner - OW_TS, right, top, h)) return;   /* 0.11 */
     if (owner >= OW_CX) { *right = xx + (owner - OW_CX + 1) * TRAY_CELL; *top = xy; *h = xh; }
     else { *right = gx + COG_GAP + (owner == OW_POWER ? 2 : 1) * TRAY_CELL; *top = gy; *h = gh; }
 }
@@ -2086,6 +2099,35 @@ static int ts_over(const struct ts_icon *t)
     return t->win && IntuitionBase->FirstScreen == scr && x >= t->x && x < t->x + t->bw && y >= t->y && y < t->y + t->bh;
 }
 
+/* 0.11: the picture item's slot under the pointer, or -1 */
+static int ts_at_pointer(void)
+{
+    int i;
+    for (i = 0; i < TS_ICONS; i++) if (ts[i] && ts_over(ts[i])) return i;
+    return -1;
+}
+
+/* 0.11: the box a picture item's menu hangs from; 0 when the slot is empty */
+static int ts_box(int i, WORD *right, WORD *top, WORD *h)
+{
+    if (i < 0 || i >= TS_ICONS || !ts[i] || !ts[i]->win) return 0;
+    *right = ts[i]->x + ts[i]->bw; *top = ts[i]->y; *h = ts[i]->bh;
+    return 1;
+}
+
+/* 0.11: the program behind a picture item: the library item's task, or the taskspace port's */
+static struct Task *ts_task(const struct ts_icon *t)
+{
+    struct MsgPort *p;
+    struct Task *task = NULL;
+    if (t->sbi) return t->task;
+    if (!t->port[0]) return NULL;
+    Forbid();
+    if ((p = FindPort((STRPTR)t->port))) task = (struct Task *)p->mp_SigTask;
+    Permit();
+    return task;
+}
+
 /* the picture in the bar's pens and the program's colours; raised under the pointer, as the cog is */
 static void ts_draw(struct ts_icon *t, int force)
 {
@@ -2129,6 +2171,7 @@ static void ts_draw(struct ts_icon *t, int force)
 }
 
 static int ts_tell(struct ts_icon *t, UWORD kind);
+static void rb_publish(void);
 static void ts_open_one(struct ts_icon *t)
 {
     if (!scr || t->win) return;
@@ -2138,6 +2181,7 @@ static void ts_open_one(struct ts_icon *t)
         ts_draw(t, 1);
         tray(t->name, t->bw, t->order);
         if (t->version >= 2) ts_tell(t, TSE_PLACE);
+        rb_publish();                          /* 0.11: the menu button over it */
     }
 }
 
@@ -2151,7 +2195,7 @@ static void ts_close_one(struct ts_icon *t, int forget_place)
 {
     int i;
     for (i = 0; i < TS_ICONS; i++) if (ts[i] == t && help_for == i) help_close();
-    if (t->win) { slot_close(t->win); t->win = NULL; }
+    if (t->win) { slot_close(t->win); t->win = NULL; rb_publish(); }
     if (forget_place) tray(t->name, 0, t->order);
 }
 
@@ -2477,7 +2521,8 @@ static int cx_read(void)
     cx_all_n = count;
     cx_n = 0;
     for (i = 0; i < count && cx_n < CX_MAX; i++)
-        if (strcmp(now[i].name, TB_PORT) && !cx_has_icons(now[i].task)) cx_tray[cx_n++] = i;
+        if (tbo_in_strip(!strcmp(now[i].name, TB_PORT), (now[i].flags & COF_ACTIVE) != 0, cx_has_icons(now[i].task)))
+            cx_tray[cx_n++] = i;                /* 0.11: a disabled one is off the bar, in Commodities... */
     return changed || cx_n != n_was || memcmp(tray_was, cx_tray, cx_n * sizeof cx_tray[0]);
 }
 
@@ -2598,6 +2643,13 @@ static void owner_click(int owner, int menu)
     help_close();
     if (owner == OW_PREFS) menu_open(MK_PREFS, owner, NULL);
     else if (owner == OW_POWER) menu_open(MK_POWER, owner, NULL);
+    else if (owner >= OW_TS && owner < OW_TS + TS_ICONS) {   /* 0.11: a picture item: its program's broker's menu */
+        const void *tasks[CX_ALL];
+        int k, b;
+        struct ts_icon *t = ts[owner - OW_TS];
+        for (k = 0; k < cx_all_n; k++) tasks[k] = cx_all[k].task;
+        if (t && (b = tbo_broker_of(tasks, cx_all_n, ts_task(t))) >= 0) menu_open(MK_CX, owner, cx_all[b].name);
+    }
     else if (owner >= OW_CX && owner - OW_CX < cx_n) {
         const struct cx_item *c = &cx_all[cx_tray[owner - OW_CX]];
         if (!menu && (c->flags & COF_SHOW_HIDE))   /* its window shown, or hidden when it is */
@@ -2625,6 +2677,12 @@ static void rb_publish(void)
     else tb_rect_set(&rb_cog, 0, 0, 0, 0);
     if (cx_w && slot_of(cx_w)) tb_rect_set(&rb_cx, cx_w->LeftEdge, cx_w->TopEdge, cx_w->Width, cx_w->Height);
     else tb_rect_set(&rb_cx, 0, 0, 0, 0);
+    {
+        int i;
+        for (i = 0; i < TS_ICONS; i++)
+            if (ts[i] && ts[i]->win && slot_of(ts[i]->win)) tb_rect_set(&rb_ts[i], ts[i]->x, ts[i]->y, ts[i]->bw, ts[i]->bh);
+            else tb_rect_set(&rb_ts[i], 0, 0, 0, 0);
+    }
     Permit();
 }
 
@@ -2634,6 +2692,10 @@ static void rb_clear(void)
     rb_scr = NULL;
     tb_rect_set(&rb_cog, 0, 0, 0, 0);
     tb_rect_set(&rb_cx, 0, 0, 0, 0);
+    {
+        int i;
+        for (i = 0; i < TS_ICONS; i++) tb_rect_set(&rb_ts[i], 0, 0, 0, 0);
+    }
     Permit();
 }
 
@@ -2645,7 +2707,11 @@ static void rb_func(CxMsg *m, CxObj *co)
     if (!ie || ie->ie_Class != IECLASS_RAWMOUSE) return;
     if (ie->ie_Code == IECODE_RBUTTON) {
         if (!s || IntuitionBase->FirstScreen != s) return;
-        if (!tb_rect_hit(&rb_cog, s->MouseX, s->MouseY) && !tb_rect_hit(&rb_cx, s->MouseX, s->MouseY)) return;
+        if (!tb_rect_hit(&rb_cog, s->MouseX, s->MouseY) && !tb_rect_hit(&rb_cx, s->MouseX, s->MouseY)) {
+            int i, on = 0;                     /* 0.11: or a picture item */
+            for (i = 0; i < TS_ICONS && !on; i++) on = tb_rect_hit(&rb_ts[i], s->MouseX, s->MouseY);
+            if (!on) return;
+        }
         rb_held = 1;
         DisposeCxMsg(m);
         Signal(rb_task, 1UL << rb_sig);
@@ -3231,6 +3297,12 @@ static void events(struct Window *w)
                     if (menu_w) menu_close(1);
                     else if (cog_skip && cog_skip == o) cog_skip = 0;
                     else if (o) owner_click(o, code == MENUDOWN);
+                    return;
+                }
+                if (code == MENUDOWN) {        /* 0.11: on a picture item: its program's broker's menu */
+                    int o = owner_at_pointer();
+                    if (menu_w) menu_close(1);
+                    else if (o >= OW_TS && o < OW_TS + TS_ICONS) owner_click(o, 1);
                     return;
                 }
                 if (code != SELECTDOWN) continue;
