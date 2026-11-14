@@ -17,8 +17,10 @@ colour, then `SetRGB32` brings them up, frame by frame on the vertical blank.
 
 The first and last cards draw the wordmark, and the last card's credit line
 reads "The AmiCradle Team". Since 1.5 (14 November 2026) the wordmark is the
-plain text "GFOS", in `src/bl_wordmark.h`, until a GFOS logo is picked; the
-logo goes in there and nothing else changes. Nothing the blanker draws or
+plain text "GFOS", in `src/bl_wordmark.h`; since 1.6 the GFOS mark Dale picked,
+the Deep cradle (a deep arc in #0b5ed7 holding a dot in #ff7a1a), stands before
+it, as high as the title's capitals: `src/bl_mark.h` draws it at any size as
+runs of pixels in two pens of its own, which fade with the card. Nothing the blanker draws or
 prints spells the old name, split or joined: `tests/run.sh` checks the source,
 and the built binary when it's given one. (The screenshot above is from 1.0.)
 
