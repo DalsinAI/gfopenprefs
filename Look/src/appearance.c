@@ -739,15 +739,21 @@ static void pick_font(int type, const char *title, int fixed)
  * chipset's (amicradle-guest screen_core.h OI_PROFILE_RTG_FIRST), the mode's ticks per pixel from DisplayInfo */
 static int screen_profile(void)
 {
-    ULONG id = GetVPModeID(&scr->ViewPort);
+    /* The Workbench's own profile, from its visible size, as openintuition picks it. */
+    struct Screen *wb = LockPubScreen((STRPTR)"Workbench"), *s = wb ? wb : scr;
+    ULONG id = GetVPModeID(&s->ViewPort);
     struct DisplayInfo di;
     ULONG rx = 1, ry = 1;
+    int w = s->ViewPort.DWidth ? s->ViewPort.DWidth : s->Width;
+    int h2 = s->ViewPort.DHeight ? s->ViewPort.DHeight : s->Height, prof;
     DisplayInfoHandle h = id != INVALID_ID ? FindDisplayInfo(id) : NULL;
     if (h && GetDisplayInfoData(h, (UBYTE *)&di, sizeof di, DTAG_DISP, INVALID_ID)) {
         rx = (UWORD)di.Resolution.x;
         ry = (UWORD)di.Resolution.y;
     }
-    return pf_profile_of(id != INVALID_ID && (id & MONITOR_ID_MASK) >= 0x00100000UL, scr->Width, scr->Height, rx, ry);
+    prof = pf_profile_of(id != INVALID_ID && (id & MONITOR_ID_MASK) >= 0x00100000UL, w, h2, rx, ry);
+    if (wb) UnlockPubScreen(NULL, wb);
+    return prof;
 }
 
 static int in_fonts(const char *name)
