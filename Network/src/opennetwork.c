@@ -60,7 +60,7 @@
 #include "cx_opts.h"
 #include "net_cx.h"
 
-const char version[] __attribute__((used)) = "$VER: GFOpenNetwork 0.2 (14.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenNetwork 0.2.1 (14.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -235,7 +235,11 @@ static int sb_send(int wifi, UWORD command)
         if (!(sbi[wifi] = SB_AddItemA(t))) return 0;
     } else {
         struct TagItem t[] = { { SBA_State, (ULONG)state }, { SBA_Help, (ULONG)help }, { TAG_DONE, 0 } };
-        if (SB_SetItemA(sbi[wifi], t) != SBR_OK) { sbi[wifi] = NULL; return 0; }   /* taken out meanwhile: added again next time */
+        if (SB_SetItemA(sbi[wifi], t) != SBR_OK) {   /* taken out meanwhile, or refused: out, and added again next time */
+            SB_RemItem(sbi[wifi]);               /* SBR_UNKNOWN when it is gone already; else no SBR_DUP for good (Marcus) */
+            sbi[wifi] = NULL;
+            return 0;
+        }
     }
     if (wifi) wifi_shown = state; else lan_shown = state;
     return 1;
@@ -534,7 +538,11 @@ out:
     if (events) {
         struct Message *m;
         RemPort(events);
-        while ((m = GetMsg(events))) ReplyMsg(m);
+        while ((m = GetMsg(events))) {          /* the library's events are given back, never replied (Marcus) */
+            struct SysBarEvent *b = (struct SysBarEvent *)m;
+            if (m->mn_Length == sizeof *b && b->sbe_Magic == SBE_MAGIC) SB_DoneEvent(b);
+            else ReplyMsg(m);
+        }
         DeleteMsgPort(events);
     }
     if (cxport) {

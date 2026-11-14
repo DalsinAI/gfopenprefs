@@ -141,6 +141,8 @@
  *   disabled GFOpenSpeaker or GFOpenNetwork takes its own icons away; every broker, ours and third-party, active or
  *   not, stays in the cog's "All commodities..." to enable again. commodities.library is untouched, so Exchange
  *   lists the same brokers and its messages do the same.
+ * 0.11.1 (Marcus's review of 0.11): the menu button is taken over a picture item only when its program has a broker;
+ *   on any other it goes on to the screen's menus.
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -203,7 +205,7 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.11 (14.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.11.1 (14.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -2523,6 +2525,7 @@ static int cx_read(void)
     for (i = 0; i < count && cx_n < CX_MAX; i++)
         if (tbo_in_strip(!strcmp(now[i].name, TB_PORT), (now[i].flags & COF_ACTIVE) != 0, cx_has_icons(now[i].task)))
             cx_tray[cx_n++] = i;                /* 0.11: a disabled one is off the bar, in Commodities... */
+    if (changed) rb_publish();                  /* 0.11.1: which picture items have a broker for the menu button */
     return changed || cx_n != n_was || memcmp(tray_was, cx_tray, cx_n * sizeof cx_tray[0]);
 }
 
@@ -2679,8 +2682,13 @@ static void rb_publish(void)
     else tb_rect_set(&rb_cx, 0, 0, 0, 0);
     {
         int i;
+        const void *tasks[CX_ALL];
+        int k;
+        for (k = 0; k < cx_all_n; k++) tasks[k] = cx_all[k].task;
+        /* only an item whose program has a broker: on any other the menu button goes on to the screen's menus (Marcus) */
         for (i = 0; i < TS_ICONS; i++)
-            if (ts[i] && ts[i]->win && slot_of(ts[i]->win)) tb_rect_set(&rb_ts[i], ts[i]->x, ts[i]->y, ts[i]->bw, ts[i]->bh);
+            if (ts[i] && ts[i]->win && slot_of(ts[i]->win) && tbo_broker_of(tasks, cx_all_n, ts_task(ts[i])) >= 0)
+                tb_rect_set(&rb_ts[i], ts[i]->x, ts[i]->y, ts[i]->bw, ts[i]->bh);
             else tb_rect_set(&rb_ts[i], 0, 0, 0, 0);
     }
     Permit();

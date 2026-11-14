@@ -27,18 +27,10 @@ typedef struct spx_opts {
     char mute[SPX_HOTKEYLEN];                  /* MUTE: "" for none */
 } spx_opts;
 
-static inline int spx_upper(int c) { return c >= 'a' && c <= 'z' ? c - 32 : c; }
+#include "cx_opts.h"                         /* CX_PRIORITY and CX_POPUP, as every GFOpenPrefs commodity */
 
-/* key (to its '=' or end) is name, letter case aside */
-static inline int spx_key(const char *s, const char *name, const char **value)
-{
-    while (*name && spx_upper((unsigned char)*s) == *name) s++, name++;
-    if (*name) return 0;
-    while (*s == ' ') s++;
-    if (*s == '=') { s++; while (*s == ' ') s++; *value = s; return 1; }
-    if (!*s) { *value = s; return 1; }
-    return 0;
-}
+#define spx_upper cxo_upper
+#define spx_key   cxo_key
 
 static inline void spx_defaults(spx_opts *o) { o->pri = SPX_PRI_DEFAULT; o->popup = 0; o->mute[0] = 0; }
 
@@ -46,19 +38,10 @@ static inline void spx_defaults(spx_opts *o) { o->pri = SPX_PRI_DEFAULT; o->popu
 static inline int spx_word(spx_opts *o, const char *w)
 {
     const char *v;
+    cxo_opts c;
     if (!w) return 0;
-    if (spx_key(w, "CX_PRIORITY", &v)) {
-        long n = 0;
-        int neg = *v == '-', any = 0;
-        if (*v == '-' || *v == '+') v++;
-        for (; *v >= '0' && *v <= '9' && n < 1000; v++) n = n * 10 + (*v - '0'), any = 1;
-        if (any) { if (neg) n = -n; o->pri = n < -128 ? -128 : n > 127 ? 127 : (int)n; }
-        return 1;
-    }
-    if (spx_key(w, "CX_POPUP", &v)) {
-        o->popup = !*v || spx_upper((unsigned char)v[0]) == 'Y' || (spx_upper((unsigned char)v[0]) == 'O' && spx_upper((unsigned char)v[1]) == 'N');
-        return 1;
-    }
+    c.pri = o->pri; c.popup = o->popup;
+    if (cxo_word(&c, w)) { o->pri = c.pri; o->popup = c.popup; return 1; }
     if (spx_key(w, "MUTE", &v)) {
         int i = 0;
         if (spx_upper((unsigned char)v[0]) == 'N' && spx_upper((unsigned char)v[1]) == 'O' && spx_upper((unsigned char)v[2]) == 'N'
