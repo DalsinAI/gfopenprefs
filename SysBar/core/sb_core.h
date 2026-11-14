@@ -61,6 +61,7 @@ struct SysBarItem *sb_find(const sb_list *l, const char *name);
 const char *sb_menu_entry(const struct SysBarItem *it, unsigned n);   /* NULL past the last */
 int  sb_own(sb_list *l, void *task, unsigned long sig);
 int  sb_disown(sb_list *l, void *task);
+void *sb_owner(const sb_list *l);                              /* the owner's task, or NULL */
 unsigned long sb_take_changes(sb_list *l);                     /* the owner's: the SBC_* bits, cleared */
 void sb_free_all(sb_list *l);
 

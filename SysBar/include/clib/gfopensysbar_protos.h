@@ -21,5 +21,6 @@ LONG   SB_SendEvent(struct SysBarItem *item, ULONG kind, ULONG entry, const WORD
 void   SB_DoneEvent(struct SysBarEvent *event);                             /* -84  a0 */
 STRPTR SB_MenuEntry(struct SysBarItem *item, ULONG n);                      /* -90  a0 d0; under the lock */
 struct SysBarItem *SB_FindItem(CONST_STRPTR name);                          /* -96  a0; under the lock */
+APTR   SB_OwnerTask(void);                                                  /* -102 the owner's task, or NULL */
 
 #endif
