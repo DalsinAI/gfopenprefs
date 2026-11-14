@@ -128,6 +128,11 @@
  *   sticks' Eject, Reboot, Restart, Power off) is an icon of its own beside it. The systray and the Prefs and Power
  *   pair each sit on a shaded band of the bar's own colour, and an open item is a deeper shade, not the fill pen.
  *
+ * 0.10 (14 November 2026, Dale, 03:08: "go ahead" on designs/SYSTEM-BAR-LIBRARY-20261114.md): GFOpenTitle owns
+ *   gfopensysbar.library's bar (SB_Own) when the library is there, and shows its picture items in the row beside the
+ *   taskspace's icons, drawn the same way: their help under them, their state, a click and their place sent back to
+ *   the item's port (SBE_CLICK, SBE_PLACE). The items are the library's, so they are there again when GFOpenTitle
+ *   starts again. Text items and items' menus come in a later step. The taskspace port works as before.
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -163,6 +168,7 @@
 #include <devices/inputevent.h>
 #include <proto/input.h>
 #include <proto/commodities.h>
+#include <proto/gfopensysbar.h>              /* 0.10: SysBar/include */
 
 #include <string.h>
 #include <stdio.h>
@@ -172,6 +178,7 @@
 #include "tb_fade.h"
 #include "tb_format.h"
 #include "tb_shapes.h"
+#include "tb_sbsync.h"                     /* 0.10 */
 #include <gfopenlayout_draw.h>
 #include "om_prefs.h"
 #include "logo.h"
@@ -187,11 +194,12 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.9.3 (13.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.10 (14.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
 struct Library *LayersBase, *UtilityBase, *SocketBase, *WorkbenchBase, *CyberGfxBase, *CxBase;
+struct Library *SysBarBase;                     /* 0.10: gfopensysbar.library, when it is there */
 
 #define MENUS_ENV  "ENV:GFOpenMenus/Menus"
 #define TRAY_DIR   "ENV:GFOpenMenus/Tray"
@@ -2036,7 +2044,10 @@ struct ts_icon {
     WORD order;
     UWORD state, w, h, states;
     UWORD version;                             /* 0.8: the protocol the program spoke; 2 hears TSE_PLACE */
-    UBYTE pixels[TS_STATES * TS_MAXW * TS_MAXH];
+    struct SysBarItem *sbi;                    /* 0.10: a gfopensysbar.library item's, else NULL (a taskspace icon) */
+    struct Task *task;                         /* 0.10: the library item's program */
+    int seen;                                  /* 0.10: still in the library's list at the last read */
+    UBYTE pixels[SB_STATES * SB_MAXW * SB_MAXH];   /* 0.10: room for the library's 16 x 16 too */
     ULONG rgb[12];
     struct Window *win;
     WORD x, y, bw, bh;
@@ -2206,6 +2217,16 @@ static int ts_tell(struct ts_icon *t, UWORD kind)
 {
     struct TaskspaceEvent *e;
     struct MsgPort *p;
+    if (t->sbi) {                              /* 0.10: through the library, which checks the item is still there */
+        WORD box[4];
+        int k = tbs_event(kind);
+        if (!k || !SysBarBase) return 1;
+        box[0] = t->x; box[1] = t->y; box[2] = t->bw; box[3] = t->bh;
+        SB_LockList();
+        SB_SendEvent(t->sbi, (ULONG)k, 0, box);
+        SB_UnlockList();
+        return 1;                              /* gone items leave at the next read of the list */
+    }
     if (!t->port[0]) return 1;
     if (!ts_reply || !(e = AllocVec(sizeof *e, MEMF_PUBLIC | MEMF_CLEAR))) return 1;
     e->tse_Message.mn_ReplyPort = ts_reply;
@@ -2304,6 +2325,92 @@ static int ts_count(void)
     return n;
 }
 
+/* 0.10: gfopensysbar.library's picture items into the row, beside the taskspace's: new ones opened, changed ones
+ * drawn again, gone ones closed. A name the taskspace already has keeps the taskspace's icon. */
+static BYTE sb_sig = -1;
+static int sb_owner;
+
+static void sb_sync(void)
+{
+    struct SysBarItem *it;
+    int i, changed = 0;
+    if (!sb_owner) return;
+    for (i = 0; i < TS_ICONS; i++) if (ts[i]) ts[i]->seen = 0;
+    SB_LockList();
+    for (it = SB_NextItem(NULL); it; it = SB_NextItem(it)) {
+        struct ts_icon *t;
+        ULONG n = 0;
+        int ok = it->si_Pixels && it->si_Width && it->si_Width <= SB_MAXW && it->si_Height && it->si_Height <= SB_MAXH
+                 && it->si_States && it->si_States <= SB_STATES;
+        int fr, at = ok ? ts_find(it->si_Name) : -1;
+        if (ok) n = (ULONG)it->si_Width * it->si_Height * it->si_States;
+        for (fr = 0; fr < TS_ICONS && ts[fr]; fr++) ;
+        t = at >= 0 ? ts[at] : NULL;
+        switch (tbs_plan(at, t && t->sbi, fr < TS_ICONS, ok,
+                         t && t->w == it->si_Width && t->order == it->si_Order,
+                         t && t->h == it->si_Height && t->states == it->si_States && !memcmp(t->pixels, it->si_Pixels, n)
+                         && !memcmp(t->rgb, it->si_RGB, sizeof t->rgb))) {
+        case TBS_NEW:
+            if (!(t = AllocVec(sizeof *t, MEMF_ANY | MEMF_CLEAR))) break;
+            ts[fr] = t;
+            strlcpy(t->name, it->si_Name, sizeof t->name);
+            t->sbi = it;
+            t->task = (struct Task *)it->si_Task;
+            t->version = 2;                    /* it hears its place */
+            changed = 1;
+            /* fall through: its fields, as for a moved one */
+        case TBS_MOVE:
+            if (t->win) ts_close_one(t, 1);    /* opened again after the lock, below */
+            changed = 1;
+            /* fall through */
+        case TBS_REDRAW:
+            t->w = it->si_Width; t->h = it->si_Height; t->states = it->si_States; t->order = it->si_Order;
+            memcpy(t->pixels, it->si_Pixels, n);
+            memcpy(t->rgb, it->si_RGB, sizeof t->rgb);
+            t->drawn = -1;
+            /* fall through */
+        case TBS_KEEP:
+            t->seen = 1;
+            if (strcmp(t->help, it->si_Help)) {
+                strlcpy(t->help, it->si_Help, sizeof t->help);
+                if (at >= 0 && help_for == at) help_close();
+            }
+            t->state = it->si_State < t->states ? it->si_State : 0;
+            ts_draw(t, 0);
+            break;
+        default:                               /* TBS_SKIP, TBS_FULL */
+            break;
+        }
+    }
+    SB_UnlockList();
+    /* the windows after the lock: opening one sends SBE_PLACE, and SB_LockList there may take out items */
+    for (i = 0; i < TS_ICONS; i++)
+        if (ts[i] && ts[i]->sbi && !ts[i]->seen) { ts_drop(i); changed = 1; }
+        else if (ts[i] && ts[i]->sbi && !ts[i]->win) ts_open_one(ts[i]);
+    if (changed) cx_sync(1);                   /* a commodity with an item leaves the systray */
+}
+
+static void sb_start(void)
+{
+    if (!(SysBarBase = OpenLibrary((STRPTR)SYSBARNAME, SYSBAR_VERSION))) return;
+    if ((sb_sig = AllocSignal(-1)) < 0) return;
+    sb_owner = SB_Own((ULONG)sb_sig) == SBR_OK;
+    sb_sync();
+}
+
+static ULONG sb_mask(void) { return sb_owner ? 1UL << sb_sig : 0; }
+
+/* the items stay in the library for the next owner; only our windows go (ts_end) */
+static void sb_stop(void)
+{
+    if (sb_owner) SB_Disown();
+    sb_owner = 0;
+    if (sb_sig >= 0) FreeSignal(sb_sig);
+    sb_sig = -1;
+    if (SysBarBase) CloseLibrary(SysBarBase);
+    SysBarBase = NULL;
+}
+
 static int ts_is(struct Window *w)
 {
     int i;
@@ -2329,7 +2436,8 @@ static int cx_has_icons(struct Task *task)
     Forbid();
     for (i = 0; i < TS_ICONS && !has; i++) {
         struct MsgPort *p;
-        if (ts[i] && ts[i]->port[0] && (p = FindPort((STRPTR)ts[i]->port)) && (struct Task *)p->mp_SigTask == task) has = 1;
+        if (ts[i] && ts[i]->sbi && ts[i]->task == task) has = 1;          /* 0.10 */
+        else if (ts[i] && ts[i]->port[0] && (p = FindPort((STRPTR)ts[i]->port)) && (struct Task *)p->mp_SigTask == task) has = 1;
     }
     Permit();
     return has;
@@ -3322,6 +3430,7 @@ int main(void)
     rb_start();                                /* 0.9.1 */
     if (!open_all()) quit = 1;
     apply_title();                             /* 0.7.8: after open_all, which finds out whether Intuition draws the logo */
+    sb_start();                                /* 0.10: gfopensysbar.library's items, after the row is open */
     while (!quit) {
         ULONG sig, ms;
         struct Window *act;
@@ -3335,7 +3444,8 @@ int main(void)
             tr->tr_node.io_Command = TR_ADDREQUEST; tr->tr_time.tv_secs = 0; tr->tr_time.tv_micro = ms * 1000;
             SendIO((struct IORequest *)tr);
             sig = Wait(SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F | (1UL << tport->mp_SigBit) | (1UL << port->mp_SigBit)
-                       | (ts_reply ? 1UL << ts_reply->mp_SigBit : 0) | window_sigs() | wbc_sigmask() | watch_mask() | rb_mask());
+                       | (ts_reply ? 1UL << ts_reply->mp_SigBit : 0) | window_sigs() | wbc_sigmask() | watch_mask() | rb_mask()
+                       | sb_mask());
             /* Only a request that came back by itself counts as time waited. An
              * aborted one comes back too, and its reply sets the timer port's
              * signal after Wait() has returned; WaitIO() takes the reply but leaves
@@ -3374,6 +3484,7 @@ int main(void)
         }
         port_events(port);
         ts_replies();
+        if (sig & sb_mask()) sb_sync();       /* 0.10: the library's items changed */
         menu_events();
         rb_events(sig);                        /* 0.9.1: the menu button on the cog or the systray */
         events(logo_w);
@@ -3428,6 +3539,7 @@ int main(void)
     old_name_port_end(old_port);
     port_events(port);
     ts_end();
+    sb_stop();                                 /* 0.10 */
     close_all();
     DeleteMsgPort(port);
     if (ts_reply && !ts_out) DeleteMsgPort(ts_reply);   /* a program that never replied keeps it: better a leak than a crash */

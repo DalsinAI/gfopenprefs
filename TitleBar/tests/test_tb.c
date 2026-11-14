@@ -5,6 +5,7 @@
 #include "tb_fade.h"
 #include "tb_format.h"
 #include "tb_shapes.h"
+#include "tb_sbsync.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -342,6 +343,23 @@ static void shapes_tests(void)
     CHECK(ok);
 }
 
+/* 0.10: gfopensysbar.library's items in the row (tb_sbsync.h) */
+static void sbsync_tests(void)
+{
+    /* tbs_plan(slot, slot_is_lib, free_slot, has_picture, same_place, same_picture) */
+    CHECK(tbs_plan(-1, 0, 1, 1, 0, 0) == TBS_NEW);              /* a new item, a slot free */
+    CHECK(tbs_plan(-1, 0, 0, 1, 0, 0) == TBS_FULL);             /* every slot taken */
+    CHECK(tbs_plan(-1, 0, 1, 0, 0, 0) == TBS_SKIP);             /* a text item (no picture) isn't shown yet */
+    CHECK(tbs_plan(3, 0, 1, 1, 1, 1) == TBS_SKIP);              /* the taskspace's icon of that name stays */
+    CHECK(tbs_plan(3, 1, 0, 1, 1, 1) == TBS_KEEP);              /* unchanged, even with no slot free */
+    CHECK(tbs_plan(3, 1, 0, 1, 1, 0) == TBS_REDRAW);            /* new pixels in the same place */
+    CHECK(tbs_plan(3, 1, 0, 1, 0, 1) == TBS_MOVE);              /* a new width or order */
+    CHECK(tbs_plan(3, 1, 0, 1, 0, 0) == TBS_MOVE);              /* both: moved, which draws the new picture too */
+    CHECK(tbs_plan(3, 1, 1, 0, 1, 1) == TBS_SKIP);              /* pixels taken away: not shown, and closed */
+    /* taskspace events as the library's: TSE_CLICK 1 -> SBE_CLICK 1, TSE_PLACE 3 -> SBE_PLACE 3, TSE_GONE 2 -> none */
+    CHECK(tbs_event(1) == 1 && tbs_event(3) == 3 && tbs_event(2) == 0 && tbs_event(0) == 0);
+}
+
 int main(void)
 {
     prefs_tests();
@@ -350,6 +368,7 @@ int main(void)
     format_tests();
     rect_tests();
     shapes_tests();
-    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes)");
+    sbsync_tests();
+    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, system bar items)");
     return failed != 0;
 }
