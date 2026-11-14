@@ -127,7 +127,8 @@ static ULONG L_LockList(REG(a6, struct SysBarBase *b))
 {
     ObtainSemaphore(&b->lock);
     sb_reap(&b->list, alive, NULL);
-    return sb_take_changes(&b->list);
+    /* only the owner takes the changes: anyone else locking would make the bar miss them (Marcus's review) */
+    return sb_owner(&b->list) == (void *)FindTask(NULL) ? sb_take_changes(&b->list) : 0;
 }
 
 static struct SysBarItem *L_NextItem(REG(a0, struct SysBarItem *prev), REG(a6, struct SysBarBase *b))
@@ -147,6 +148,8 @@ static LONG L_SendEvent(REG(a0, struct SysBarItem *it), REG(d0, ULONG kind), REG
     LONG r = SBR_OK;
     int i;
     ObtainSemaphore(&b->lock);
+    /* the item's task may have ended since the owner read the row: its port is gone with it (Marcus's review) */
+    if (sb_known(&b->list, it) && it->si_Task && !alive(NULL, it->si_Task)) sb_remove(&b->list, it);
     if (!sb_known(&b->list, it)) r = SBR_UNKNOWN;
     else if (!it->si_Port || (kind == SBE_MENU && entry >= it->si_MenuCount) || kind < SBE_CLICK || kind > SBE_PLACE) r = SBR_BADARGS;
     else if (!(ev = AllocVec(sizeof *ev, MEMF_PUBLIC | MEMF_CLEAR))) r = SBR_NOMEM;
@@ -172,10 +175,14 @@ static void L_DoneEvent(REG(a0, struct SysBarEvent *ev), REG(a6, struct SysBarBa
     if (ev && ev->sbe_Magic == SBE_MAGIC) { ev->sbe_Magic = 0; FreeVec(ev); }
 }
 
+/* the semaphore nests, so the owner's calls under SB_LockList work too; the answer is good while the item is */
 static STRPTR L_MenuEntry(REG(a0, struct SysBarItem *it), REG(d0, ULONG n), REG(a6, struct SysBarBase *b))
 {
-    (void)b;
-    return (STRPTR)sb_menu_entry(it, n);
+    const char *e;
+    ObtainSemaphore(&b->lock);
+    e = sb_known(&b->list, it) ? sb_menu_entry(it, n) : NULL;
+    ReleaseSemaphore(&b->lock);
+    return (STRPTR)e;
 }
 
 /* the bar's owner's task, or NULL: a program can tell whether anyone will draw its items (an owner that ended
@@ -191,7 +198,11 @@ static APTR L_OwnerTask(REG(a6, struct SysBarBase *b))
 
 static struct SysBarItem *L_FindItem(REG(a0, CONST_STRPTR name), REG(a6, struct SysBarBase *b))
 {
-    return sb_find(&b->list, (const char *)name);
+    struct SysBarItem *it;
+    ObtainSemaphore(&b->lock);
+    it = sb_find(&b->list, (const char *)name);
+    ReleaseSemaphore(&b->lock);
+    return it;
 }
 
 /* ---- the library itself ------------------------------------------------------------ */

@@ -32,13 +32,13 @@ The library copies everything it is given. Up to 32 items at once.
 | `SB_RemItem(item)` | -42 | a program | Removes it. An item also goes once its task has ended. |
 | `SB_Own(signal)` | -48 | the owner | Takes the bar; told of every change by that signal. One owner at a time; an owner whose task ended lets go. |
 | `SB_Disown()` | -54 | the owner | Lets go. The items stay for the next owner. |
-| `SB_LockList()` | -60 | the owner | Locks the list and gives the changes since the last lock (`SBC_*`). Items whose task has gone are taken out first. |
+| `SB_LockList()` | -60 | the owner | Locks the list and gives the changes since the last lock (`SBC_*`; 0 to anyone but the owner, so nobody else takes them). Items whose task has gone are taken out first. |
 | `SB_NextItem(prev)` | -66 | the owner | The row in order; NULL gives the first. |
 | `SB_UnlockList()` | -72 | the owner | |
-| `SB_SendEvent(item, kind, entry, box)` | -78 | the owner | A click, a menu entry or the item's place, to its port. |
-| `SB_DoneEvent(event)` | -84 | a program | Gives an event back once read (events are not replied). |
-| `SB_MenuEntry(item, n)` | -90 | under the lock | The menu's entry n, or NULL. |
-| `SB_FindItem(name)` | -96 | under the lock | An item by its name. |
+| `SB_SendEvent(item, kind, entry, box)` | -78 | the owner | A click, a menu entry or the item's place, to its port. An item whose task has ended is taken out first, and the answer is SBR_UNKNOWN: its port is gone with it. |
+| `SB_DoneEvent(event)` | -84 | a program | Gives an event back once read. Never ReplyMsg one: it has no reply port, and would leak. Trust `sbe_Name`, not `sbe_Item`, which may be stale. |
+| `SB_MenuEntry(item, n)` | -90 | anyone | The menu's entry n, or NULL (also for an item gone). |
+| `SB_FindItem(name)` | -96 | anyone | An item by its name. |
 | `SB_OwnerTask()` | -102 | a program | The owner's task, or NULL: whether anyone draws the bar (GFOpenSpeaker keeps its own window until then). |
 
 The inline header (inline/gfopensysbar.h, through proto/gfopensysbar.h) calls it straight; or link
