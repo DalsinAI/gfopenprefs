@@ -9,3 +9,4 @@ T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 CC=${CC:-cc}
 "$CC" -std=gnu99 -Wall -Wextra -Werror -O2 -fsanitize=address,undefined -I"$HERE/../src" -o "$T/t" "$HERE/test_tb.c"
 "$T/t"
+python3 "$HERE/test_mark.py"

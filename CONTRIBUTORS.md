@@ -19,7 +19,7 @@ Team, released under the MIT licence (`LICENSE`).
 
 ## From our other repositories
 
-- **AmiCradle's logo** (`DalsinAI/amicradle`, `web/amicradle-logo-192.png`): drawn 16 by 16 into `TitleBar/src/logo.h` by `TitleBar/tools/mklogo.py`.
+- **The GFOS mark**, the Deep cradle (Dale, 14 November 2026): drawn by `TitleBar/tools/cradle_mark.py` into `TitleBar/src/logo.h` (16 by 16, pixel by pixel) and `TitleBar/src/logo_big.h`. Our own drawing.
 - **GFOpenGadTools** (`DalsinAI/gfopengadtools`): Look, Menus and the GFOpenMenus engine build against its theme reader from a checkout beside this one. It is not copied in.
 
 ## Work we learned from
