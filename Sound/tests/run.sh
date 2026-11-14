@@ -6,3 +6,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${TMPDIR:-/tmp}/sp_core_test
 ${CC:-cc} -std=gnu99 -Wall -Wextra -Werror -O2 -fsanitize=address,undefined -I"$HERE/../src" -o "$OUT" "$HERE/test_sp_core.c" "$HERE/../src/sp_core.c"
 "$OUT" "$HERE"
+# GFOpenSpeaker 0.3's commodity options and pictures (src/sp_cx.h)
+${CC:-cc} -std=gnu99 -Wall -Wextra -Werror -O2 -fsanitize=address,undefined -I"$HERE/../src" -o "$OUT.cx" "$HERE/test_sp_cx.c"
+"$OUT.cx" | grep -v '^ok' || true
+"$OUT.cx" > /dev/null

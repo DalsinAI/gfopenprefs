@@ -60,6 +60,15 @@
  * GFOpenTitle (or on GFOpenMenus' own bar) it has its own window as before, and it moves into the row when
  * GFOpenTitle starts (checked every 2 s) and back out when GFOpenTitle ends (TSE_GONE).
  *
+ * 0.3 (14 November 2026, Dale, 03:14: "the speaker icon in the systray is wrong, and it should now be a commodity"):
+ *   - A commodity as the OS's are: Exchange's Show and Hide open and close its levels, Disable takes the speaker
+ *     off the bar and Enable puts it back, Kill quits. The tool types (or the Shell's KEY=VALUE words) CX_PRIORITY
+ *     (default 10), CX_POPUP (the levels open at the start) and MUTE (a hotkey that mutes and unmutes, none by
+ *     default), src/sp_cx.h.
+ *   - Its item goes through gfopensysbar.library (SysBar/) while the bar has an owner there (GFOpenTitle 0.10), so
+ *     GFOpenTitle draws it as the other tray icons: 16 x 11, in the bar's text colour, now five pictures (muted, off,
+ *     one, two and three waves for the volume's thirds; round arcs, not the 0.2 steps). The taskspace (an older
+ *     GFOpenTitle) gets four of them, and our own window draws the same pictures where neither is there.
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -82,6 +91,10 @@
 #include <proto/graphics.h>
 #include <proto/layers.h>
 #include <proto/commodities.h>
+#include <proto/icon.h>
+#include <workbench/startup.h>
+#include <workbench/workbench.h>
+#include <proto/gfopensysbar.h>              /* 0.3: SysBar/include */
 
 #include <string.h>
 #include <stdio.h>
@@ -96,16 +109,18 @@
 #include "../../Common/idlepace.h"           /* the tick slowed when nobody is there */
 #include "../../Common/traygrid.h"          /* 0.1.9: the tray's grid, as GFOpenTitle 0.7.10 */
 #include "taskspace.h"                       /* 0.2: the speaker as an item in GFOpenTitle's row */
+#include "sp_cx.h"                           /* 0.3: the commodity's options and the pictures */
 
 #define SP_OLD_PORT "OpenSpeaker"            /* 0.1.8: SP_SPEAKER_PORT before the GF rename */
 static struct MsgPort *old_port;
 
-const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.2 (12.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenSpeaker 0.3 (14.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct Library *CyberGfxBase;
 struct GfxBase *GfxBase;
 struct Library *GadToolsBase, *LayersBase, *CxBase;
+struct Library *SysBarBase, *IconBase;       /* 0.3: gfopensysbar.library (when there), icon.library for the tool types */
 
 #define MENUS_ENV "ENV:GFOpenMenus/Menus"
 #define TRAY_PARENT "ENV:GFOpenMenus"
@@ -205,30 +220,22 @@ static LONG paint_back(void)
 /* ---- 0.2: the speaker in GFOpenTitle's row ---------------------------------------------------- */
 #define TS_NAME "Speaker"                    /* also its tray file, as before */
 #define TS_EVENTS "GFOpenSpeaker.bar"        /* our port for GFOpenTitle's events */
-#define PIC_W 16
-#define PIC_H 11
-static int in_bar;                           /* 1: the speaker is GFOpenTitle's item, we have no window */
+#define PIC_W SPX_W
+#define PIC_H SPX_H
+#define BAR_TASKSPACE 1                      /* in_bar: GFOpenTitle's taskspace item */
+#define BAR_LIBRARY   2                      /* 0.3: gfopensysbar.library's item, drawn by the bar's owner */
+static int in_bar;                           /* 0: our own window; else BAR_*, we have no window */
+static struct SysBarItem *sb_item;           /* 0.3: our item in the library while in_bar is BAR_LIBRARY */
+static UBYTE pics[SPX_STATES * PIC_W * PIC_H];
 static struct MsgPort *ts_events;            /* public, TS_EVENTS */
 static int ts_shown = -1;                    /* the picture last sent */
 static char ts_help[48];
 
-/* the picture: 0 muted (the cross), 1 one wave, 2 two waves; the speaker's own lines, in the bar's text colour (1) */
-static void speaker_pic(UBYTE *px, int state)
-{
-    int cy = PIC_H / 2, x = 0, i, y;
-    memset(px, 0, PIC_W * PIC_H);
-#define PX(a, b) (px[(b) * PIC_W + (a)] = 1)
-    for (y = cy - 2; y <= cy + 2; y++) for (i = 0; i <= 2; i++) PX(x + i, y);
-    for (i = 0; i < 4; i++) for (y = cy - 2 - i; y <= cy + 2 + i; y++) PX(x + 3 + i, y);
-    if (state == 0) for (i = 0; i <= 5; i++) { PX(x + 10 + i, cy - 3 + i); PX(x + 10 + i, cy + 2 - i); }
-    else {
-        PX(x + 9, cy - 2); PX(x + 10, cy - 1); PX(x + 10, cy); PX(x + 10, cy + 1); PX(x + 9, cy + 2);
-        if (state == 2) { PX(x + 12, cy - 4); PX(x + 13, cy - 3); for (y = cy - 2; y <= cy + 2; y++) PX(x + 14, y); PX(x + 13, cy + 3); PX(x + 12, cy + 4); }
-    }
-#undef PX
-}
+static int pic_state(void) { return spx_state(cur.muted, cur.volume); }
 
-static int pic_state(void) { return level() == 0 ? 0 : level() > 50 ? 2 : 1; }
+/* 0.3: the taskspace takes four pictures (TS_STATES): muted, off, then two waves and three; one wave shows as two */
+static const UBYTE ts_pics_of[TS_STATES] = { SPX_MUTED, SPX_OFF, SPX_WAVES2, SPX_WAVES3 };
+static int ts_state(int st) { return st == SPX_WAVES3 ? 3 : st >= SPX_WAVES1 ? 2 : st; }
 
 static void help_text(char *t, int size)
 {
@@ -239,7 +246,7 @@ static void help_text(char *t, int size)
 /* one message to GFOpenTitle and its reply; the result, or -1 when GFOpenTitle isn't there */
 static LONG ts_send(UWORD command)
 {
-    static UBYTE pics[3 * PIC_W * PIC_H];
+    static UBYTE tpics[TS_STATES * PIC_W * PIC_H];
     struct TaskspaceMsg m;
     struct MsgPort *reply, *p;
     int i;
@@ -252,10 +259,10 @@ static LONG ts_send(UWORD command)
     m.tsm_Command = command;
     strcpy(m.tsm_Name, TS_NAME);
     m.tsm_Order = MY_ORDER;
-    m.tsm_State = pic_state();
-    m.tsm_Width = PIC_W; m.tsm_Height = PIC_H; m.tsm_States = 3;
-    for (i = 0; i < 3; i++) speaker_pic(pics + i * PIC_W * PIC_H, i);
-    m.tsm_Pixels = pics;
+    m.tsm_State = ts_state(pic_state());
+    m.tsm_Width = PIC_W; m.tsm_Height = PIC_H; m.tsm_States = TS_STATES;
+    for (i = 0; i < TS_STATES; i++) spx_pic(tpics + i * PIC_W * PIC_H, ts_pics_of[i]);
+    m.tsm_Pixels = tpics;
     help_text(m.tsm_Help, sizeof m.tsm_Help);
     strcpy(m.tsm_Port, TS_EVENTS);
     Forbid();
@@ -264,17 +271,54 @@ static LONG ts_send(UWORD command)
     if (p) WaitPort(reply), GetMsg(reply);
     DeleteMsgPort(reply);
     if (!p) return -1;
-    if (m.tsm_Result == TSR_OK) { ts_shown = m.tsm_State; strcpy(ts_help, m.tsm_Help); }
+    if (m.tsm_Result == TSR_OK) { ts_shown = pic_state(); strcpy(ts_help, m.tsm_Help); }
     return m.tsm_Result;
 }
 
+/* 0.3: the item in gfopensysbar.library: added, its picture and help changed, or removed. SBR_OK, or why not. */
+static LONG sb_send(UWORD command)
+{
+    char help[SB_HELPLEN];
+    LONG err = SBR_UNKNOWN;
+    if (!SysBarBase) return SBR_UNKNOWN;
+    help_text(help, sizeof help);
+    if (command == TSC_REMOVE) {
+        if (sb_item) SB_RemItem(sb_item);
+        sb_item = NULL;
+        return SBR_OK;
+    }
+    if (command == TSC_ADD && !sb_item) {
+        struct TagItem t[] = {
+            { SBA_Name, (ULONG)TS_NAME }, { SBA_Help, (ULONG)help }, { SBA_Order, MY_ORDER },
+            { SBA_Width, PIC_W }, { SBA_Height, PIC_H }, { SBA_States, SPX_STATES }, { SBA_Pixels, (ULONG)pics },
+            { SBA_State, (ULONG)pic_state() }, { SBA_Port, (ULONG)ts_events }, { SBA_Error, (ULONG)&err }, { TAG_DONE, 0 } };
+        if (!(sb_item = SB_AddItemA(t))) return err;
+    } else {
+        struct TagItem t[] = { { SBA_State, (ULONG)pic_state() }, { SBA_Help, (ULONG)help }, { TAG_DONE, 0 } };
+        if (!sb_item || (err = SB_SetItemA(sb_item, t)) != SBR_OK) return err;
+    }
+    ts_shown = pic_state();
+    strlcpy(ts_help, help, sizeof ts_help);
+    return SBR_OK;
+}
+
+/* the item, in whichever row we are in */
+static void bar_send(UWORD command)
+{
+    if (in_bar == BAR_LIBRARY) sb_send(command);
+    else if (in_bar == BAR_TASKSPACE) ts_send(command);
+}
+
+/* who draws the bar's row: BAR_LIBRARY (gfopensysbar.library has an owner: GFOpenTitle 0.10), BAR_TASKSPACE (an
+ * older GFOpenTitle's port), or 0 (nobody: our own window) */
 static int bar_owner_here(void)
 {
     struct MsgPort *p;
+    if (SysBarBase && SB_OwnerTask()) return BAR_LIBRARY;
     Forbid();
     p = FindPort((STRPTR)TASKSPACE_PORT);
     Permit();
-    return p != NULL;
+    return p ? BAR_TASKSPACE : 0;
 }
 
 static void draw_speaker(void)
@@ -285,7 +329,7 @@ static void draw_speaker(void)
     if (in_bar) {                            /* 0.2: GFOpenTitle draws it: only a changed picture or help is sent */
         char t[48];
         help_text(t, sizeof t);
-        if (pic_state() != ts_shown || strcmp(t, ts_help)) ts_send(TSC_SET);
+        if (pic_state() != ts_shown || strcmp(t, ts_help)) bar_send(TSC_SET);
         return;
     }
     if (!spk) return;
@@ -295,17 +339,17 @@ static void draw_speaker(void)
     h = sh;                                                      /* the bar's rows: the line under them isn't ours */
     cy = (h - (bar_edge == OM_BAR_TITLE ? 1 : 0)) / 2;           /* 0.1.9: centred as GFOpenTitle's network icons */
     x = TRAY_PAD;                                                /* 0.1.9: in the tray's TRAY_ICON box, 11 rows as the network icons */
-    RectFill(rp, x, cy - 2, x + 2, cy + 2);                       /* the speaker: its box and cone, out to 11 rows */
-    for (int i = 0; i < 4; i++) { Move(rp, x + 3 + i, cy - 2 - i); Draw(rp, x + 3 + i, cy + 2 + i); }
-    if (level() == 0) {                                          /* muted, or nothing: a cross */
-        Move(rp, x + 10, cy - 3); Draw(rp, x + 15, cy + 2);
-        Move(rp, x + 10, cy + 2); Draw(rp, x + 15, cy - 3);
-    } else {                                                     /* one wave, two above half: 1-pixel arcs as the Wi-Fi's */
-        Move(rp, x + 9, cy - 2); Draw(rp, x + 10, cy - 1); Draw(rp, x + 10, cy + 1); Draw(rp, x + 9, cy + 2);
-        if (level() > 50) {
-            Move(rp, x + 12, cy - 4); Draw(rp, x + 13, cy - 3); Draw(rp, x + 14, cy - 2);
-            Draw(rp, x + 14, cy + 2); Draw(rp, x + 13, cy + 3); Draw(rp, x + 12, cy + 4);
-        }
+    {                                                            /* 0.3: the same pictures as in the row */
+        const UBYTE *px = pics + (ULONG)pic_state() * PIC_W * PIC_H;
+        int r, c;
+        for (r = 0; r < PIC_H; r++)
+            for (c = 0; c < PIC_W; c++)
+                if (px[r * PIC_W + c]) {
+                    int run = c;
+                    while (run < PIC_W && px[r * PIC_W + run]) run++;
+                    RectFill(rp, x + c, cy - PIC_H / 2 + r, x + run - 1, cy - PIC_H / 2 + r);
+                    c = run;
+                }
     }
 }
 
@@ -422,7 +466,7 @@ static void close_speaker(void)
     hscr = NULL;
     pt_free();
     bp_release();
-    if (in_bar) { ts_send(TSC_REMOVE); in_bar = 0; ts_shown = -1; }
+    if (in_bar) { bar_send(TSC_REMOVE); in_bar = 0; ts_shown = -1; }
     if (spk) { CloseWindow(spk); spk = NULL; }
     if (dri) { FreeScreenDrawInfo(scr, dri); dri = NULL; }
     if (scr && scr_locked) UnlockPubScreen(NULL, scr);
@@ -442,8 +486,10 @@ static int open_speaker(void)
         place();
         bp_sample(s, bar_edge == OM_BAR_TITLE, speaker_ours);
         /* 0.2: GFOpenTitle's row when it runs (on the screen's title bar); our box until it says where it put us */
-        if (bar_edge == OM_BAR_TITLE && ts_events && bar_owner_here() && ts_send(TSC_ADD) == TSR_OK) {
-            in_bar = 1;
+        if (bar_edge == OM_BAR_TITLE && ts_events && (in_bar = bar_owner_here())) {
+            if ((in_bar == BAR_LIBRARY ? sb_send(TSC_ADD) == SBR_OK : ts_send(TSC_ADD) == TSR_OK) == 0) in_bar = 0;
+        }
+        if (in_bar) {
             scr_locked = 1;                  /* kept locked: no window of ours holds it */
             hscr = s;
             return 1;
@@ -625,7 +671,17 @@ static void bar_events(void)
     int gone = 0;
     if (!ts_events) return;
     while ((e = (struct TaskspaceEvent *)GetMsg(ts_events))) {
-        if (e->tse_Magic == TASKSPACE_MAGIC && in_bar) {
+        struct SysBarEvent *b = (struct SysBarEvent *)e;
+        if (e->tse_Message.mn_Length == sizeof *b && b->sbe_Magic == SBE_MAGIC) {   /* 0.3: the library's: not replied */
+            if (in_bar == BAR_LIBRARY && b->sbe_Item == sb_item && (b->sbe_Kind == SBE_PLACE || b->sbe_Kind == SBE_CLICK)) {
+                sx = b->sbe_Left; sy = b->sbe_Top; sw = b->sbe_Width; sh = b->sbe_Height;
+                Disable(); hx0 = sx; hy0 = sy; hx1 = sx + sw; hy1 = sy + sh; Enable();
+                if (b->sbe_Kind == SBE_CLICK) want_toggle = 1;
+            }
+            SB_DoneEvent(b);
+            continue;
+        }
+        if (e->tse_Magic == TASKSPACE_MAGIC && in_bar == BAR_TASKSPACE) {
             if (e->tse_Kind == TSE_PLACE || e->tse_Kind == TSE_CLICK) {
                 sx = e->tse_Left; sy = e->tse_Top; sw = e->tse_Width; sh = e->tse_Height;
                 Disable(); hx0 = sx; hy0 = sy; hx1 = sx + sw; hy1 = sy + sh; Enable();
@@ -683,13 +739,52 @@ static void custom(CxMsg *msg, CxObj *co)
 }
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenSpeaker", (STRPTR)"GFOpenSpeaker 0.1", (STRPTR)"The speaker on the menu bar",
-    NBU_UNIQUE | NBU_NOTIFY, 0, 10, NULL, 0     /* before GFOpenWindows, whose wheel would activate the window under the pointer */
+    NB_VERSION, (STRPTR)"GFOpenSpeaker", (STRPTR)"GFOpenSpeaker 0.3", (STRPTR)"The speaker on the menu bar: volume and mute",
+    NBU_UNIQUE | NBU_NOTIFY, COF_SHOW_HIDE, SPX_PRI_DEFAULT, NULL, 0   /* 10: before GFOpenWindows, whose wheel would activate the window under the pointer */
 };
+
+#define CX_ID_MUTE 1                         /* 0.3: the MUTE hotkey's events */
+static spx_opts opts;
+static int disabled;                         /* 0.3: Exchange's Disable: off the bar until Enable */
+
+/* 0.3: the tool types (from Workbench: our icon's, WBStartup's copy included) or the Shell's KEY=VALUE words */
+static void read_options(int argc, char **argv)
+{
+    spx_defaults(&opts);
+    if (argc == 0 && argv) {
+        struct WBStartup *wb = (struct WBStartup *)argv;
+        struct DiskObject *dob;
+        BPTR old;
+        if (!(IconBase = OpenLibrary((STRPTR)"icon.library", 37)) || wb->sm_NumArgs < 1) return;
+        old = CurrentDir(wb->sm_ArgList[0].wa_Lock);
+        if ((dob = GetDiskObject((STRPTR)wb->sm_ArgList[0].wa_Name))) {
+            char **tt;
+            for (tt = (char **)dob->do_ToolTypes; tt && *tt; tt++) spx_word(&opts, *tt);
+            FreeDiskObject(dob);
+        }
+        CurrentDir(old);
+    } else {
+        int i;
+        for (i = 1; i < argc; i++) spx_word(&opts, argv[i]);
+    }
+}
+
+/* the MUTE hotkey under the broker: its events come to the broker's port as CX_ID_MUTE, and go no further */
+static void add_hotkey(CxObj *broker, struct MsgPort *port)
+{
+    CxObj *f, *snd, *tr;
+    if (!opts.mute[0] || !(f = CxFilter((STRPTR)opts.mute))) return;
+    snd = CxSender(port, CX_ID_MUTE);
+    tr = CxTranslate(NULL);
+    if (snd) AttachCxObj(f, snd);
+    if (tr) AttachCxObj(f, tr);
+    if (CxObjError(f) || !snd || !tr) { DeleteCxObjAll(f); return; }
+    AttachCxObj(broker, f);
+}
 
 /* ---- the task ---------------------------------------------------------------------------------- */
 
-int main(void)
+int main(int argc, char **argv)
 {
     struct MsgPort *port = NULL, *tport = NULL;
     struct timerequest *tr = NULL;
@@ -711,6 +806,13 @@ int main(void)
     CyberGfxBase = OpenLibrary((STRPTR)"cybergraphics.library", 41);   /* the panel's exact colours */
     CxBase = OpenLibrary((STRPTR)"commodities.library", 39);
     if (!IntuitionBase || !GfxBase || !GadToolsBase || !LayersBase || !CxBase) goto out;
+    read_options(argc, argv);                /* 0.3 */
+    nb.nb_Pri = (BYTE)opts.pri;
+    SysBarBase = OpenLibrary((STRPTR)SYSBARNAME, SYSBAR_VERSION);   /* 0.3: none is fine: the taskspace or our window */
+    {
+        int i;
+        for (i = 0; i < SPX_STATES; i++) spx_pic(pics + i * PIC_W * PIC_H, i);
+    }
     wbc_start();
     me = FindTask(NULL);
     if ((s1 = AllocSignal(-1)) < 0 || (s2 = AllocSignal(-1)) < 0) goto out;
@@ -738,12 +840,14 @@ int main(void)
     }
     if (!(cust = CxCustom(custom, 0))) goto out;
     AttachCxObj(broker, cust);
+    add_hotkey(broker, port);                /* 0.3 */
     if ((tport = CreateMsgPort()) && (tr = (struct timerequest *)CreateIORequest(tport, sizeof *tr)))
         timer = !OpenDevice((STRPTR)TIMERNAME, UNIT_VBLANK, (struct IORequest *)tr, 0);
     if (!timer || !open_speaker()) goto out;
     tr->tr_node.io_Command = TR_ADDREQUEST; tr->tr_time.tv_secs = 0; tr->tr_time.tv_micro = 200000;
     SendIO((struct IORequest *)tr);
     ActivateCxObj(broker, 1);
+    if (opts.popup) pop_open();              /* 0.3: CX_POPUP=YES */
     while (!quit) {
         ULONG got = Wait((1UL << port->mp_SigBit) | (1UL << tport->mp_SigBit) | sig_input | sig_wake | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F |
                          (spk ? 1UL << spk->UserPort->mp_SigBit : 0) | (pop ? 1UL << pop->UserPort->mp_SigBit : 0) | wbc_sigmask() |
@@ -757,7 +861,7 @@ int main(void)
          * say "open" twice, and the second opened a second speaker */
         case WBC_OPEN:  if (wb_down) wb_down = 2; break;
         }
-        if (wb_down == 2 && open_speaker()) wb_down = 0;
+        if (wb_down == 2 && !disabled && open_speaker()) wb_down = 0;
         if (got & SIGBREAKF_CTRL_F) {                       /* Sound prefs changed the settings */
             sp_load(&cur, NULL);
             if (!cur.speaker) quit = 1;
@@ -768,6 +872,28 @@ int main(void)
             ReplyMsg((struct Message *)cm);
             if (type == CXM_COMMAND && id == CXCMD_KILL) quit = 1;
             else if (type == CXM_COMMAND && id == CXCMD_UNIQUE) { sp_load(&cur, NULL); draw_speaker(); }
+            /* 0.3: Exchange's other commands */
+            else if (type == CXM_COMMAND && id == CXCMD_APPEAR) { if (!pop && !disabled && !wb_down) pop_open(); }
+            else if (type == CXM_COMMAND && id == CXCMD_DISAPPEAR) { if (pop) pop_close(0); }
+            else if (type == CXM_COMMAND && id == CXCMD_DISABLE && !disabled) {
+                ActivateCxObj(broker, 0);
+                disabled = 1;
+                if (pop) pop_close(0);
+                if (spk) tray(0);
+                close_speaker();             /* off the bar: our window or our item goes */
+            }
+            else if (type == CXM_COMMAND && id == CXCMD_ENABLE && disabled) {
+                ActivateCxObj(broker, 1);
+                disabled = 0;
+                if (!wb_down && !open_speaker()) wb_down = 2;
+            }
+            else if (type == CXM_IEVENT && id == CX_ID_MUTE && !disabled) {   /* the MUTE hotkey */
+                cur.muted = !cur.muted;
+                levels_out(1);
+                save_in = 2000000;
+                if (pop) pop_show();
+                draw_speaker();
+            }
         }
         if (spk) {
             struct IntuiMessage *m;
@@ -809,16 +935,16 @@ int main(void)
             }
             if (levels_in()) { draw_speaker(); if (pop) pop_show(); }
             if (save_in) { save_in = elapsed < save_in ? save_in - elapsed : 0; if (!save_in) sp_save_levels(&cur, 1); }
-            if (clock_us / 2000000 != before_us / 2000000 && !pop && !wb_down) {   /* every 2 s: GFOpenMenus' bar moved? */
+            if (clock_us / 2000000 != before_us / 2000000 && !pop && !wb_down && !disabled) {   /* every 2 s: GFOpenMenus' bar moved? */
                 int e = read_bar_edge();
                 if (e != bar_edge) { close_speaker(); open_speaker(); }
                 else if (spk && ts_events && bar_edge == OM_BAR_TITLE && bar_owner_here()) {   /* 0.2: GFOpenTitle came: into its row */
                     close_speaker(); tray(0);
                     if (!open_speaker()) wb_down = 2;
                 }
-                else if (in_bar && !bar_owner_here()) {      /* GFOpenTitle went without a word: our own window again */
-                    in_bar = 0; ts_shown = -1;
-                    close_speaker();
+                else if (in_bar && bar_owner_here() != in_bar) {   /* GFOpenTitle went without a word (0.3: or the row is
+                                                                    * now another's): our own window, or the new row */
+                    close_speaker();                 /* out of the old row first (a gone port's send does nothing) */
                     if (!open_speaker()) wb_down = 2;
                 }
                 else if (spk) {                     /* the clock came or went, or changed its width */
@@ -867,6 +993,8 @@ out:
     }
     if (s2 >= 0) FreeSignal(s2);
     if (s1 >= 0) FreeSignal(s1);
+    if (SysBarBase) CloseLibrary(SysBarBase);   /* 0.3: after close_speaker took our item out */
+    if (IconBase) CloseLibrary(IconBase);
     if (CyberGfxBase) CloseLibrary(CyberGfxBase);
     if (CxBase) CloseLibrary(CxBase);
     if (LayersBase) CloseLibrary(LayersBase);
