@@ -41,11 +41,12 @@
 #include <proto/commodities.h>
 #include <proto/diskfont.h>
 #include "openfont_text.h"
+#include "bl_wordmark.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.4 (4.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.5 (14.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -96,7 +97,7 @@ static const card show[] = {
     { 220, { { GROUP, "THE GAMES WE BROUGHT HOME" }, { LIST, "The Ur-Quan Masters  \xB7  Chocolate Doom  \xB7  SDLPoP" }, { LIST, "NXEngine-evo  \xB7  OpenJazz" } } },
     { 240, { { GROUP, "AND THE COMMUNITY" }, { LIST, "everyone who kept an Amiga running, recapped a board," }, { LIST, "archived a disk, or wrote the README nobody thanked them for" } } },
     { 160, { { THANKS, "Thank you." }, { RULE, "" } } },
-    { 170, { { WORDMARK, "" }, { SMALL, "The AmiCradle Team" } } },
+    { 170, { { WORDMARK, "" }, { SMALL, BL_CREDIT } } },
 };
 #define NCARDS (int)(sizeof show / sizeof show[0])
 #define FADE 55      /* frames: about 1.1 s at 50 Hz */
@@ -246,12 +247,14 @@ static void draw_card(const card *c)
             continue;
         }
         if (L[i].style == WORDMARK) {
-            int a, b;
+            int w[BL_WORDMARK_PARTS], k;
             SetFont(rp, f_title); SetSoftStyle(rp, FSF_BOLD, AskSoftStyle(rp));
-            a = TextLength(rp, (STRPTR)"Ami", 3); b = TextLength(rp, (STRPTR)"Cradle", 6);
-            Move(rp, (W - a - b) / 2, y + f_title->tf_Baseline);
-            SetAPen(rp, P_RED); Text(rp, (STRPTR)"Ami", 3);
-            SetAPen(rp, P_INK); Text(rp, (STRPTR)"Cradle", 6);
+            for (k = 0; k < BL_WORDMARK_PARTS; k++) w[k] = TextLength(rp, (STRPTR)bl_wordmark[k].text, (ULONG)bl_wordmark[k].len);
+            Move(rp, bl_wordmark_left(W, w, BL_WORDMARK_PARTS), y + f_title->tf_Baseline);
+            for (k = 0; k < BL_WORDMARK_PARTS; k++) {
+                SetAPen(rp, bl_wordmark[k].pen == BLW_RED ? P_RED : P_INK);
+                Text(rp, (STRPTR)bl_wordmark[k].text, (ULONG)bl_wordmark[k].len);
+            }
             y += L[i].lh + L[i].gap;
             continue;
         }
@@ -369,7 +372,7 @@ static void custom(CxMsg *msg, CxObj *co)
 }
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.0", (STRPTR)"Blanks the screen with a show: Gods and Angels",
+    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.5", (STRPTR)"Blanks the screen with a show: Gods and Angels",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 
