@@ -86,7 +86,7 @@ static BP_UNUSED int bp_sample(struct Screen *scr, int title, int (*ours)(struct
     ULONG now[BP_ROWS];
     bs_box boxes[BP_BOXES];
     WORD x0, w = BP_STRIP, n = scr->BarHeight;
-    int r, i, j, changed = 0, x;
+    int r, i, j, changed = 0, x, nb;
     if (!CyberGfxBase || !title || n < 4 || n > BP_ROWS) {
         changed = bp_n != 0;
         bp_n = 0;
@@ -96,7 +96,15 @@ static BP_UNUSED int bp_sample(struct Screen *scr, int title, int (*ours)(struct
     /* three quarters of the way along (GFOpenTitle 0.8), stepped left of every bar window there (16 November 2026):
      * GFOpenTitle's row and centre clock grew over that point, and a strip read on them read their own colours back
      * (a row once drawn white painted a white bar, with dark text, from then on) */
-    x = bs_strip_x(scr->Width * 3 / 4 - w / 2, w, scr->Width, boxes, bp_bar_boxes(scr, ours, boxes));
+    nb = bp_bar_boxes(scr, ours, boxes);
+    /* the screen's title is drawn from the bar's left (after its icon) as far as it goes: a box too, so its text is
+     * never read as the bar (Budgie's review of #214, 16 November 2026) */
+    if (scr->Title && nb < BP_BOXES) {
+        boxes[nb].x0 = 0;
+        boxes[nb].x1 = scr->BarHBorder + scr->BarHeight + TextLength(&scr->RastPort, scr->Title, strlen((char *)scr->Title)) + 2;
+        nb++;
+    }
+    x = bs_strip_x(scr->Width * 3 / 4 - w / 2, w, scr->Width, boxes, nb);
     if (x < 0) return 0;                                     /* no bare bar: keep what is known */
     x0 = (WORD)x;
     if (!bp_clear(scr, x0, x0 + w - 1, ours)) return 0;      /* covered: keep what is known */
