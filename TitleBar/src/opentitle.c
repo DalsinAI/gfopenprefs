@@ -841,6 +841,9 @@ static WORD clock_width(void)
     return w;
 }
 
+static void place(void);
+static void slot_move(struct Window *w, WORD x, WORD y, WORD ww, WORD wh);
+
 /* the clock's window or slot is there to draw in */
 static int clock_on(void) { return clock_w && (clock_mid || slot_of(clock_w)); }
 
@@ -851,9 +854,6 @@ static void clock_move(void)
     slot_move(clock_w, cx, cy, cw, ch);
     tray("Clock", cw, CLOCK_ORDER);
 }
-
-static void place(void);
-static void slot_move(struct Window *w, WORD x, WORD y, WORD ww, WORD wh);
 
 static void draw_clock(int force)
 {
