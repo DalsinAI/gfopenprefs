@@ -43,8 +43,13 @@ static void test_shipped(void)
         CHECK(same_row(&p[n], &s) && p[n].keep == GD_KEEP_ALL, "profile %d: shipped, every field kept", n + 1);
     }
     gd_shipped(GD_LORES, &s);
-    CHECK(!s.screen.name[0] && !strcmp(s.sys.name, "topaz.font") && s.sys.ysize == 8 && !s.grey,
-          "lores: the system font, topaz 8, no grey edges");
+    CHECK(!s.screen.name[0] && !strcmp(s.sys.name, "topaz.font") && s.sys.ysize == 8,
+          "lores: the system font, topaz 8");
+    /* grey edges ship on every profile, as Intuition's (Dale 16 Nov 19:03) */
+    for (n = 0; n < GD_PROFILES; n++) {
+        gd_shipped(n + 1, &s);
+        CHECK(s.grey == 1, "profile %d ships grey edges", n + 1);
+    }
     gd_shipped(GD_RTG_1080, &s);
     CHECK(!strcmp(s.screen.name, "GFOSSans.font") && s.screen.ysize == 13 && !strcmp(s.set, "medres") && s.grey,
           "1080p: GFOS Sans 13, medres, grey edges");

@@ -18,9 +18,9 @@ static const struct {
     const char *set;
     int titlebar, frame, bx, by, grey;
 } shipped[GD_PROFILES] = {
-    { "", 0, "topaz.font", 8, "", 0, "medres", 2, 1, 2, 2, 0 },
-    { "", 0, "GFOSMono.font", 16, "", 0, "medres", 2, 1, 4, 2, 0 },
-    { "", 0, "GFOSMono.font", 16, "", 0, "medres", 3, 1, 4, 2, 0 },
+    { "", 0, "topaz.font", 8, "", 0, "medres", 2, 1, 2, 2, 1 },
+    { "", 0, "GFOSMono.font", 16, "", 0, "medres", 2, 1, 4, 2, 1 },
+    { "", 0, "GFOSMono.font", 16, "", 0, "medres", 3, 1, 4, 2, 1 },
     { "GFOSSans.font", 13, "GFOSMono.font", 16, "GFOSSans.font", 11, "medres", 4, 1, 4, 2, 1 },
     { "GFOSSans.font", 13, "GFOSMono.font", 16, "GFOSSans.font", 11, "medres", 4, 1, 4, 2, 1 },
     { "GFOSSans.font", 13, "GFOSMono.font", 20, "GFOSSans.font", 11, "medres", 6, 2, 6, 3, 1 },
