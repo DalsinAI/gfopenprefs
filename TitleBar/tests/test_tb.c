@@ -428,6 +428,14 @@ static void strip_tests(void)
         bs_box b[1] = { { 0, 100 } };
         CHECK(bs_strip_x(1408, 64, 1920, b, 1) == 1408);
     }
+    {   /* Budgie's review of #214: the screen's title, drawn from the bar's left, is a box too */
+        bs_box b[3] = { { 1356, 1919 }, { 930, 989 }, { 0, 1200 } };
+        CHECK(bs_strip_x(1408, 64, 1920, b, 3) == 1356 - 64);         /* 1920: the gap between clock and row */
+        b[0].x0 = 700; b[1].x0 = 610; b[1].x1 = 669; b[2].x1 = 300;   /* 1280: the row from 700, clock 610..669 */
+        CHECK(bs_strip_x(1280 * 3 / 4 - 32, 64, 1280, b, 3) == 610 - 64);   /* left of the clock, clear of the title */
+        b[2].x1 = 600;                                                /* a long title reaches there: none, keep */
+        CHECK(bs_strip_x(1280 * 3 / 4 - 32, 64, 1280, b, 3) == -1);
+    }
 }
 
 int main(void)
