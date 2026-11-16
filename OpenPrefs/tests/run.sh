@@ -1,7 +1,7 @@
 #!/bin/sh
 # GFOpenPrefs's host checks:
 #   - every section name maps to a page;
-#   - the pages' names (opframe.c's lt_label) are the 25 the user named, each one once;
+#   - the pages' names (opframe.c's lt_label) are the 25 the user named and Display (DISPLAY-PROFILES), each one once;
 #   - the About button (op_about.h, about_test.c; it opens GFOpenLayout's olabout and picks no page);
 #   - Global Settings' stack size file (Global/tests/stack_test.c);
 #   - the Power page's sensors and levels (Power/tests/pw_test.c);
@@ -39,7 +39,8 @@ m = re.search(r'lt_label\[LT_N\] = \{(.*?)\};', src, re.S)
 labels = re.findall(r'"([^"]*)"', m.group(1)) if m else []
 want = {"Theme", "Screen Mode", "Pointer", "Fonts", "Colours", "Backdrops", "Workbench", "File Requesters", "Windows",
         "Title Bar", "Menus", "IControl", "Dock", "Sound", "Input", "Gamepads", "Date & Time", "Serial", "File Types",
-        "System", "Blanker", "Icons", "Printing", "Global Settings", "Power"}
+        "System", "Blanker", "Icons", "Printing", "Global Settings", "Power",
+        "Display"}  # DISPLAY-PROFILES section 4 (Dale, 14 Nov 2026: "go ahead"): the display profiles page
 if set(labels) != want or len({l.lower() for l in labels}) != len(labels):
     print(f'FAIL page names: {labels}, missing {sorted(want - set(labels))}, not asked for {sorted(set(labels) - want)}')
     sys.exit(1)
