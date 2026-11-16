@@ -1,9 +1,9 @@
 # GFOpenPrefs Title bar and GFOpenTitle
 
 GFOpenTitle fills the Workbench screen's title bar: AmiCradle's logo at the
-far left, the free chip and fast memory after Workbench's title, and at the
-right end the day, date and time, the network icons, GFOpenSpeaker's speaker
-and a cog with the settings editors. GFOpenPrefs Title bar is its editor.
+far left, the time in the bar's centre (0.12), and at the right end the
+network icons, GFOpenSpeaker's speaker, the systray and a cog with the
+settings editors. GFOpenPrefs Title bar is its editor.
 MIT, Copyright (c) 2026 AmiCradle Team.
 
 ![The cog's list of settings editors, open on the Workbench screen](docs/cog.png)
@@ -13,8 +13,8 @@ MIT, Copyright (c) 2026 AmiCradle Team.
 | Item | Where | Setting |
 | --- | --- | --- |
 | AmiCradle's logo | The bar's far left, beside Workbench's own title only | `logo on` |
-| Free chip and fast memory | Workbench's title format (the `WBTF` chunk of `ENV:Sys/Workbench.prefs`), so IPrefs shows it and Workbench updates it | `memory on` |
-| Clock | Right end, left of the network icons | `clock on`, `clock.date on` |
+| Memory | Not shown since 0.12 (Dale, 16 November 2026); the file keeps its line | `memory on` (read, unused) |
+| Clock | The title bar's centre, its own window (0.12); on an edge bar, the row | `clock on`, `clock.date on` |
 | Network icons (0.4) | LAN and Wi-Fi from GFOpenSocket, between the clock and the speaker; a click shows the address and "Network settings..." | `network on` |
 | Settings cog (0.5) | The bar's far end: right of GFOpenSpeaker, left of the screen's depth gadget | `cog on` |
 | Other programs' icons (0.6, the taskspace) | Between GFOpenSpeaker and the network icons: Tata's shield, and any program that asks | (each program's own) |

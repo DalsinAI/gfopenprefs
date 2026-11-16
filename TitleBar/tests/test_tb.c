@@ -7,6 +7,7 @@
 #include "tb_shapes.h"
 #include "tb_sbsync.h"
 #include "tb_owner.h"
+#include "barstrip.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -397,6 +398,38 @@ static void sbsync_tests(void)
     }
 }
 
+/* where bp_sample reads the bar (Common/barstrip.h): never on a bar window of ours */
+static void strip_tests(void)
+{
+    /* 1920 wide, the row from 1356 to the end, a centre clock at 930..989: three quarters is 1408, on the row */
+    bs_box row[2] = { { 1356, 1919 }, { 930, 989 } };
+    int x;
+    CHECK(bs_strip_x(1408, 64, 1920, NULL, 0) == 1408);              /* bare bar: where it wants */
+    x = bs_strip_x(1408, 64, 1920, row, 1);
+    CHECK(x == 1356 - 64 && x + 63 < 1356);                           /* left of the row, touching it */
+    x = bs_strip_x(960, 64, 1920, row, 2);
+    CHECK(x == 930 - 64);                                             /* left of the clock */
+    CHECK(bs_strip_x(1900, 64, 1920, NULL, 0) == 1856);               /* kept on the screen */
+    {   /* two windows side by side: stepped past both */
+        bs_box b[2] = { { 900, 1000 }, { 850, 899 } };
+        x = bs_strip_x(950, 64, 1920, b, 2);
+        CHECK(x == 850 - 64);
+    }
+    {   /* boxes in either order: the left one listed first still gets passed */
+        bs_box b[2] = { { 850, 899 }, { 900, 1000 } };
+        CHECK(bs_strip_x(950, 64, 1920, b, 2) == 850 - 64);
+    }
+    {   /* no bare bar left of the windows: none */
+        bs_box b[1] = { { 30, 1919 } };
+        CHECK(bs_strip_x(1408, 64, 1920, b, 1) == -1);
+    }
+    CHECK(bs_strip_x(10, 0, 1920, NULL, 0) == -1 && bs_strip_x(10, 64, 32, NULL, 0) == -1);
+    {   /* a box clear of the strip doesn't move it */
+        bs_box b[1] = { { 0, 100 } };
+        CHECK(bs_strip_x(1408, 64, 1920, b, 1) == 1408);
+    }
+}
+
 int main(void)
 {
     prefs_tests();
@@ -407,6 +440,7 @@ int main(void)
     shapes_tests();
     sbsync_tests();
     owner_tests();
-    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, system bar items)");
+    strip_tests();
+    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, system bar items, bar strip)");
     return failed != 0;
 }

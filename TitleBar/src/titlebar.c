@@ -1,4 +1,4 @@
-/* GFOpenPrefs Title bar: the editor for GFOpenTitle (the logo, free memory,
+/* GFOpenPrefs Title bar: the editor for GFOpenTitle (the logo, the
  * clock, network icons and the cog with the settings editors on the
  * Workbench screen's title bar, the black border around the screen, and,
  * since 0.3.4, the bar see-through until the pointer is on it).
@@ -35,7 +35,7 @@
 #include "tb_prefs.h"
 #include "../../Common/looktabs.h"
 
-static const char version[] __attribute__((used)) = "$VER: TitleBar 0.3.5 (12.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: TitleBar 0.3.6 (16.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 static tb_prefs cur;
 
@@ -88,7 +88,7 @@ static void tell(void)
     Forbid();
     if ((p = FindPort((STRPTR)TB_PORT)) && p->mp_SigTask) Signal((struct Task *)p->mp_SigTask, SIGBREAKF_CTRL_F);
     Permit();
-    if (!p && (cur.logo || cur.memory || cur.clock || cur.network || cur.cog || cur.border_black)) {
+    if (!p && (cur.logo || cur.clock || cur.network || cur.cog || cur.border_black)) {
         BPTR in = Open((STRPTR)"NIL:", MODE_OLDFILE), out = Open((STRPTR)"NIL:", MODE_NEWFILE);
         /* asynchronous: both handles are the new process's, closed when it ends */
         if (!in || !out || SystemTags((STRPTR)TB_TOOL, SYS_Input, in, SYS_Output, out, SYS_Asynch, TRUE, SYS_UserShell, TRUE,
@@ -137,7 +137,6 @@ static struct NewMenu menus[] = {
 static void show(void)
 {
     SET(G_LOGO, GTCB_Checked, cur.logo);
-    SET(G_MEMORY, GTCB_Checked, cur.memory);
     SET(G_CLOCK, GTCB_Checked, cur.clock);
     SET(G_DATE, GTCB_Checked, cur.date, GA_Disabled, !cur.clock);
     SET(G_NET, GTCB_Checked, cur.network);
@@ -172,13 +171,13 @@ static int gui(void)
     g = lt_make(g, &ng, 10, row, W - 20, lh, LT_TITLEBAR);
     row += lt_space(scr->Font, W - 20, lh) + 8;     /* below the tabs (looktabs.h): one row, or two */
     G(CHECKBOX_KIND, G_LOGO, X, row, 26, lh, "AmiCradle logo at the left", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
-    G(CHECKBOX_KIND, G_MEMORY, X, row, 26, lh, "Memory (total and in use)", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
     G(CHECKBOX_KIND, G_CLOCK, X, row, 26, lh, "Time", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
     G(CHECKBOX_KIND, G_DATE, X, row, 26, lh, "Date with the time", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
     G(CHECKBOX_KIND, G_NET, X, row, 26, lh, "Network icons (LAN, Wi-Fi)", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
     /* the cog: always on the bar (Dale, 17 October 2026, 08:26), so no switch; the file keeps its "cog" line. 0.3
      * (GFOpenTitle 0.9, CM4 item 17): the memory and the date and time are switched here; the systray (the commodities)
-     * and Prefs and Power stay with both off */
+     * and Prefs and Power stay with both off. 0.3.6 (GFOpenTitle 0.12, Dale, 16 November 2026): the memory is gone from
+     * the bar, so its switch is too; the file keeps its "memory" line, as the cog's */
     row += 6;
     G(CHECKBOX_KIND, G_BORDER, X, row, 26, lh, "Black border around the screen", PLACETEXT_LEFT, GTCB_Scaled, TRUE); row += lh + 4;
     /* 0.3.4: GFOpenTitle 0.7.5's see-through bar (the user, 24 October 2026): only where the screen can, an RTG screen
@@ -236,7 +235,6 @@ static int gui(void)
                 int sel = (gg->Flags & GFLG_SELECTED) != 0;
                 switch (gg->GadgetID) {
                 case G_LOGO: cur.logo = sel; break;
-                case G_MEMORY: cur.memory = sel; break;
                 case G_CLOCK: cur.clock = sel; show(); break;
                 case G_DATE: cur.date = sel; break;
                 case G_NET: cur.network = sel; break;
