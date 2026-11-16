@@ -46,7 +46,7 @@
 #include "looktabs.h"
 #include "openprefs.h"
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (14.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenPrefs " OP_VERSION " (16.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct Library *UtilityBase;
 
@@ -71,10 +71,11 @@ static const struct { const char *name; int page; } sections[] = {
     { "TIME", LT_DATETIME }, { "DATE", LT_DATETIME }, { "SERIAL", LT_SERIAL }, { "TYPES", LT_TYPES },
     { "FILETYPES", LT_TYPES }, { "GFOPENTYPES", LT_TYPES }, { "SYSTEM", LT_SYSTEM }, { "STACK", LT_SYSTEM },
     { "BLANKER", LT_BLANKER }, { "MOUSE", LT_INPUT }, { "KEYBOARD", LT_INPUT }, { "KEYS", LT_INPUT },
-    { "KEYMAP", LT_INPUT }, { "SCREENMODE", LT_SCREENMODE }, { "OVERSCAN", LT_SCREENMODE }, { "DISPLAY", LT_SCREENMODE },
+    { "KEYMAP", LT_INPUT }, { "SCREENMODE", LT_SCREENMODE }, { "OVERSCAN", LT_SCREENMODE }, { "DISPLAY", LT_DISPLAY },
     { "ICONTROL", LT_ICONTROL }, { "ICONS", LT_ICONS }, { "ICONLAYOUT", LT_ICONS }, { "ICONLABELS", LT_ICONS },
     { "PRINTING", LT_PRINTING }, { "PRINTER", LT_PRINTING }, { "PAPER", LT_PRINTING },
     { "GLOBAL", LT_GLOBAL }, { "GLOBALSETTINGS", LT_GLOBAL }, { "POWER", LT_POWER },
+    { "PROFILES", LT_DISPLAY }, { "DISPLAYPROFILES", LT_DISPLAY }, { "GFOSDISPLAY", LT_DISPLAY },
 };
 
 /* The old editors' names, and a name for each other section: each opens its section, and takes its own arguments */
@@ -89,7 +90,7 @@ static const struct { const char *name; int page; } old_names[] = {
     { "GFOpenScreenMode", LT_SCREENMODE }, { "GFOpenPointer", LT_POINTER }, { "GFOpenFonts", LT_FONTS },
     { "GFOpenColours", LT_COLOURS }, { "GFOpenBackdrops", LT_BACKDROPS }, { "GFOpenWorkbench", LT_WORKBENCH },
     { "GFOpenFileRequesters", LT_ASL }, { "GFOpenBlanker", LT_BLANKER }, { "GFOpenIControl", LT_ICONTROL },
-    { "GFOpenGlobal", LT_GLOBAL }, { "GFOpenPower", LT_POWER },
+    { "GFOpenGlobal", LT_GLOBAL }, { "GFOpenPower", LT_POWER }, { "GFOpenDisplay", LT_DISPLAY },
 };
 
 /* A section by its word (SOUND, DATETIME) or its page's name ("Sound", "Date & Time") */
@@ -148,6 +149,7 @@ int op_page(int page, int argc, char **argv)
     case LT_PRINTING: return printing_main(argc, argv);
     case LT_GLOBAL: return global_main(argc, argv);
     case LT_POWER: return power_main(argc, argv);
+    case LT_DISPLAY: return display_main(argc, argv);
     }
     return RETURN_FAIL;
 }

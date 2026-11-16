@@ -68,6 +68,9 @@ page "$HERE/src/blankerprefs.c" -Dmain=blanker_main
 DISP="-I$P/Look/src -I$P/Display/src"
 page "$P/Display/src/screenmode.c" -Dmain=screenmode_main -Dversion=screenmode_version $DISP
 page "$P/Display/src/dp_prefs.c" $DISP
+# the Display page (3.2): the display profiles, ENV:Sys/gfosdisplay.prefs (DISPLAY-PROFILES section 4); its preview through oldraw
+page "$P/Display/src/displayprofiles.c" -Dmain=display_main -Dversion=display_version $DISP -I"$LAYOUT/include"
+page "$P/Display/src/gd_prefs.c" $DISP
 ICTL="-I$P/Look/src -I$P/IControl/src"
 page "$P/IControl/src/icontrol.c" -Dmain=icontrol_main -Dversion=icontrol_version $ICTL
 page "$P/IControl/src/ic_prefs.c" $ICTL

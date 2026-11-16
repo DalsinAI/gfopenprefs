@@ -62,7 +62,7 @@ static const char *const lt_label[LT_N] = { "Theme", "Windows", "Title Bar", "Me
                                             "Backdrops", "Workbench", "File Requesters", "Dock", "Sound",
                                             "Input", "Gamepads", "Date & Time", "Serial", "File Types", "System",
                                             "Blanker", "Screen Mode", "IControl", "Icons", "Printing",
-                                            "Global Settings", "Power" };
+                                            "Global Settings", "Power", "Display" };
 
 /* A page by its name, its letters in either case; -1 for none */
 int lt_page_named(const char *name)
@@ -73,12 +73,12 @@ int lt_page_named(const char *name)
     return -1;
 }
 /* the order down the list, and the row after which a group ends */
-static const UBYTE lt_order[LT_N] = { LT_LOOK, LT_SCREENMODE, LT_POINTER, LT_FONTS, LT_COLOURS, LT_BACKDROPS, LT_WORKBENCH,
+static const UBYTE lt_order[LT_N] = { LT_LOOK, LT_SCREENMODE, LT_DISPLAY, LT_POINTER, LT_FONTS, LT_COLOURS, LT_BACKDROPS, LT_WORKBENCH,
                                       LT_ICONS, LT_ASL,
                                       LT_WINDOWS, LT_TITLEBAR, LT_MENUS, LT_ICONTROL, LT_DOCK,
                                       LT_SOUND, LT_INPUT, LT_GAMEPADS,
                                       LT_DATETIME, LT_SERIAL, LT_PRINTING, LT_TYPES, LT_SYSTEM, LT_GLOBAL, LT_POWER, LT_BLANKER };
-static const UBYTE lt_group_end[LT_N] = { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+static const UBYTE lt_group_end[LT_N] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 #define LT_GAP 4                           /* between the groups */
 #define LT_LX 8                            /* the list's left edge in the window */
 #define LT_LIST_MIN 760                    /* a screen at least this wide has the list beside the page */
