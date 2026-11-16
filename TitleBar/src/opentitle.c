@@ -143,6 +143,13 @@
  *   lists the same brokers and its messages do the same.
  * 0.11.1 (Marcus's review of 0.11): the menu button is taken over a picture item only when its program has a broker;
  *   on any other it goes on to the screen's menus.
+ * 0.12 (Dale, 16 November 2026: "sort out the colour problems" the systray has, "remove the memory bit next to it,
+ *   and move the time to the centre of the titlebar"): the time alone, in its own window in the title bar's centre,
+ *   as 0.8 had it (a double-click still opens the date and time editor); on an edge bar it stays an item of the row.
+ *   The memory's words are gone (the settings file keeps its line). The row's colours: the bar was read three
+ *   quarters of the way along, which the row had grown over, so it read its own white back and stayed white with
+ *   black text (the drag shot with no screen behind showed it too); the strip now steps left of every bar window
+ *   (Common/barstrip.h).
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -205,7 +212,7 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.11.1 (14.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.12 (16.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -240,6 +247,7 @@ static struct Screen *scr;
 static int icon_in_bar;                        /* 0.7.8: Intuition draws the logo now (SA_TitleIcon) */
 static struct DrawInfo *dri;
 static struct Window *logo_w, *clock_w;
+static int clock_mid;                          /* 0.12: the clock is its own window in the title bar's centre, not a slot */
 static WORD cx, cy, cw, ch;                    /* the clock window's place */
 static int bar_edge = OM_BAR_TITLE;
 static int border_set;                         /* we made the border black */
@@ -803,19 +811,6 @@ static void draw_logo(void)
 
 /* ---- the clock ------------------------------------------------------------------------------- */
 
-/* 0.9: every MemHeader's size, and how much of it isn't free: "3 GB RAM (0.3 MB in use)" */
-static void memory_text(char *t, int size)
-{
-    struct MemHeader *mh;
-    unsigned long long total = 0, avail;
-    Forbid();
-    for (mh = (struct MemHeader *)SysBase->MemList.lh_Head; mh->mh_Node.ln_Succ; mh = (struct MemHeader *)mh->mh_Node.ln_Succ)
-        total += (ULONG)mh->mh_Upper - (ULONG)mh->mh_Lower;
-    Permit();
-    avail = AvailMem(MEMF_ANY);
-    tb_memory(total, total > avail ? total - avail : 0, t, size);
-}
-
 /* 0.9: "Nov 12 1059", or "1059" with the date off (tb_format.h) */
 static void time_text(char *t, int size)
 {
@@ -826,38 +821,35 @@ static void time_text(char *t, int size)
     tb_clock(cd.month, cd.mday, cd.hour, cd.min, prefs.date, t, size);
 }
 
-#define CLOCK_GAP (3 * TRAY_PAD)               /* between the memory and the time */
-
-/* the memory's words and the time's, each "" when switched off */
-static void clock_parts(char *m, char *t, int size)
-{
-    m[0] = t[0] = 0;
-    if (prefs.memory) memory_text(m, size);
-    if (prefs.clock) time_text(t, size);
-}
-
-/* the room both need: measured on their words with every digit a 0, so it changes only with the digits' count */
+/* the room the time needs: measured on its words with every digit a 0, so it changes only with the digits' count
+ * (0.12: the memory's words are gone, Dale, 16 November 2026: "remove the memory bit") */
 static WORD clock_width(void)
 {
-    static char last[132];
+    static char last[64];
     static WORD last_w;
     struct RastPort rp;
-    char m[64], t[64], z[132];
+    char t[64], z[64];
     WORD w = 2 * TRAY_PAD;
-    clock_parts(m, t, sizeof m);
-    snprintf(z, sizeof z, "%s|%s", m, t);
-    tb_zeros(z, z, sizeof z);
+    time_text(t, sizeof t);
+    tb_zeros(t, z, sizeof z);
     if (last_w && !strcmp(z, last)) return last_w;
     rp = scr->RastPort;                        /* 0.8.1: the screen's, so the outline text is measured as drawn */
     SetFont(&rp, dri->dri_Font);
-    tb_zeros(m, m, sizeof m);
-    tb_zeros(t, t, sizeof t);
-    if (m[0]) w += aat_length(&rp, m, strlen(m));
-    if (t[0]) w += aat_length(&rp, t, strlen(t));
-    if (m[0] && t[0]) w += CLOCK_GAP;
+    w += aat_length(&rp, z, strlen(z));
     strcpy(last, z);
     last_w = w;
     return w;
+}
+
+/* the clock's window or slot is there to draw in */
+static int clock_on(void) { return clock_w && (clock_mid || slot_of(clock_w)); }
+
+/* the clock to its place and size: its own window (0.12, the title bar's centre) or its slot in the row */
+static void clock_move(void)
+{
+    if (clock_mid) { ChangeWindowBox(clock_w, cx, cy, cw, ch); return; }
+    slot_move(clock_w, cx, cy, cw, ch);
+    tray("Clock", cw, CLOCK_ORDER);
 }
 
 static void place(void);
@@ -866,28 +858,23 @@ static void slot_move(struct Window *w, WORD x, WORD y, WORD ww, WORD wh);
 static void draw_clock(int force)
 {
     struct RastPort *rp;
-    char m[64], t[64], both[132];
+    char t[64];
     WORD h, w;
-    if (!clock_w || !slot_of(clock_w)) return;
-    clock_parts(m, t, sizeof m);
-    snprintf(both, sizeof both, "%s|%s", m, t);
-    if (!force && !strcmp(both, shown)) return;
-    strcpy(shown, both);
+    if (!clock_on()) return;
+    time_text(t, sizeof t);
+    if (!force && !strcmp(t, shown)) return;
+    strcpy(shown, t);
     if (clock_width() != cw) {                 /* more digits: the room grows (the others move at the next place) */
         place();
-        slot_move(clock_w, cx, cy, cw, ch);
-        tray("Clock", cw, CLOCK_ORDER);
+        clock_move();
     }
     rp = clock_w->RPort;
     bar_paint(clock_w, 0, 0, cw, ch);
     SetAPen(rp, bar_text());
     SetDrMd(rp, JAM1);
     h = ch - (bar_edge == OM_BAR_TITLE ? 1 : 0);
-    if (m[0]) aat_box(rp, scr, TRAY_PAD, 0, h, m, strlen(m));
-    if (t[0]) {
-        w = aat_length(rp, t, strlen(t));
-        aat_box(rp, scr, cw - TRAY_PAD - w, 0, h, t, strlen(t));
-    }
+    w = aat_length(rp, t, strlen(t));
+    aat_box(rp, scr, (cw - w) / 2, 0, h, t, strlen(t));   /* 0.12: centred in its room */
     see_key(clock_w);
 }
 
@@ -920,7 +907,8 @@ static void place(void)
     case OM_BAR_LEFT:   ch = bh; cx = 0; cy = scr->Height - bh * (n + 1); break;
     case OM_BAR_RIGHT:  ch = bh; cx = scr->Width - cw; cy = scr->Height - bh * (n + 1); break;
     case OM_BAR_TOP:    ch = bh; cx = scr->Width - 2 * scr->BarHeight - cw - off; cy = 0; break;
-    default:            ch = scr->BarHeight; cx = scr->Width - bar_end() - cw - off; cy = 0; break;   /* 0.9: in the row */
+    default:                                   /* 0.12: the title bar's centre (Dale, 16 November 2026), as 0.8 had it */
+        ch = scr->BarHeight; cx = (scr->Width - cw) / 2; cy = 0; (void)off; break;
     }
 }
 
@@ -2950,14 +2938,15 @@ static void row_redraw(void)
 
 static void see_looks(ULONG on)
 {
-    struct Window *const ws[2] = { logo_w, row_w };   /* 0.9: the clock is in the row */
+    struct Window *const ws[3] = { logo_w, row_w, clock_mid ? clock_w : NULL };   /* 0.12: the centre clock too */
     int i;
-    for (i = 0; i < 2; i++) if (ws[i]) layer_look(ws[i]->WLayer, SEE_LOOK_ALPHA, on);
+    for (i = 0; i < 3; i++) if (ws[i]) layer_look(ws[i]->WLayer, SEE_LOOK_ALPHA, on);
 }
 
 static void see_rekey(void)
 {
     if (logo_w) see_key(logo_w);
+    if (clock_mid && clock_w) { shown[0] = 0; draw_clock(1); }
     row_redraw();
 }
 
@@ -3028,7 +3017,11 @@ static void close_all(void)
 {
     rb_clear();                                /* 0.9.2: the menu button left alone before any slot closes */
     see_off();                                 /* 0.7.5: the bar solid again while the screen is still ours */
-    if (clock_w) { slot_close(clock_w); clock_w = NULL; tray("Clock", 0, CLOCK_ORDER); }
+    if (clock_w) {
+        if (clock_mid) CloseWindow(clock_w);
+        else { slot_close(clock_w); tray("Clock", 0, CLOCK_ORDER); }
+        clock_w = NULL;
+    }
     if (pop_w) { CloseWindow(pop_w); pop_w = NULL; }
     if (net_w) { slot_close(net_w); net_w = NULL; tray("Network", 0, NET_ORDER); }
     if (menu_w) { CloseWindow(menu_w); menu_w = NULL; }
@@ -3061,13 +3054,16 @@ static int open_all(void)
     bar_edge = read_bar_edge();
     bar_sample_now();
     pt_load(scr);
-    if (prefs.clock || prefs.memory) {         /* 0.9: the memory and the time, an item of the row */
+    if (prefs.clock) {                         /* 0.12: the time alone, in the title bar's centre; an item of an edge bar's row */
+        clock_mid = bar_edge == OM_BAR_TITLE;
         place();
-        if ((clock_w = slot_open(cx, cy, cw, ch))) {
-            shown[0] = 0;
-            draw_clock(1);
-            tray("Clock", cw, CLOCK_ORDER);
-        }
+        if (clock_mid) {
+            if ((clock_w = see_new(bar_window(cx, cy, cw, ch)))) {
+                SetFont(clock_w->RPort, dri->dri_Font);
+                ModifyIDCMP(clock_w, IDCMP_REFRESHWINDOW | IDCMP_ACTIVEWINDOW | IDCMP_MOUSEBUTTONS);   /* the double-click */
+            }
+        } else if ((clock_w = slot_open(cx, cy, cw, ch))) tray("Clock", cw, CLOCK_ORDER);
+        if (clock_w) { shown[0] = 0; draw_clock(1); }
     }
     if (prefs.network && !net_elsewhere()) net_open();   /* 0.8 */
     cog_open();                                /* 0.7: always (Dale, 17 Oct 2026); prefs.cog is read no more */
@@ -3338,6 +3334,7 @@ static void events(struct Window *w)
             EndRefresh(w, TRUE);
         }
         else if (cls == IDCMP_MOUSEBUTTONS && code == SELECTDOWN) {
+            if (w == clock_w) { clock_click(secs, micros); return; }   /* 0.12: the centre clock */
             if (w == net_w) { if (pop_w) pop_close(); else pop_open(); return; }
             if (w == pop_w) { pop_click(my); return; }
             {   /* a program's icon: tell it; drop the icon when the program is gone */
@@ -3372,7 +3369,7 @@ static void place_all(void)
     if (clock_w) {
         WORD ox = cx, oy = cy, ow = cw, oh = ch;
         place();
-        if (cx != ox || cy != oy || cw != ow || ch != oh) { slot_move(clock_w, cx, cy, cw, ch); tray("Clock", cw, CLOCK_ORDER); shown[0] = 0; }
+        if (cx != ox || cy != oy || cw != ow || ch != oh) { clock_move(); shown[0] = 0; }
     }
     for (i = 0; i < TS_ICONS; i++) {
         struct ts_icon *t = ts[i];
@@ -3446,10 +3443,10 @@ static int is_window(struct Window *w)
 /* the windows that wake the task */
 static ULONG window_sigs(void)
 {
-    struct Window *const ws[5] = { logo_w, row_w, pop_w, help_w, menu_w };
+    struct Window *const ws[6] = { logo_w, row_w, pop_w, help_w, menu_w, clock_mid ? clock_w : NULL };
     ULONG m = 0;
     int i;
-    for (i = 0; i < 5; i++) if (ws[i] && ws[i]->UserPort) m |= 1UL << ws[i]->UserPort->mp_SigBit;
+    for (i = 0; i < 6; i++) if (ws[i] && ws[i]->UserPort) m |= 1UL << ws[i]->UserPort->mp_SigBit;
     return m | os_sigs();
 }
 
@@ -3575,6 +3572,7 @@ int main(void)
         menu_events();
         rb_events(sig);                        /* 0.9.1: the menu button on the cog or the systray */
         events(logo_w);
+        if (clock_mid) events(clock_w);        /* 0.12: the centre clock's own window */
         events(row_w);                         /* 0.8: the cog, the network and the programs' icons */
         os_events();                           /* 0.7: the cogs on the other public screens */
         if (pop_w) events(pop_w);
