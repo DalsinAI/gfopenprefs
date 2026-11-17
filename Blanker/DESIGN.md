@@ -51,6 +51,10 @@ built binary when it's given one. (The screenshot above is from 1.0.)
   GFOpenSynth for MIDI), so any sound a datatype opens will do; with no file,
   no datatype or no sound the show is silent. The piece is made ready after
   the screen has gone black, which for a long piece takes a while.
+- **Quit, also during the show (1.8):** a Break (`CTRL_C`) or Exchange's
+  Kill ends the show at its next frame and quits; before 1.8 the show waited
+  for a key or the mouse, so a new GFOpenBlanker could not take over from one
+  that was showing. Exchange's Disable and Enable are also read during the show.
 - **Its own screen**, the Workbench's size, in a 256-colour mode
   (`BestModeID`, depth 8): AGA, or a CLUT mode on an RTG card, so the palette
   can fade the picture. A borderless window covers it: the pointer is hidden,

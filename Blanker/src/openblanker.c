@@ -19,7 +19,9 @@
  * a player (a "gfopenmidi control" process is there): a silent show (1.7).
  * No file, datatype or sound: a silent show.
  *
- * A commodity: Exchange can disable, enable or quit it. Started again, the
+ * A commodity: Exchange can disable, enable or quit it, and a Break (CTRL_C)
+ * quits it, also while the show is up (1.8: the show used to wait for a key
+ * or the mouse first, so a new GFOpenBlanker couldn't take over). Started again, the
  * running one is left alone (1.1: it used to play the show at once, so a
  * startup that lists GFOpenBlanker twice blanked the screen at boot); started
  * again with NOW, it plays the show at once.
@@ -61,11 +63,12 @@
 #include "bl_wordmark.h"
 #include "bl_logo.h"
 #include "bl_music.h"
+#include "bl_quit.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.7 (17.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.8 (17.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -74,6 +77,9 @@ struct Library *CxBase, *OpenFontTextBase, *DiskfontBase, *IconBase, *DataTypesB
 static struct Task *me;
 static volatile ULONG idle_ticks;      /* seconds since the last key or mouse */
 static volatile int showing, woken, on = 1;
+static int quit;                       /* a Break or Exchange's Kill: also ends the show (1.8, bl_quit.h) */
+static struct MsgPort *port;           /* the commodity's port, read in the show too (1.8) */
+static CxObj *broker;
 #define SIG_WAKE SIGBREAKF_CTRL_E     /* the show: a key or the mouse; otherwise a program holding it off (1.2) */
 #define SIG_PLAY SIGBREAKF_CTRL_D     /* a second GFOpenBlanker NOW asks the running one to play the show */
 #define PORT_NAME "GFOpenBlanker"
@@ -305,11 +311,27 @@ static void draw_card(const card *c)
     }
 }
 
-/* waits a frame; 0 once a key or the mouse has woken it */
+static void cx_messages(void)
+{
+    CxMsg *m;
+    while (port && (m = (CxMsg *)GetMsg(port))) {
+        ULONG type = CxMsgType(m), id = CxMsgID(m);
+        int state;
+        ReplyMsg((struct Message *)m);
+        if (type == CXM_COMMAND && (state = bl_cx_command(id, (int *)&on, &quit)) >= 0) {
+            ActivateCxObj(broker, state);
+            if (state) idle_ticks = 0;
+        }
+    }
+}
+
+/* waits a frame; 0 once a key or the mouse has woken it, or a Break or Exchange's Kill asks it to quit (1.8) */
 static int frame(void)
 {
     WaitTOF();
-    return !woken;
+    if (SetSignal(0, SIGBREAKF_CTRL_C) & SIGBREAKF_CTRL_C) quit = 1;
+    cx_messages();
+    return bl_show_goes_on(woken, quit);
 }
 
 static int open_show(void)
@@ -481,8 +503,8 @@ static void play(void)
     if (!open_show()) return;
     showing = 1;
     music_start();
-    while (!woken)
-        for (i = 0; i < NCARDS && !woken; i++) {
+    while (bl_show_goes_on(woken, quit))
+        for (i = 0; i < NCARDS && bl_show_goes_on(woken, quit); i++) {
             set_level(0);
             draw_card(&show[i]);
             for (k = 1; k <= FADE && frame(); k++) set_level(256 * k / FADE);
@@ -510,7 +532,7 @@ static void custom(CxMsg *msg, CxObj *co)
 }
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.7", (STRPTR)"Blanks the screen with a show: Gods and Angels",
+    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.8", (STRPTR)"Blanks the screen with a show: Gods and Angels",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 
@@ -525,13 +547,13 @@ static ULONG timeout_setting(LONG from_cli)
 
 int main(int argc, char **argv)
 {
-    struct MsgPort *port = NULL, *tport = NULL;
+    struct MsgPort *tport = NULL;
     struct timerequest *tr = NULL;
     struct RDArgs *rd = NULL;
     LONG args[4] = { 0, 0, 0, 0 };
-    CxObj *broker = NULL, *cust;
+    CxObj *cust;
     ULONG timeout;
-    int quit = 0, timer = 0, now = 0;
+    int timer = 0, now = 0;
     (void)version; (void)argv;
     IntuitionBase = (struct IntuitionBase *)OpenLibrary((STRPTR)"intuition.library", 39);
     GfxBase = (struct GfxBase *)OpenLibrary((STRPTR)"graphics.library", 39);
@@ -571,24 +593,14 @@ int main(int argc, char **argv)
     while (!quit) {
         ULONG got = Wait((1UL << port->mp_SigBit) | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F | SIG_WAKE | SIG_PLAY |
                          (timer ? 1UL << tport->mp_SigBit : 0));
-        CxMsg *m;
         if (got & SIGBREAKF_CTRL_C) quit = 1;
         if (got & SIGBREAKF_CTRL_F) timeout = timeout_setting(0);    /* the settings changed */
         if (got & SIG_WAKE) idle_ticks = 0;    /* a program holds the show off (1.2) */
-        if ((got & SIG_PLAY) && on) play();
-        while ((m = (CxMsg *)GetMsg(port))) {
-            ULONG type = CxMsgType(m), id = CxMsgID(m);
-            ReplyMsg((struct Message *)m);
-            if (type == CXM_COMMAND) switch (id) {
-            case CXCMD_DISABLE: ActivateCxObj(broker, 0); on = 0; break;
-            case CXCMD_ENABLE: ActivateCxObj(broker, 1); on = 1; idle_ticks = 0; break;
-            case CXCMD_KILL: quit = 1; break;
-            case CXCMD_UNIQUE: break;                      /* started again: nothing (GFOpenBlanker NOW asks by signal) */
-            }
-        }
+        cx_messages();
+        if ((got & SIG_PLAY) && on && !quit) play();
         if (timer && CheckIO((struct IORequest *)tr)) {
             WaitIO((struct IORequest *)tr);
-            if (on && ++idle_ticks >= timeout) play();
+            if (on && !quit && ++idle_ticks >= timeout) play();
             tr->tr_node.io_Command = TR_ADDREQUEST; tr->tr_time.tv_secs = 1; tr->tr_time.tv_micro = 0;
             SendIO((struct IORequest *)tr);
         }
