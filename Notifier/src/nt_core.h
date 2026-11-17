@@ -1,6 +1,6 @@
-/* nt_core: GFOpenNotify's commands, its list of programs and its queue of notices.
+/* nt_core: GFOpenNotifier's commands, its list of programs and its queue of notices.
  *
- * GFOpenNotify is our own pop-up notice server. It answers the two ARexx commands of OS 4's Ringhio,
+ * GFOpenNotifier is our own pop-up notice server. It answers the two ARexx commands of OS 4's Ringhio,
  * REGISTERAPP and RINGHIO, which are also what Ranchero (Rob Cranley, Aminet util/cdity/Ranchero) answers on
  * OS 3, so a script written for either works with ours unchanged. Written from the published description of
  * the commands only; none of their code or files.

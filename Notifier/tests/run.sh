@@ -1,5 +1,5 @@
 #!/bin/sh
-# Host tests for GFOpenNotify's commands, programs and queue (nt_core.c), with the host's cc.
+# Host tests for GFOpenNotifier's commands, programs and queue (nt_core.c), with the host's cc.
 # MIT, Copyright (c) 2026 AmiCradle Team.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)

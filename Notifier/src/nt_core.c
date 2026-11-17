@@ -1,4 +1,4 @@
-/* nt_core: GFOpenNotify's commands, its list of programs and its queue (see nt_core.h).
+/* nt_core: GFOpenNotifier's commands, its list of programs and its queue (see nt_core.h).
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "nt_core.h"
 #include <string.h>

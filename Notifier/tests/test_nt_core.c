@@ -1,4 +1,4 @@
-/* Host tests for GFOpenNotify's commands, programs and queue (src/nt_core.c).
+/* Host tests for GFOpenNotifier's commands, programs and queue (src/nt_core.c).
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "nt_core.h"
 #include <stdio.h>
