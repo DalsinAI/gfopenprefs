@@ -1146,13 +1146,15 @@ static void run_line(struct RastPort *rp, int x0, int y0, int x1, int y1)
     }
 }
 
+static int pre_w, pre_h;                           /* 0.6.14: the size being drawn for, before the window has it; 0: the window's */
+
 /* Everything, into the drawing, with button lift (if any) raised by lift pixels. */
 static void render(int lifted, int lift)
 {
     struct RastPort *rp = &brp;
     struct DrawInfo *dri = GetScreenDrawInfo(scr);
     UWORD *pens = dri ? dri->dri_Pens : NULL;
-    int W = win->Width, H = win->Height, pos = standing ? by : bx, x0, y0, x1, y1;
+    int W = pre_w ? pre_w : win->Width, H = pre_h ? pre_h : win->Height, pos = standing ? by : bx, x0, y0, x1, y1;
     int shadow = pens ? pens[SHADOWPEN] : 1, text = dot_pen >= 0 ? dot_pen : pens ? pens[TEXTPEN] : 1;
     int edge = dot_at;                             /* the dot's centre, from the shelf's edge */
     shelf(W, H, &x0, &y0, &x1, &y1);
@@ -1595,17 +1597,6 @@ static int resize_in_place(void)
     }
     bubble_off();
     BltBitMap(strip, x - strip_x, y - strip_y, nb, 0, 0, w, h, 0xc0, 0xff, NULL);
-    if (win->LeftEdge != x || win->TopEdge != y || win->Width != w || win->Height != h) {
-        /* Intuition changes it at its next input event: waited for, the old dock showing meanwhile */
-        ChangeWindowBox(win, x, y, w, h);
-        for (tries = 0; tries < 50 && (win->LeftEdge != x || win->TopEdge != y || win->Width != w || win->Height != h); tries++)
-            Delay(1);
-        if (win->LeftEdge != x || win->TopEdge != y || win->Width != w || win->Height != h) {
-            WaitBlit();
-            FreeBitMap(nb); FreeBitMap(nk); FreeBitMap(ns);
-            return 0;
-        }
-    }
     WaitBlit();
     FreeBitMap(behind); FreeBitMap(back); FreeBitMap(shelfbm);
     behind = nb; back = nk; shelfbm = ns;
@@ -1616,7 +1607,19 @@ static int resize_in_place(void)
     InitRastPort(&srp);
     srp.BitMap = shelfbm;
     make_shelf(&srp, w, h);
-    draw();
+    /* the whole dock drawn before the window changes: between its change and the blit the old picture shows at
+     * the new place, so nothing slow may come between them */
+    pre_w = w; pre_h = h;
+    render(-1, 0);
+    pre_w = pre_h = 0;
+    if (win->LeftEdge != x || win->TopEdge != y || win->Width != w || win->Height != h) {
+        /* GFOpenKick's Intuition changes it before it returns; OS 3.2.3's at its next input event: waited for */
+        ChangeWindowBox(win, x, y, w, h);
+        for (tries = 0; tries < 50 && (win->LeftEdge != x || win->TopEdge != y || win->Width != w || win->Height != h); tries++)
+            Delay(1);
+        if (win->LeftEdge != x || win->TopEdge != y || win->Width != w || win->Height != h) return 0;   /* opened again */
+    }
+    BltBitMapRastPort(back, 0, 0, win->RPort, 0, 0, w, h, 0xc0);
     seen_sig = moving_sig = behind_sig();
     still = 0;
     return 1;
