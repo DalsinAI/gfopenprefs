@@ -14,8 +14,10 @@
  * Music (1.6): its icon's tooltypes PLAYMIDI=TRUE and MIDIFILE= say the same
  * (bl_music.h), however it was started; the words on the command line win.
  * The file plays through its datatype (gfopenmidi.datatype and GFOpenSynth
- * for MIDI), round again until the show ends. With no MIDIFILE it picks from
- * Media:midi/Dance, else Media:midi. No file, datatype or sound: a silent show.
+ * for MIDI), round again until the show ends. No MIDIFILE: no music (1.7: no
+ * tune or place is built in; the icon names it). A MIDI file already loaded in
+ * a player (a "gfopenmidi control" process is there): a silent show (1.7).
+ * No file, datatype or sound: a silent show.
  *
  * A commodity: Exchange can disable, enable or quit it. Started again, the
  * running one is left alone (1.1: it used to play the show at once, so a
@@ -438,7 +440,6 @@ static int music_file(char *out, int size)
     const char *name = midi_file;
     struct DateStamp ds;
     int d, n;
-    if (!*name) name = is_drawer(BL_MUSIC_FIRST) == 1 && drawer_midi(BL_MUSIC_FIRST, -1, NULL, 0) ? BL_MUSIC_FIRST : BL_MUSIC_SECOND;
     if ((d = is_drawer(name)) < 0) return 0;
     if (!d) { strncpy(out, name, size - 1); out[size - 1] = 0; return 1; }
     if (!(n = drawer_midi(name, -1, NULL, 0))) return 0;
@@ -458,7 +459,11 @@ static void music_start(void)
 {
     char path[320];
     struct dtTrigger t;
-    if (!play_midi || !music_file(path, sizeof path)) return;
+    int others;
+    Forbid();
+    others = FindTask((STRPTR)BL_MIDI_PLAYER) != NULL;
+    Permit();
+    if (!bl_may_play(play_midi, midi_file, others) || !music_file(path, sizeof path)) return;
     if (!(DataTypesBase = OpenLibrary((STRPTR)"datatypes.library", 39))) return;
     music = NewDTObject((APTR)path, DTA_SourceType, DTST_FILE, DTA_GroupID, GID_SOUND, SDTA_Volume, 64, DTA_Repeat, TRUE, TAG_DONE);
     if (!music) { music_stop(); return; }

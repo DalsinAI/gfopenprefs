@@ -41,9 +41,12 @@ built binary when it's given one. (The screenshot above is from 1.0.)
 - **Music (1.6):** with `PLAYMIDI=TRUE` in its icon's tooltypes (or
   `PLAYMIDI` on the command line) the show plays music, round again until a
   key or the mouse ends it. `MIDIFILE=` names the file, or a drawer: a MIDI
-  file is picked from it afresh each show, never the same twice running. With
-  no `MIDIFILE` it picks from `Media:midi/Dance` when that drawer has MIDI
-  files, else from `Media:midi`. The icon is read however the blanker was
+  file is picked from it afresh each show, never the same twice running.
+  Since 1.7 nothing is built in: with no `MIDIFILE` there is no music, and
+  the shipped icon names the tune (`MIDIFILE=Media:midi/Dance/copper-list.mid`).
+  Since 1.7 the show is also silent when another program already has a MIDI
+  file loaded (its `gfopenmidi control` process is there), so it never plays
+  over GFOpenPlay. The icon is read however the blanker was
   started. The file plays through its datatype (`gfopenmidi.datatype` and
   GFOpenSynth for MIDI), so any sound a datatype opens will do; with no file,
   no datatype or no sound the show is silent. The piece is made ready after

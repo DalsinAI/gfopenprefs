@@ -3,14 +3,24 @@
  *
  *   PLAYMIDI=TRUE   the show plays music (TRUE, YES, ON or 1, or the bare word)
  *   MIDIFILE=name   the file to play, or a drawer: a MIDI file is picked from
- *                   it afresh each show. Left out or empty: Media:midi/Dance
- *                   when that drawer is there, else Media:midi.
+ *                   it afresh each show. Left out or empty: no music. The
+ *                   blanker has no tune or place of its own: the icon says.
+ * The show stays silent when a MIDI file is already loaded in a player (1.7).
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #ifndef BL_MUSIC_H
 #define BL_MUSIC_H
 
-#define BL_MUSIC_FIRST  "Media:midi/Dance"
-#define BL_MUSIC_SECOND "Media:midi"
+/* the process gfopenmidi.datatype runs for each MIDI file a program has loaded */
+#define BL_MIDI_PLAYER "gfopenmidi control"
+
+/* Does this show start music? on: PLAYMIDI. file: MIDIFILE's value. others: how many
+ * MIDI files other programs have loaded now (playing over them is a train wreck). */
+static int bl_may_play(int on, const char *file, int others)
+{
+    if (!file) return 0;
+    while (*file == ' ') file++;
+    return on && *file && others <= 0;
+}
 
 static int bl_lower(int c) { return c >= 'A' && c <= 'Z' ? c + 32 : c; }
 

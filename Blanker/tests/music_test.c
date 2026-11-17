@@ -19,6 +19,10 @@ int main(void)
     CHECK("other names are not", !bl_is_midi("a.mod") && !bl_is_midi("mid") && !bl_is_midi(".mid") && !bl_is_midi("a.mid.info") && !bl_is_midi("") && !bl_is_midi("SOURCES.tsv"));
     CHECK("MIDIFILE left out, empty or blank names nothing", !*bl_file_setting(NULL) && !*bl_file_setting("") && !*bl_file_setting("   "));
     CHECK("MIDIFILE's value is taken after its blanks", !strcmp(bl_file_setting(" Media:midi/Joplin/entertainer.mid"), "Media:midi/Joplin/entertainer.mid"));
+    CHECK("music plays with PLAYMIDI on, a MIDIFILE and nothing else loaded", bl_may_play(1, "Media:midi/Dance/copper-list.mid", 0));
+    CHECK("no music with PLAYMIDI off", !bl_may_play(0, "Media:midi/Dance/copper-list.mid", 0));
+    CHECK("no music without a MIDIFILE: no tune is built in", !bl_may_play(1, NULL, 0) && !bl_may_play(1, "", 0) && !bl_may_play(1, "  ", 0));
+    CHECK("no music while another player has a MIDI file loaded", !bl_may_play(1, "Media:midi/Dance", 1) && !bl_may_play(1, "Media:midi/Dance", 3));
     CHECK("one file or none: the first", bl_pick(0, 7, 0) == 0 && bl_pick(1, 7, 0) == 0);
     for (i = 0; i < 1000; i++) {
         unsigned p = bl_pick(5, i * 2654435761u, last);
