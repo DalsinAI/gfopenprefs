@@ -20,7 +20,7 @@ void od_defaults(od_dock *d)
 {
     memset(d, 0, sizeof *d);
     d->place = OD_BOTTOM;
-    d->size = OD_LARGE;             /* 0.6: 64-pixel icons, as the dock has always looked; Size now sets the icons' size */
+    d->size = OD_SMALL;             /* 0.6.15: a new dock starts small, 32-pixel icons (Large, 64, from 0.6); a file's own size line is kept */
     d->running = 1;
     d->hover = 1;
     d->hop = 1;

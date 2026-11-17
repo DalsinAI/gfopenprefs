@@ -8,6 +8,14 @@ over the docks people already have. MIT, Copyright (c) 2026 AmiCradle Team.
 
 ![GFOpenDock 0.3, the dark look](docs/screenshot-dark.png)
 
+## 0.6.15 (17 November 2026): a new dock starts small
+
+The user: "it should default to small dock". A dock with no settings yet
+(`od_defaults()`: a first install, the editor with no file) starts at Small,
+32-pixel icons, half of Large's 64. A settings file that has a `size` line
+keeps it, so a dock already set up does not change. Size in the Dock editor
+(Small, Medium, Large, in the Simple view) switches it back.
+
 ## 0.6 (10 October 2026): the settings do what they say
 
 The user: "most of the dock's settings do nothing", and Glass, Solid and
@@ -208,7 +216,7 @@ Each line is `key value`, and a `;` starts a comment. Unknown lines are
 skipped. Save writes `ENVARC:` too.
 
     place bottom|top|left|right
-    size small|medium|large            ; the icons' size: 32, 48 or 64 pixels (the cell 8 more); a larger icon shrinks to it, never grows (0.6; large if not given)
+    size small|medium|large            ; the icons' size: 32, 48 or 64 pixels (the cell 8 more); a larger icon shrinks to it, never grows (0.6; small if not given, large before 0.6.15)
     labels on|off                      ; names under the icons
     running on|off                     ; the running marks
     background glass|see-through|solid ; the shelf: glass, frosted and see-through by `opacity`; see-through, no shelf at all (0.6); solid, opaque (glass if not given)
