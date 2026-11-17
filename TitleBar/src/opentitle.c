@@ -156,6 +156,12 @@
  *   its list on other screens. The same pixels as 0.12.1 (tests/test_tb.c holds the network icons and every line and
  *   frame against 0.12.1's Move/Draw/RectFill/WritePixel); each window keeps its oldraw rather than making one for every
  *   redraw. The words stay on OLUI_AmigaText (anti-aliased; oldraw_text is Text()'s bitmap font).
+ * 0.12.3 (Dale, 17 November 2026, on the Pi 5's rc4 desktop: "the systray colours are not right, the small separator
+ *   lines for the screen depth and power gadgets are missing"): the row's items stand on the bar's own colour, with no
+ *   lighter band behind them (0.9's bands read as boxes of another colour, with dark gaps between them), and Prefs
+ *   and Power have a small line each side: one before Prefs, parting them from the systray, one after Power, parting
+ *   them from the screen's depth gadget (tb_shapes.h's tb_sep_cols). An item whose menu is open keeps its deeper
+ *   shade, and one under the pointer its raised look.
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -218,7 +224,7 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.12.2 (16.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.12.3 (17.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -230,7 +236,8 @@ struct Library *SysBarBase;                     /* 0.10: gfopensysbar.library, w
 #define CLOCK_ORDER 10                         /* left of the network icons (5) and GFOpenSpeaker (0) */
 #define NET_ORDER   5
 #define COG_ORDER   (-5)                       /* the far end: right of GFOpenSpeaker (0), left of the depth gadget */
-#define BAND_SHADE 36                          /* 0.9: the bands: 256ths of the way from the bar's colour to white (or black) */
+#define BAND_SHADE 0                           /* 0.12.3: no band at rest, the bar's own colour (0.9 to 0.12.2: 36 256ths lighter) */
+#define SEP_SHADE  96                          /* 0.12.3: the small lines beside Prefs and Power: 256ths lighter (or darker) */
 #define BAND_HOT   84                          /* an item whose menu is open */
 #define CX_ORDER    3                          /* 0.9: the commodities, between the network icons and GFOpenSpeaker */
 #define NET_TOOL   "SYS:Tools/Commodities/GFOpenSocketControl"
@@ -1726,6 +1733,13 @@ static void draw_cog(int force)
     cog_drawn = state;
     bar_paint(cog_w, 0, 0, gw, gh);
     band(cog_w, COG_GAP, 2 * TRAY_CELL, gh, BAND_SHADE);
+    if (CyberGfxBase && bp_n) {
+        /* 0.12.3: the small lines, before Prefs and after Power */
+        int cols[2], top, len, i;
+        tb_sep_cols(COG_GAP, TRAY_CELL, 2, cols);
+        tb_sep_rows(gh, bar_edge == OM_BAR_TITLE, &top, &len);
+        for (i = 0; i < 2; i++) od_bar(cog_w, (WORD)cols[i], (WORD)top, 1, (WORD)len, SEP_SHADE);
+    }
     size = cog_size();
     if ((d = od_open(cog_w))) {
         oldraw_colour ink = pen_colour(bar_text());

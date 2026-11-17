@@ -169,4 +169,23 @@ static __attribute__((unused)) int tb_row_runs(const unsigned long *rgb, int x, 
     return n;
 }
 
+/* 0.12.3: the small lines beside Prefs and Power, in their window: gap pixels of bar, then n cells of cell pixels.
+ * cols[0] is the line before the first cell, in the middle of the gap; cols[1] the line after the last, the window's
+ * last column. */
+static inline void tb_sep_cols(int gap, int cell, int n, int cols[2])
+{
+    cols[0] = gap / 2;
+    cols[1] = gap + n * cell - 1;
+}
+
+/* The lines' rows in a bar h high: a quarter of the bar clear above and below (3 rows at least), and on the
+ * screen's title bar not over its last row, the bar's own line. *len is 0 when the bar is too low for one. */
+static inline void tb_sep_rows(int h, int title_bar, int *top, int *len)
+{
+    int inset = h / 4 < 3 ? 3 : h / 4;
+    *top = inset;
+    *len = h - 2 * inset - (title_bar ? 1 : 0);
+    if (*len < 0) *len = 0;
+}
+
 #endif
