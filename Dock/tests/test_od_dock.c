@@ -56,6 +56,50 @@ static void test_drop_missing(void)
     CHECK(od_drop_missing(&d, fake_exists) == 0 && d.n == n0 - 4);
 }
 
+/* a machine with a Work volume: Write, FTP and PuTTY are there, not in SYS:Utilities */
+static int work_exists(const char *path)
+{
+    if (!strncmp(path, "SYS:Utilities/GFOpenWrite/", 26) || !strncmp(path, "SYS:Utilities/GFOpenFTP/", 24)
+        || !strncmp(path, "SYS:Utilities/GFOpenPuTTY/", 26) || !strncmp(path, "sys:utilities/GFOpenMail/", 25)) return 0;
+    if (!strncmp(path, "Work:", 5))
+        return !strcmp(path, "Work:GFOpenWrite/GFOpenWrite") || !strcmp(path, "Work:GFOpenFTP/GFOpenFTP")
+               || !strcmp(path, "Work:GFOpenPuTTY/GFOpenPuTTY") || !strcmp(path, "Work:GFOpenMail/GFOpenMail")
+               || !strcmp(path, "Work:Other/Tool");
+    return 1;
+}
+
+/* a machine with no Work volume: nothing is on Work: */
+static int sys_exists(const char *path) { return strncmp(path, "Work:", 5) != 0; }
+
+static void test_rehome(void)
+{
+    od_defaults(&d);
+    od_starter(&d);
+    int n0 = d.n;
+    /* the three starter applications that moved point at Work:, and nothing is dropped */
+    CHECK(od_rehome(&d, work_exists) == 3 && d.n == n0);
+    CHECK(!strcmp(d.b[find(&d, "GFOpenWrite")].command, "Work:GFOpenWrite/GFOpenWrite"));
+    CHECK(!strcmp(d.b[find(&d, "GFOpenFTP")].command, "Work:GFOpenFTP/GFOpenFTP"));
+    CHECK(!strcmp(d.b[find(&d, "GFOpenPuTTY")].command, "Work:GFOpenPuTTY/GFOpenPuTTY"));
+    CHECK(!strcmp(d.b[find(&d, "GFOpenFiles")].command, "SYS:Utilities/GFOpenFiles"));
+    CHECK(od_drop_missing(&d, work_exists) == 0 && d.n == n0);
+    CHECK(od_rehome(&d, work_exists) == 0);
+    /* no Work volume: every button stays where it was */
+    od_starter(&d);
+    CHECK(od_rehome(&d, sys_exists) == 0 && !strcmp(d.b[find(&d, "GFOpenWrite")].command, "SYS:Utilities/GFOpenWrite/GFOpenWrite"));
+    /* a saved button in any case, with its icon beside the program; a program that isn't ours stays */
+    od_defaults(&d);
+    d.n = 3;
+    memset(d.b, 0, 3 * sizeof d.b[0]);
+    d.b[0].kind = OD_WB; strcpy(d.b[0].label, "Mail"); strcpy(d.b[0].command, "sys:utilities/GFOpenMail/GFOpenMail");
+    strcpy(d.b[0].icon, "SYS:Utilities/GFOpenMail/GFOpenMail");
+    d.b[1].kind = OD_WB; strcpy(d.b[1].label, "Tool"); strcpy(d.b[1].command, "SYS:Utilities/Other/Tool");
+    d.b[2].kind = OD_CLI; strcpy(d.b[2].label, "Run"); strcpy(d.b[2].command, "SYS:Utilities/GFOpenFTP/GFOpenFTP");
+    CHECK(od_rehome(&d, work_exists) == 1);
+    CHECK(!strcmp(d.b[0].command, "Work:GFOpenMail/GFOpenMail") && !strcmp(d.b[0].icon, "Work:GFOpenMail/GFOpenMail"));
+    CHECK(!strcmp(d.b[1].command, "SYS:Utilities/Other/Tool") && !strcmp(d.b[2].command, "SYS:Utilities/GFOpenFTP/GFOpenFTP"));
+}
+
 static void test_own_format(void)
 {
     od_defaults(&d);
@@ -319,6 +363,7 @@ int main(int argc, char **argv)
 {
     const char *dir = argc > 1 ? argv[1] : ".";
     test_drop_missing();
+    test_rehome();
     test_own_format();
     test_small_default();
     test_toolmanager(dir);
