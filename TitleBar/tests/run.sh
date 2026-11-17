@@ -11,3 +11,5 @@ CC=${CC:-cc}
 "$CC" -std=gnu99 -Wall -Wextra -Werror -O2 -fsanitize=address,undefined -I"$HERE/../src" -I"$HERE/../../Common" -o "$T/t" "$HERE/test_tb.c"
 "$T/t"
 python3 "$HERE/test_mark.py"
+"$CC" -std=gnu99 -Wall -Wextra -Werror -O2 -I"$HERE/../../Common" -o "$T/tl" "$HERE/test_logo.c"
+"$T/tl"
