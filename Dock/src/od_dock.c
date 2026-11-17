@@ -202,6 +202,55 @@ int od_ensure(od_dock *d, const char *command)
 
 /* ---- GFOpenDock's own format ------------------------------------------------------------ */
 
+/* The applications that live on Work: where a machine has a Work volume
+ * (the GFOpenUp pack puts them there; SYS:Utilities on a machine without). */
+static const char *const od_work_apps[] = {
+    "GFOpenWrite", "GFOpenCalc", "GFOpenPresentation", "GFOpenPuTTY", "GFOpenFTP",
+    "GFOpenMail", "UnofficialTelegram", "OpenBrowser", "GFOpenBrowserLite", NULL
+};
+
+/* A Workbench button for one of those applications in SYS:Utilities, when
+ * the program isn't there and is on Work:, points at Work:. exists() says
+ * whether a path is there. An icon named beside the old program moves with
+ * it. The number of buttons changed. */
+int od_rehome(od_dock *d, int (*exists)(const char *path))
+{
+    static const char from[] = "SYS:Utilities/";
+    const size_t fl = sizeof from - 1;
+    int moved = 0;
+    for (int i = 0; i < d->n; i++) {
+        od_button *b = &d->b[i];
+        char to[sizeof b->command];
+        if (b->kind != OD_WB || strlen(b->command) <= fl) continue;
+        char head[sizeof from];
+        memcpy(head, b->command, fl); head[fl] = 0;
+        if (!same_name(head, from)) continue;
+        const char *rest = b->command + fl;
+        int app = 0;
+        for (int a = 0; od_work_apps[a] && !app; a++) {
+            size_t al = strlen(od_work_apps[a]);
+            char name[32];
+            if (strlen(rest) <= al || rest[al] != '/' || al >= sizeof name) continue;
+            memcpy(name, rest, al); name[al] = 0;
+            app = same_name(name, od_work_apps[a]);
+        }
+        if (!app || exists(b->command)) continue;
+        snprintf(to, sizeof to, "Work:%s", rest);
+        if (!exists(to)) continue;
+        strcpy(b->command, to);
+        if (strlen(b->icon) > fl) {
+            memcpy(head, b->icon, fl); head[fl] = 0;
+            if (same_name(head, from) && strlen(b->icon) - fl + 5 < sizeof b->icon) {
+                char icon[sizeof b->icon];
+                snprintf(icon, sizeof icon, "Work:%s", b->icon + fl);
+                strcpy(b->icon, icon);
+            }
+        }
+        moved++;
+    }
+    return moved;
+}
+
 int od_parse(od_dock *d, const char *text)
 {
     const char *line;

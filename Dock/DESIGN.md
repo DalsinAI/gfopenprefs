@@ -8,6 +8,19 @@ over the docks people already have. MIT, Copyright (c) 2026 AmiCradle Team.
 
 ![GFOpenDock 0.3, the dark look](docs/screenshot-dark.png)
 
+## 0.6.16 (17 November 2026): buttons follow our applications to Work:
+
+The user: "on the work volume of all appliances and instances we should
+include all our open apps". On a machine with a Work volume the GFOpenUp pack
+now puts GFOpenWrite, GFOpenCalc, GFOpenPresentation, GFOpenPuTTY, GFOpenFTP,
+GFOpenMail, Telegram and the browser in `Work:` and takes them out of
+`SYS:Utilities`. `od_rehome()` points a Workbench button for one of those
+at `Work:` when the program is no longer in `SYS:Utilities` and is on
+`Work:`; an icon named beside the old program moves with it. The dock and its
+editor (0.5.4) do this to the starter buttons and to a saved dock as it is
+read, so no button is lost by the move; the settings file is written only when
+the user saves. A machine without a Work volume changes nothing.
+
 ## 0.6.15 (17 November 2026): a new dock starts small
 
 The user: "it should default to small dock". A dock with no settings yet

@@ -65,7 +65,7 @@
 #endif
 
 #ifndef IN_OPENBENCH
-const char version[] __attribute__((used)) = "$VER: GFOpenDock-Prefs 0.5.3 (17.10.2026) GFOpenPrefs, AmiCradle Team";   /* 0.5.3: Use and Save start the dock if it isn't running */
+const char version[] __attribute__((used)) = "$VER: GFOpenDock-Prefs 0.5.4 (17.11.2026) GFOpenPrefs, AmiCradle Team";   /* 0.5.4: buttons for our applications follow them to Work:; 0.5.3: Use and Save start the dock if it isn't running */
 #endif
 
 #define PREFS_ENV "ENV:GFOpenDock/Dock"
@@ -759,7 +759,9 @@ int main(int argc, char **argv)
     first = !text && !exists(PREFS_ENVARC);
     if (!text) text = read_file(PREFS_ENVARC, NULL);
     od_parse(&orig, text);
-    if (!text) { od_starter(&orig); drop_missing(&orig); }
+    if (!text) od_starter(&orig);
+    od_rehome(&orig, exists);                      /* 0.5.4: our applications on Work: where they aren't in SYS:Utilities */
+    if (!text) drop_missing(&orig);
     if (text) FreeVec(text);
     cur = orig;
     if (args[0]) {
