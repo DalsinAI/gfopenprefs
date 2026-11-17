@@ -1,6 +1,7 @@
 /* Host tests for od_dock.c. MIT, Copyright (c) 2026 AmiCradle Team. */
 #include "od_dock.h"
 #include "od_wake.h"
+#include "od_strip.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -264,6 +265,34 @@ static void test_wake(void)
            before.wakes, rest.wakes, visit.wakes);
 }
 
+/* 0.6.14: the strip behind the dock's whole row, and when a dock at a new size can take its picture from it */
+static void test_strip(void)
+{
+    int x, y, w, h;
+    /* a dock along the bottom of a 1920 x 1080 screen: its row, the whole width */
+    od_strip_box(0, 1920, 1080, 532, 1003, 856, 77, &x, &y, &w, &h);
+    CHECK(x == 0 && y == 1003 && w == 1920 && h == 77);
+    /* grown by a button, shrunk by two, as long as the screen: all inside it */
+    CHECK(od_strip_holds(0, x, y, w, h, 496, 1003, 928, 77));
+    CHECK(od_strip_holds(0, x, y, w, h, 604, 1003, 712, 77));
+    CHECK(od_strip_holds(0, x, y, w, h, 0, 1003, 1920, 77));
+    /* taller (labels on, larger icons), moved up a row, or longer than the screen: a new copy */
+    CHECK(!od_strip_holds(0, x, y, w, h, 496, 989, 928, 91));
+    CHECK(!od_strip_holds(0, x, y, w, h, 496, 1002, 928, 77));
+    CHECK(!od_strip_holds(0, x, y, w, h, -4, 1003, 1928, 77));
+    CHECK(!od_strip_holds(0, x, y, w, h, 1000, 1003, 921, 77));
+    /* now standing at the left: not the row's strip */
+    CHECK(!od_strip_holds(1, x, y, w, h, 0, 200, 77, 600));
+    /* a standing dock at the right: its column, the whole height */
+    od_strip_box(1, 1920, 1080, 1843, 300, 77, 480, &x, &y, &w, &h);
+    CHECK(x == 1843 && y == 0 && w == 77 && h == 1080);
+    CHECK(od_strip_holds(1, x, y, w, h, 1843, 264, 77, 552));
+    CHECK(!od_strip_holds(1, x, y, w, h, 1829, 264, 91, 552));
+    CHECK(!od_strip_holds(1, x, y, w, h, 1843, 600, 77, 481));
+    /* no strip (a window lay along the row when the dock opened): never */
+    CHECK(!od_strip_holds(0, 0, 0, 0, 0, 496, 1003, 928, 77));
+}
+
 int main(int argc, char **argv)
 {
     const char *dir = argc > 1 ? argv[1] : ".";
@@ -274,6 +303,7 @@ int main(int argc, char **argv)
     test_amistart(dir);
     test_full();
     test_wake();
+    test_strip();
     printf("%d checks, %d failed\n", checks, failed);
     return failed != 0;
 }
