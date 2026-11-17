@@ -56,7 +56,7 @@
 #include "obmsg.h"
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenDock 0.6.14 (17.11.2026) GFOpenPrefs, AmiCradle Team";   /* 0.6.13: a Shell button, and a running Shell, on a disk with no SYS:System/Shell have the Shell picture in SYS:Prefs/Presets/GFOpenDock; 0.6.12: a Shell command button has the Shell's icon (NewShell) or its C: icon; 0.6.11: wakes once a second at rest, ten times only while the pointer is over it; 0.6.10: no look at the tasks while none start or end; 0.6.9: running programs after a line; 0.6.8: one look at the tasks per check; 0.6.7: its editor is GFOpenPrefs DOCK, never ROM: */
+const char version[] __attribute__((used)) = "$VER: GFOpenDock 0.6.15 (17.11.2026) GFOpenPrefs, AmiCradle Team";   /* 0.6.15: a new dock starts at Small (32-pixel icons); 0.6.14: grows and shrinks where it stands; 0.6.13: a Shell button, and a running Shell, on a disk with no SYS:System/Shell have the Shell picture in SYS:Prefs/Presets/GFOpenDock; 0.6.12: a Shell command button has the Shell's icon (NewShell) or its C: icon; 0.6.11: wakes once a second at rest, ten times only while the pointer is over it; 0.6.10: no look at the tasks while none start or end; 0.6.9: running programs after a line; 0.6.8: one look at the tasks per check; 0.6.7: its editor is GFOpenPrefs DOCK, never ROM: */
 
 #define PREFS_ENV "ENV:GFOpenDock/Dock"
 #define PREFS_ENVARC "ENVARC:GFOpenDock/Dock"

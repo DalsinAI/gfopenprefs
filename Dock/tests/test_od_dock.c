@@ -87,7 +87,7 @@ static void test_own_format(void)
     CHECK(!strcmp(e.b[6].icon, "SYS:Prefs/Look") && !strcmp(e.b[6].label, d.b[6].label));
     CHECK(od_write(&d, buf, 40) == -1);
     od_parse(&e, "; comment\nplace nowhere\nsize huge\nfuture 7\nbutton telepathy \"x\"\nbutton wb \"Work:Thing\"\n");
-    CHECK(e.place == OD_BOTTOM && e.size == OD_LARGE && e.n == 1 && !strcmp(e.b[0].label, "Thing"));
+    CHECK(e.place == OD_BOTTOM && e.size == OD_SMALL && e.n == 1 && !strcmp(e.b[0].label, "Thing"));
     CHECK(e.scale == 100 && e.border == 1 && e.opacity == 35);
     /* the opacity: a file from before it keeps its look; out of range is clamped */
     od_parse(&e, "background solid\n");
@@ -102,6 +102,28 @@ static void test_own_format(void)
     CHECK(e.scale == 75 && e.border == 0 && od_scaled(64, 25) == 16);
     CHECK(!od_parse(&e, NULL) && e.n == 0);
     CHECK(od_cell(OD_SMALL) == 40 && od_cell(OD_LARGE) == 72);
+}
+
+/* 0.6.15: a new dock starts at Small, half of Large's icons; a file's own size line is kept */
+static void test_small_default(void)
+{
+    static od_dock d, e;
+    static char buf[32768];
+    od_defaults(&d);
+    CHECK(d.size == OD_SMALL && d.scale == 100);
+    CHECK((od_cell(OD_SMALL) - 8) * 2 == od_cell(OD_LARGE) - 8 && od_cell(OD_SMALL) - 8 == 32);
+    /* what a first install saves says so, and reads back the same */
+    od_starter(&d);
+    CHECK(od_write(&d, buf, sizeof buf) > 0 && strstr(buf, "size small\n"));
+    CHECK(od_parse(&e, buf) && e.size == OD_SMALL && e.n == d.n);
+    /* a dock already set up keeps its size; one with no size line is a new one's */
+    CHECK(od_parse(&e, "size large\n") && e.size == OD_LARGE);
+    CHECK(od_parse(&e, "size medium\n") && e.size == OD_MEDIUM);
+    CHECK(od_parse(&e, "place top\n") && e.size == OD_SMALL);
+    /* the editor's Size back to Large is written and kept */
+    d.size = OD_LARGE;
+    CHECK(od_write(&d, buf, sizeof buf) > 0 && strstr(buf, "size large\n"));
+    CHECK(od_parse(&e, buf) && e.size == OD_LARGE);
 }
 
 static void test_toolmanager(const char *dir)
@@ -298,6 +320,7 @@ int main(int argc, char **argv)
     const char *dir = argc > 1 ? argv[1] : ".";
     test_drop_missing();
     test_own_format();
+    test_small_default();
     test_toolmanager(dir);
     test_amidock(dir);
     test_amistart(dir);
