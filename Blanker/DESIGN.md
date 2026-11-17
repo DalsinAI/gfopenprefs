@@ -15,12 +15,15 @@ marketing material). Each card fades in, holds and fades out, by the palette,
 as Amiga demos always have: the card is drawn with its pens at the background
 colour, then `SetRGB32` brings them up, frame by frame on the vertical blank.
 
-The first and last cards draw the wordmark, and the last card's credit line
-reads "The AmiCradle Team". Since 1.5 (14 November 2026) the wordmark is the
-plain text "GFOS", in `src/bl_wordmark.h`, until a GFOS logo is picked; the
-logo goes in there and nothing else changes. Nothing the blanker draws or
-prints spells the old name, split or joined: `tests/run.sh` checks the source,
-and the built binary when it's given one. (The screenshot above is from 1.0.)
+Since 1.7 (17 November 2026) the show opens on the dedication and ends on
+the AmiCradle logo, the one the boot screen shows, with the credit line "The
+AmiCradle Team" under it; the "GFOS" wordmark the first and last cards drew
+is gone. The logo is `src/bl_logo.h`, made by `tools/make_logo.py` from
+amicradle's `launcher/icons/amicradle-logo-192.png`: 24 colours, run-length
+coded, drawn a rectangle a run in pens of its own that fade with the rest,
+twice the size from 960 lines up. Nothing the blanker draws or prints spells
+the old name, split or joined: `tests/run.sh` checks the source, and the
+built binary when it's given one. (The screenshot above is from 1.0.)
 
 ## How it works
 
