@@ -122,6 +122,10 @@ built.
      Power (the USB sticks' Eject, Reboot, Restart, Power off), side by side;
    - the systray (with the taskspace's icons) and the Prefs and Power pair each on a shaded band of the
      bar's own colour; an item whose menu is open is a deeper shade.
+   GFOpenTitle 0.12 (Dale, 16 November 2026): the memory is gone, and the time is in the title bar's centre
+   again, its own window, so the right end is `systray | Prefs, Power | depth gadget`. The bar's colour is read
+   from a strip that steps left of every bar window (`Common/barstrip.h`): the strip at three quarters of the
+   way along had come to lie on the row, which then read its own white back and stayed white with black text.
 4. The text path: AA and hinting for the bar and the screen title first, then
    icon labels, window titles, menus and requesters.
 

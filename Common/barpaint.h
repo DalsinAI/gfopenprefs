@@ -30,6 +30,7 @@
 #include <proto/cybergraphics.h>
 #include <cybergraphx/cybergraphics.h>
 #include <string.h>
+#include "barstrip.h"
 
 #define BP_ROWS 48
 #define BP_STRIP 64
@@ -57,23 +58,55 @@ static BP_UNUSED int bp_clear(struct Screen *scr, WORD x0, WORD x1, int (*ours)(
     return ok;
 }
 
+/* the bar windows (ours, and the other borderless ones in the bar's rows) as boxes for bs_strip_x(); how many */
+#define BP_BOXES 32
+static BP_UNUSED int bp_bar_boxes(struct Screen *scr, int (*ours)(struct Window *), bs_box *b)
+{
+    struct Layer *l;
+    int n = 0;
+    if (!scr->BarLayer) return 0;
+    LockLayerInfo(&scr->LayerInfo);
+    for (l = scr->BarLayer->front; l && n < BP_BOXES; l = l->front) {
+        struct Window *o = (struct Window *)l->Window;
+        if (!o || l->bounds.MinY > scr->BarHeight) continue;
+        if (ours(o) || ((o->Flags & WFLG_BORDERLESS) && o->TopEdge <= 0 && o->Height <= scr->BarHeight + 1)) {
+            b[n].x0 = l->bounds.MinX;
+            b[n].x1 = l->bounds.MaxX;
+            n++;
+        }
+    }
+    UnlockLayerInfo(&scr->LayerInfo);
+    return n;
+}
+
 /* Reads the bar's colours again. title: the bar is the screen's title bar. 1 when something changed. */
 static BP_UNUSED int bp_sample(struct Screen *scr, int title, int (*ours)(struct Window *))
 {
     static ULONG buf[BP_ROWS * BP_STRIP];
     ULONG now[BP_ROWS];
+    bs_box boxes[BP_BOXES];
     WORD x0, w = BP_STRIP, n = scr->BarHeight;
-    int r, i, j, changed = 0;
+    int r, i, j, changed = 0, x, nb;
     if (!CyberGfxBase || !title || n < 4 || n > BP_ROWS) {
         changed = bp_n != 0;
         bp_n = 0;
         return changed;
     }
     if (w > scr->Width) w = scr->Width;
-    /* three quarters of the way along (GFOpenTitle 0.8, 12 November 2026): the bar's centre holds GFOpenTitle's clock
-     * now, and a strip read there read the clock's own window back (a white clock painted a white bar) */
-    x0 = scr->Width * 3 / 4 - w / 2;
-    if (x0 < 0) x0 = 0;
+    /* three quarters of the way along (GFOpenTitle 0.8), stepped left of every bar window there (16 November 2026):
+     * GFOpenTitle's row and centre clock grew over that point, and a strip read on them read their own colours back
+     * (a row once drawn white painted a white bar, with dark text, from then on) */
+    nb = bp_bar_boxes(scr, ours, boxes);
+    /* the screen's title is drawn from the bar's left (after its icon) as far as it goes: a box too, so its text is
+     * never read as the bar (Budgie's review of #214, 16 November 2026) */
+    if (scr->Title && nb < BP_BOXES) {
+        boxes[nb].x0 = 0;
+        boxes[nb].x1 = scr->BarHBorder + scr->BarHeight + TextLength(&scr->RastPort, scr->Title, strlen((char *)scr->Title)) + 2;
+        nb++;
+    }
+    x = bs_strip_x(scr->Width * 3 / 4 - w / 2, w, scr->Width, boxes, nb);
+    if (x < 0) return 0;                                     /* no bare bar: keep what is known */
+    x0 = (WORD)x;
     if (!bp_clear(scr, x0, x0 + w - 1, ours)) return 0;      /* covered: keep what is known */
     ReadPixelArray(buf, 0, 0, BP_STRIP * 4, &scr->RastPort, x0, 0, w, n, RECTFMT_ARGB);
     for (r = 0; r < n; r++) {
