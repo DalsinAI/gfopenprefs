@@ -14,8 +14,10 @@
  * Music (1.6): its icon's tooltypes PLAYMIDI=TRUE and MIDIFILE= say the same
  * (bl_music.h), however it was started; the words on the command line win.
  * The file plays through its datatype (gfopenmidi.datatype and GFOpenSynth
- * for MIDI), round again until the show ends. With no MIDIFILE it picks from
- * Media:midi/Dance, else Media:midi. No file, datatype or sound: a silent show.
+ * for MIDI), round again until the show ends. No MIDIFILE: no music (1.7: no
+ * tune or place is built in; the icon names it). A MIDI file already loaded in
+ * a player (a "gfopenmidi control" process is there): a silent show (1.7).
+ * No file, datatype or sound: a silent show.
  *
  * A commodity: Exchange can disable, enable or quit it. Started again, the
  * running one is left alone (1.1: it used to play the show at once, so a
@@ -57,12 +59,13 @@
 #include <intuition/icclass.h>
 #include "openfont_text.h"
 #include "bl_wordmark.h"
+#include "bl_logo.h"
 #include "bl_music.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.6 (17.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.7 (17.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -77,13 +80,12 @@ static volatile int showing, woken, on = 1;
 
 /* ---- the show: cards of styled lines --------------------------------------------------------- */
 
-enum { KICKER, TITLE, NAME, WHAT, DEDICATION, GROUP, LIST, RULE, WORDMARK, SMALL, THANKS };
+enum { KICKER, TITLE, NAME, WHAT, DEDICATION, GROUP, LIST, RULE, LOGO, SMALL, THANKS };
 typedef struct { int style; const char *text; } line;
 typedef struct { int hold_frames; line lines[8]; } card;
 
 /* Latin-1: the Amiga's fonts are ISO-8859-1 (\xFC u-umlaut, \xE9 e-acute). */
 static const card show[] = {
-    { 130, { { WORDMARK, "" }, { SMALL, "A homage" } } },
     { 330, { { DEDICATION, "And our undying love and respect to the Gods and Angels of the Amiga community, without whose dedication and undying love for the Amiga we would not be here to work on this today." }, { RULE, "" } } },
     { 120, { { KICKER, "THE GODS" }, { TITLE, "The ones who made the Amiga" } } },
     { 115, { { NAME, "Jay Miner" }, { WHAT, "the father of the Amiga, and its custom chips" } } },
@@ -113,7 +115,7 @@ static const card show[] = {
     { 220, { { GROUP, "THE GAMES WE BROUGHT HOME" }, { LIST, "The Ur-Quan Masters  \xB7  Chocolate Doom  \xB7  SDLPoP" }, { LIST, "NXEngine-evo  \xB7  OpenJazz" } } },
     { 240, { { GROUP, "AND THE COMMUNITY" }, { LIST, "everyone who kept an Amiga running, recapped a board," }, { LIST, "archived a disk, or wrote the README nobody thanked them for" } } },
     { 160, { { THANKS, "Thank you." }, { RULE, "" } } },
-    { 170, { { WORDMARK, "" }, { SMALL, BL_CREDIT } } },
+    { 220, { { LOGO, "" }, { SMALL, BL_CREDIT } } },      /* 1.7: the show ends on the logo */
 };
 #define NCARDS (int)(sizeof show / sizeof show[0])
 #define FADE 55      /* frames: about 1.1 s at 50 Hz */
@@ -130,14 +132,36 @@ static struct TextFont *f_sans_big, *f_sans_mid, *f_sans_small, *f_serif, *f_ser
 
 static ULONG c32(UBYTE v) { return (ULONG)v * 0x01010101UL; }
 
+#define P_LOGO 8                   /* the logo's colours 1 to BL_LOGO_COLOURS - 1 are pens P_LOGO + 1 and up (1.7) */
+
 static void set_level(int level)   /* 0..256: how far the pens have come up from the background */
 {
     int p;
-    for (p = 1; p < 6; p++) {
-        int r = full[0][0] + (full[p][0] - full[0][0]) * level / 256;
-        int g = full[0][1] + (full[p][1] - full[0][1]) * level / 256;
-        int b = full[0][2] + (full[p][2] - full[0][2]) * level / 256;
+    for (p = 1; p < P_LOGO + BL_LOGO_COLOURS; p++) {
+        const UBYTE *to = p < 6 ? full[p] : p > P_LOGO ? bl_logo_rgb[p - P_LOGO - 1] : full[0];
+        int r = full[0][0] + (to[0] - full[0][0]) * level / 256;
+        int g = full[0][1] + (to[1] - full[0][1]) * level / 256;
+        int b = full[0][2] + (to[2] - full[0][2]) * level / 256;
         SetRGB32(&scr->ViewPort, p, c32((UBYTE)r), c32((UBYTE)g), c32((UBYTE)b));
+    }
+}
+
+/* the logo, its top left at x, y, each of its pixels s screen pixels square: a rectangle a run */
+static void draw_logo(struct RastPort *rp, int x, int y, int s)
+{
+    int i, col = 0, row = 0;
+    for (i = 0; i < BL_LOGO_RUNS; i++) {
+        int n = bl_logo_rle[i * 2], c = bl_logo_rle[i * 2 + 1];
+        while (n > 0) {                                 /* a run can go over a row's end */
+            int k = n < BL_LOGO_W - col ? n : BL_LOGO_W - col;
+            if (c) {
+                SetAPen(rp, P_LOGO + c);
+                RectFill(rp, x + col * s, y + row * s, x + (col + k) * s - 1, y + (row + 1) * s - 1);
+            }
+            n -= k;
+            col += k;
+            if (col == BL_LOGO_W) { col = 0; row++; }
+        }
     }
 }
 
@@ -243,7 +267,7 @@ static void draw_card(const card *c)
         if (!ln->text) break;
         L[nl].style = ln->style;
         if (ln->style == RULE) { L[nl].n = 0; L[nl].lh = H / 40; L[nl].gap = H / 40; total += L[nl].lh + L[nl].gap; nl++; continue; }
-        if (ln->style == WORDMARK) { L[nl].f = f_title; L[nl].n = 1; L[nl].lh = f_title->tf_YSize; L[nl].gap = H / 50; total += L[nl].lh + L[nl].gap; nl++; continue; }
+        if (ln->style == LOGO) { L[nl].n = 1; L[nl].lh = BL_LOGO_H_PX * bl_logo_scale(H); L[nl].gap = H / 30; total += L[nl].lh + L[nl].gap; nl++; continue; }
         style_of(ln->style, &L[nl].f, &L[nl].pen, &L[nl].soft);
         SetFont(rp, L[nl].f);
         SetSoftStyle(rp, L[nl].soft, AskSoftStyle(rp));
@@ -262,15 +286,9 @@ static void draw_card(const card *c)
             y += L[i].lh + L[i].gap;
             continue;
         }
-        if (L[i].style == WORDMARK) {
-            int w[BL_WORDMARK_PARTS], k;
-            SetFont(rp, f_title); SetSoftStyle(rp, FSF_BOLD, AskSoftStyle(rp));
-            for (k = 0; k < BL_WORDMARK_PARTS; k++) w[k] = TextLength(rp, (STRPTR)bl_wordmark[k].text, (ULONG)bl_wordmark[k].len);
-            Move(rp, bl_wordmark_left(W, w, BL_WORDMARK_PARTS), y + f_title->tf_Baseline);
-            for (k = 0; k < BL_WORDMARK_PARTS; k++) {
-                SetAPen(rp, bl_wordmark[k].pen == BLW_RED ? P_RED : P_INK);
-                Text(rp, (STRPTR)bl_wordmark[k].text, (ULONG)bl_wordmark[k].len);
-            }
+        if (L[i].style == LOGO) {
+            int sc = bl_logo_scale(H);
+            draw_logo(rp, bl_logo_left(W, sc), y, sc);
             y += L[i].lh + L[i].gap;
             continue;
         }
@@ -422,7 +440,6 @@ static int music_file(char *out, int size)
     const char *name = midi_file;
     struct DateStamp ds;
     int d, n;
-    if (!*name) name = is_drawer(BL_MUSIC_FIRST) == 1 && drawer_midi(BL_MUSIC_FIRST, -1, NULL, 0) ? BL_MUSIC_FIRST : BL_MUSIC_SECOND;
     if ((d = is_drawer(name)) < 0) return 0;
     if (!d) { strncpy(out, name, size - 1); out[size - 1] = 0; return 1; }
     if (!(n = drawer_midi(name, -1, NULL, 0))) return 0;
@@ -442,7 +459,11 @@ static void music_start(void)
 {
     char path[320];
     struct dtTrigger t;
-    if (!play_midi || !music_file(path, sizeof path)) return;
+    int others;
+    Forbid();
+    others = FindTask((STRPTR)BL_MIDI_PLAYER) != NULL;
+    Permit();
+    if (!bl_may_play(play_midi, midi_file, others) || !music_file(path, sizeof path)) return;
     if (!(DataTypesBase = OpenLibrary((STRPTR)"datatypes.library", 39))) return;
     music = NewDTObject((APTR)path, DTA_SourceType, DTST_FILE, DTA_GroupID, GID_SOUND, SDTA_Volume, 64, DTA_Repeat, TRUE, TAG_DONE);
     if (!music) { music_stop(); return; }
@@ -489,7 +510,7 @@ static void custom(CxMsg *msg, CxObj *co)
 }
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.6", (STRPTR)"Blanks the screen with a show: Gods and Angels",
+    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.7", (STRPTR)"Blanks the screen with a show: Gods and Angels",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 
