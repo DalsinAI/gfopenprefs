@@ -4,10 +4,18 @@
  * homage to the people who made the Amiga and kept it alive: each card fades
  * in, holds and fades out, by the palette, as Amiga demos always have.
  *
- *   GFOpenBlanker [TIMEOUT=seconds] [NOW]
+ *   GFOpenBlanker [TIMEOUT=seconds] [NOW] [PLAYMIDI] [MIDIFILE=name]
  *     TIMEOUT  seconds without a key or the mouse before the show (default 300;
  *              from Workbench, ENV:GFOpenPrefs/Blanker holds the number)
  *     NOW      play the show at once, then go on watching
+ *     PLAYMIDI the show plays music (1.6)
+ *     MIDIFILE the file it plays, or a drawer it picks a MIDI file from
+ *
+ * Music (1.6): its icon's tooltypes PLAYMIDI=TRUE and MIDIFILE= say the same
+ * (bl_music.h), however it was started; the words on the command line win.
+ * The file plays through its datatype (gfopenmidi.datatype and GFOpenSynth
+ * for MIDI), round again until the show ends. With no MIDIFILE it picks from
+ * Media:midi/Dance, else Media:midi. No file, datatype or sound: a silent show.
  *
  * A commodity: Exchange can disable, enable or quit it. Started again, the
  * running one is left alone (1.1: it used to play the show at once, so a
@@ -40,17 +48,25 @@
 #include <proto/graphics.h>
 #include <proto/commodities.h>
 #include <proto/diskfont.h>
+#include <proto/icon.h>
+#include <proto/datatypes.h>
+#include <workbench/workbench.h>
+#include <datatypes/datatypes.h>
+#include <datatypes/datatypesclass.h>
+#include <datatypes/soundclass.h>
+#include <intuition/icclass.h>
 #include "openfont_text.h"
 #include "bl_wordmark.h"
+#include "bl_music.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.5 (14.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: GFOpenBlanker 1.6 (17.11.2026) MIT, Copyright (c) 2026 AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
-struct Library *CxBase, *OpenFontTextBase, *DiskfontBase;
+struct Library *CxBase, *OpenFontTextBase, *DiskfontBase, *IconBase, *DataTypesBase;
 
 static struct Task *me;
 static volatile ULONG idle_ticks;      /* seconds since the last key or mouse */
@@ -338,12 +354,112 @@ static void close_show(void)
     if (blank_sprite) { FreeVec(blank_sprite); blank_sprite = NULL; }
 }
 
+/* ---- music (1.6) ------------------------------------------------------------------------------ */
+
+static int play_midi;                  /* PLAYMIDI */
+static char midi_file[256];            /* MIDIFILE: a file, a drawer, or "" */
+static Object *music;
+static unsigned music_last = ~0u;      /* the file the last show picked from a drawer */
+
+/* the settings in the program's own icon, however it was started */
+static void icon_settings(void)
+{
+    struct DiskObject *d;
+    if (!(IconBase = OpenLibrary((STRPTR)"icon.library", 39))) return;
+    if ((d = GetDiskObject((STRPTR)"PROGDIR:GFOpenBlanker"))) {
+        if (d->do_ToolTypes) {
+            play_midi = bl_truth((const char *)FindToolType((CONST_STRPTR *)d->do_ToolTypes, (STRPTR)"PLAYMIDI"));
+            strncpy(midi_file, bl_file_setting((const char *)FindToolType((CONST_STRPTR *)d->do_ToolTypes, (STRPTR)"MIDIFILE")), sizeof midi_file - 1);
+        }
+        FreeDiskObject(d);
+    }
+    CloseLibrary(IconBase);
+    IconBase = NULL;
+}
+
+/* 1 for a drawer, 0 for a file, -1 when the name isn't there */
+static int is_drawer(const char *name)
+{
+    struct FileInfoBlock *fib;
+    BPTR l = Lock((STRPTR)name, ACCESS_READ);
+    int r = -1;
+    if (!l) return -1;
+    if ((fib = (struct FileInfoBlock *)AllocDosObject(DOS_FIB, NULL))) {
+        if (Examine(l, fib)) r = fib->fib_DirEntryType > 0;
+        FreeDosObject(DOS_FIB, fib);
+    }
+    UnLock(l);
+    return r;
+}
+
+/* The MIDI files of a drawer: with want < 0 their number; else the want-th one's path into out. */
+static int drawer_midi(const char *drawer, int want, char *out, int size)
+{
+    struct FileInfoBlock *fib;
+    BPTR l = Lock((STRPTR)drawer, ACCESS_READ);
+    int n = 0;
+    if (!l) return 0;
+    if ((fib = (struct FileInfoBlock *)AllocDosObject(DOS_FIB, NULL))) {
+        if (Examine(l, fib))
+            while (ExNext(l, fib)) {
+                if (fib->fib_DirEntryType > 0 || !bl_is_midi((const char *)fib->fib_FileName)) continue;
+                if (n == want) {
+                    strncpy(out, drawer, size - 1);
+                    out[size - 1] = 0;
+                    AddPart((STRPTR)out, (STRPTR)fib->fib_FileName, size);
+                }
+                n++;
+            }
+        FreeDosObject(DOS_FIB, fib);
+    }
+    UnLock(l);
+    return n;
+}
+
+/* the file this show plays, in out; 0 when there is none */
+static int music_file(char *out, int size)
+{
+    const char *name = midi_file;
+    struct DateStamp ds;
+    int d, n;
+    if (!*name) name = is_drawer(BL_MUSIC_FIRST) == 1 && drawer_midi(BL_MUSIC_FIRST, -1, NULL, 0) ? BL_MUSIC_FIRST : BL_MUSIC_SECOND;
+    if ((d = is_drawer(name)) < 0) return 0;
+    if (!d) { strncpy(out, name, size - 1); out[size - 1] = 0; return 1; }
+    if (!(n = drawer_midi(name, -1, NULL, 0))) return 0;
+    DateStamp(&ds);
+    music_last = bl_pick((unsigned)n, (unsigned)(ds.ds_Minute * 3000 + ds.ds_Tick), music_last);
+    return drawer_midi(name, (int)music_last, out, size) > 0;
+}
+
+static void music_stop(void)
+{
+    if (music) { DisposeDTObject(music); music = NULL; }
+    if (DataTypesBase) { CloseLibrary(DataTypesBase); DataTypesBase = NULL; }
+}
+
+/* Called with the show's screen already black: a long piece takes a while to be made ready. */
+static void music_start(void)
+{
+    char path[320];
+    struct dtTrigger t;
+    if (!play_midi || !music_file(path, sizeof path)) return;
+    if (!(DataTypesBase = OpenLibrary((STRPTR)"datatypes.library", 39))) return;
+    music = NewDTObject((APTR)path, DTA_SourceType, DTST_FILE, DTA_GroupID, GID_SOUND, SDTA_Volume, 64, DTA_Repeat, TRUE, TAG_DONE);
+    if (!music) { music_stop(); return; }
+    t.MethodID = DTM_TRIGGER;
+    t.dtt_GInfo = NULL;
+    t.dtt_Function = STM_PLAY;
+    t.dtt_Data = NULL;
+    DoDTMethodA(music, NULL, NULL, (Msg)&t);
+}
+
 static void play(void)
 {
     int i, k;
     woken = 0;
     if (!open_show()) return;
     showing = 1;
+    music_start();
     while (!woken)
         for (i = 0; i < NCARDS && !woken; i++) {
             set_level(0);
@@ -354,6 +470,7 @@ static void play(void)
             for (k = 0; k < GAP && frame(); k++) ;
         }
     showing = 0;
+    music_stop();
     close_show();
     idle_ticks = 0;
 }
@@ -372,7 +489,7 @@ static void custom(CxMsg *msg, CxObj *co)
 }
 
 static struct NewBroker nb = {
-    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.5", (STRPTR)"Blanks the screen with a show: Gods and Angels",
+    NB_VERSION, (STRPTR)"GFOpenBlanker", (STRPTR)"GFOpenBlanker 1.6", (STRPTR)"Blanks the screen with a show: Gods and Angels",
     NBU_UNIQUE | NBU_NOTIFY, 0, 0, NULL, 0
 };
 
@@ -390,7 +507,7 @@ int main(int argc, char **argv)
     struct MsgPort *port = NULL, *tport = NULL;
     struct timerequest *tr = NULL;
     struct RDArgs *rd = NULL;
-    LONG args[2] = { 0, 0 };
+    LONG args[4] = { 0, 0, 0, 0 };
     CxObj *broker = NULL, *cust;
     ULONG timeout;
     int quit = 0, timer = 0, now = 0;
@@ -400,8 +517,11 @@ int main(int argc, char **argv)
     CxBase = OpenLibrary((STRPTR)"commodities.library", 39);
     OpenFontTextBase = openfont_text_open();
     if (!IntuitionBase || !GfxBase || !CxBase) goto out;
-    if (argc > 0 && (rd = ReadArgs((STRPTR)"TIMEOUT/N,NOW/S", args, NULL))) {
+    icon_settings();
+    if (argc > 0 && (rd = ReadArgs((STRPTR)"TIMEOUT/N,NOW/S,PLAYMIDI/S,MIDIFILE/K", args, NULL))) {
         now = args[1] != 0;
+        if (args[2]) play_midi = 1;
+        if (args[3]) { strncpy(midi_file, bl_file_setting((const char *)args[3]), sizeof midi_file - 1); midi_file[sizeof midi_file - 1] = 0; }
         timeout = timeout_setting(args[0] ? *(LONG *)args[0] : 0);
     } else timeout = timeout_setting(0);
     me = FindTask(NULL);

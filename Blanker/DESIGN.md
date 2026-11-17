@@ -35,6 +35,16 @@ and the built binary when it's given one. (The screenshot above is from 1.0.)
   (`SDL_DisableScreenSaver`; `SDL_HINT_VIDEO_ALLOW_SCREENSAVER` lets a program
   allow the show). A CTRL_E during the show doesn't end it: only a key or the
   mouse does. GFOpenBlanker 1.1 and older ignore the signal.
+- **Music (1.6):** with `PLAYMIDI=TRUE` in its icon's tooltypes (or
+  `PLAYMIDI` on the command line) the show plays music, round again until a
+  key or the mouse ends it. `MIDIFILE=` names the file, or a drawer: a MIDI
+  file is picked from it afresh each show, never the same twice running. With
+  no `MIDIFILE` it picks from `Media:midi/Dance` when that drawer has MIDI
+  files, else from `Media:midi`. The icon is read however the blanker was
+  started. The file plays through its datatype (`gfopenmidi.datatype` and
+  GFOpenSynth for MIDI), so any sound a datatype opens will do; with no file,
+  no datatype or no sound the show is silent. The piece is made ready after
+  the screen has gone black, which for a long piece takes a while.
 - **Its own screen**, the Workbench's size, in a 256-colour mode
   (`BestModeID`, depth 8): AGA, or a CLUT mode on an RTG card, so the palette
   can fade the picture. A borderless window covers it: the pointer is hidden,
