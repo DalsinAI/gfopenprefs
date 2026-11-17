@@ -162,6 +162,10 @@
  *   and Power have a small line each side: one before Prefs, parting them from the systray, one after Power, parting
  *   them from the screen's depth gadget (tb_shapes.h's tb_sep_cols). An item whose menu is open keeps its deeper
  *   shade, and one under the pointer its raised look.
+ * 0.12.4 (Dale, the Pi 5, 17 November 2026: the systray tore and was drawn again the old way only while GFOpenBench
+ *   was starting): while GFOpenBench 0.1.71 says its desktop isn't drawn yet (Common/obdrawn.h), the bar doesn't turn
+ *   see-through as GFOpenBench's strip comes, and the row isn't painted again as the bar's colours change under it; once
+ *   it is drawn, the bar is looked at once. With an older GFOpenBench, or none, as before.
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -221,10 +225,11 @@
 #include "cogplace.h"
 #include "barlogo.h"
 #include "obmsg.h"
+#include "obdrawn.h"                       /* 0.12.4: GFOpenBench says when its desktop is drawn */
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.12.3 (17.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.12.4 (17.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -2994,6 +2999,26 @@ static int see_screen(void)
     return bar_opacity(~0UL) != 0;
 }
 
+/* 0.12.4 (Dale, the Pi 5, 17 November 2026: the tray tore and was drawn again the old way only while GFOpenBench
+ * was starting): while GFOpenBench says its desktop isn't drawn yet (Common/obdrawn.h), the bar stays as it opened:
+ * no turn to see-through as GFOpenBench's strip comes, and no repaint as the bar's colours change under it. Once it
+ * is drawn (or after OB_DRAWN_CAP_MS) the bar is looked at once, as every two seconds. With an older GFOpenBench,
+ * or none, as before. */
+static ob_hold desk_hold;
+static int desk_held;
+
+/* each half second: whether GFOpenBench is still drawing; 1 when the wait has just ended */
+static int desk_look(void)
+{
+    int bench, drawn, hs;
+    ULONG s, m;
+    ob_drawn_look(&bench, &drawn);
+    CurrentTime(&s, &m);
+    hs = ob_hold_step(&desk_hold, bench, drawn, (unsigned int)(s * 1000 + m / 1000));
+    desk_held = hs == OBH_HOLD;
+    return hs == OBH_RELEASE;
+}
+
 /* a layer behind the bar that covers it all: something to see through it */
 static int see_backed(void)
 {
@@ -3099,6 +3124,7 @@ static void see_check(int fresh)
 {
     int want;
     if (fresh) see_ok = prefs.seethrough && see_screen();
+    if (desk_held) return;                     /* 0.12.4: not while GFOpenBench is still drawing its desktop */
     want = see_ok && prefs.seethrough && see_backed();
     if (want && !see_live) see_on();
     else if (!want && see_live) see_off();
@@ -3686,6 +3712,11 @@ int main(void)
         if (last_other && !is_window(last_other)) last_other = NULL;
         if (waited < 500) continue;
         waited = 0;                            /* every half second, as before */
+        /* 0.12.4: GFOpenBench has just drawn its desktop: the bar looked at now, once, not at the next 2 s */
+        if (desk_look() && scr) {
+            see_check(0);
+            if (bar_sample_now()) { draw_logo(); shown[0] = 0; draw_clock(1); row_redraw(); }
+        }
         if (pop_w && ++pop_ticks > 20) pop_close();     /* the panel goes after 10 s */
         /* 0.6.11: the bar changed height (GFOpenLook makes it taller as it starts): every window made again */
         if (scr && scr->BarHeight != made_bh) { close_all(); if (!open_all()) break; apply_title(); }   /* 0.6.12: the room for the logo too */
@@ -3705,7 +3736,7 @@ int main(void)
                 place_all();
                 if (net_w) draw_net(0);
             }
-            if (scr && bar_sample_now()) {        /* the theme changed the bar: paint again */
+            if (scr && !desk_held && bar_sample_now()) {   /* the theme changed the bar: paint again (0.12.4: not while GFOpenBench draws) */
                 int i;
                 draw_logo();
                 shown[0] = 0; draw_clock(1);

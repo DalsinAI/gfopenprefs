@@ -8,6 +8,8 @@
 #include "tb_sbsync.h"
 #include "tb_owner.h"
 #include "barstrip.h"
+#define OB_DRAWN_HOST
+#include "obdrawn.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -596,6 +598,32 @@ static void sep_tests(void)
     CHECK(len == 0);
 }
 
+/* 0.12.4: the bar's half-second look while GFOpenBench starts (Common/obdrawn.h): held while it draws, looked at once
+ * when it has drawn, never held with no GFOpenBench or past the cap */
+static void drawn_tests(void)
+{
+    ob_hold h = { 0, 0, 0 };
+    unsigned int t = 1000;
+    int i, holds = 0, releases = 0, gos = 0;
+    /* GFOpenTitle up first, GFOpenBench's desktop drawn 4 s on (its picture), 10 s of half-second looks */
+    for (i = 0; i < 20; i++, t += 500) {
+        int a = ob_hold_step(&h, 1, i >= 8, t);
+        holds += a == OBH_HOLD; releases += a == OBH_RELEASE; gos += a == OBH_GO;
+    }
+    CHECK(holds == 8);
+    CHECK(releases == 1);
+    CHECK(gos == 11);
+    /* no GFOpenBench: never held */
+    h = (ob_hold){ 0, 0, 0 };
+    for (i = 0; i < 10; i++) CHECK(ob_hold_step(&h, 0, 0, t + 500U * i) == OBH_GO);
+    /* GFOpenBench there but never drawn: held for OB_DRAWN_CAP_MS only, then the bar as before */
+    h = (ob_hold){ 0, 0, 0 };
+    holds = 0;
+    for (i = 0; i < 60; i++) holds += ob_hold_step(&h, 1, 0, t + 500U * i) == OBH_HOLD;
+    CHECK(holds == (int)(OB_DRAWN_CAP_MS / 500));
+    CHECK(ob_hold_step(&h, 1, 0, t + 500U * 61) == OBH_GO);
+}
+
 int main(void)
 {
     prefs_tests();
@@ -610,6 +638,7 @@ int main(void)
     owner_tests();
     strip_tests();
     sep_tests();
-    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, icons, bar rows, system bar items, bar strip)");
+    drawn_tests();
+    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, icons, bar rows, system bar items, bar strip, GFOpenBench drawn)");
     return failed != 0;
 }
