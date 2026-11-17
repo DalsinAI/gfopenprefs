@@ -574,6 +574,28 @@ static void strip_tests(void)
     }
 }
 
+/* 0.12.3: the small lines beside Prefs and Power */
+static void sep_tests(void)
+{
+    int cols[2], top, len;
+    /* GFOpenTitle's own: a 6 pixel gap, two 30 pixel cells: the lines at 3 and at the window's last column, 65 */
+    tb_sep_cols(6, 30, 2, cols);
+    CHECK(cols[0] == 3 && cols[1] == 65);
+    tb_sep_cols(6, 24, 2, cols);
+    CHECK(cols[0] == 3 && cols[1] == 53);
+    /* the Pi 5's 24 row title bar: rows 6 to 16, clear of the bar's own last line */
+    tb_sep_rows(24, 1, &top, &len);
+    CHECK(top == 6 && len == 11);
+    /* an edge bar of the same height has no last line to keep off */
+    tb_sep_rows(24, 0, &top, &len);
+    CHECK(top == 6 && len == 12);
+    /* a low bar: three rows clear at least; too low: no line, never a negative length */
+    tb_sep_rows(11, 1, &top, &len);
+    CHECK(top == 3 && len == 4);
+    tb_sep_rows(6, 1, &top, &len);
+    CHECK(len == 0);
+}
+
 int main(void)
 {
     prefs_tests();
@@ -587,6 +609,7 @@ int main(void)
     sbsync_tests();
     owner_tests();
     strip_tests();
+    sep_tests();
     printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, icons, bar rows, system bar items, bar strip)");
     return failed != 0;
 }
