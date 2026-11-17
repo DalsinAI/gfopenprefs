@@ -49,12 +49,14 @@
 #include <stdio.h>
 
 #include "od_dock.h"
+#include <graphics/layers.h>
 #include "od_wake.h"
+#include "od_strip.h"
 #include "wbclose.h"
 #include "obmsg.h"
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenDock 0.6.13 (4.11.2026) GFOpenPrefs, AmiCradle Team";   /* 0.6.13: a Shell button, and a running Shell, on a disk with no SYS:System/Shell have the Shell picture in SYS:Prefs/Presets/GFOpenDock; 0.6.12: a Shell command button has the Shell's icon (NewShell) or its C: icon; 0.6.11: wakes once a second at rest, ten times only while the pointer is over it; 0.6.10: no look at the tasks while none start or end; 0.6.9: running programs after a line; 0.6.8: one look at the tasks per check; 0.6.7: its editor is GFOpenPrefs DOCK, never ROM: */
+const char version[] __attribute__((used)) = "$VER: GFOpenDock 0.6.14 (17.11.2026) GFOpenPrefs, AmiCradle Team";   /* 0.6.13: a Shell button, and a running Shell, on a disk with no SYS:System/Shell have the Shell picture in SYS:Prefs/Presets/GFOpenDock; 0.6.12: a Shell command button has the Shell's icon (NewShell) or its C: icon; 0.6.11: wakes once a second at rest, ten times only while the pointer is over it; 0.6.10: no look at the tasks while none start or end; 0.6.9: running programs after a line; 0.6.8: one look at the tasks per check; 0.6.7: its editor is GFOpenPrefs DOCK, never ROM: */
 
 #define PREFS_ENV "ENV:GFOpenDock/Dock"
 #define PREFS_ENVARC "ENVARC:GFOpenDock/Dock"
@@ -641,6 +643,12 @@ static int big, pad, sepw, radius, gap;            /* an icon's square; the room
 static int endpad;                                 /* the room at the shelf's ends (0.4: a third of an icon) */
 static int apad, dot_at, dot_big;                  /* the room across the shelf; the dot's centre from its edge; a 5-pixel dot */
 static int behind_w, behind_h;                     /* the size behind was copied at */
+/* 0.6.14: the screen along the dock's whole row (a standing dock's column), copied when the dock opens with
+ * only the desktop showing there: a dock that grows or shrinks takes what is behind its new place from it,
+ * so it need not close to see the desktop (Dale, 17 November 2026: "its the visible clear and repaint that
+ * makes it noticeable, rather than the grow wider", "or shrink"). */
+static struct BitMap *strip;
+static int strip_x, strip_y, strip_w, strip_h;
 static struct Window *bubble;
 static int bubble_for = -1;
 static void bubble_off(void);
@@ -1433,6 +1441,12 @@ static int behind_settling(void)
 static struct MsgPort *appport;
 static struct AppWindow *aw;
 
+static void free_strip(void)
+{
+    WaitBlit();
+    if (strip) { FreeBitMap(strip); strip = NULL; }
+}
+
 static void free_bitmaps(void)
 {
     WaitBlit();                                    /* the blitter may still be drawing in them */
@@ -1485,6 +1499,12 @@ static int open_dock(struct Menu *menus)
         if (!behind) {
             if ((behind = AllocBitMap(w, h, depth, 0, scr->RastPort.BitMap)))
                 BltBitMap(scr->RastPort.BitMap, x, y, behind, 0, 0, w, h, 0xc0, 0xff, NULL);
+            /* 0.6.14: and the whole row, when only the desktop shows along it (a window there would be copied too) */
+            free_strip();
+            od_strip_box(standing, scr->Width, scr->Height, x, y, w, h, &strip_x, &strip_y, &strip_w, &strip_h);
+            if (behind && !covered(strip_x, strip_y, strip_w, strip_h) &&
+                (strip = AllocBitMap(strip_w, strip_h, depth, 0, scr->RastPort.BitMap)))
+                BltBitMap(scr->RastPort.BitMap, strip_x, strip_y, strip, 0, 0, strip_w, strip_h, 0xc0, 0xff, NULL);
         }
         behind_w = w; behind_h = h;
     }
@@ -1501,6 +1521,7 @@ static int open_dock(struct Menu *menus)
     }
     win = OpenWindowTags(NULL, WA_PubScreen, (ULONG)scr, WA_Left, x, WA_Top, y, WA_Width, w, WA_Height, h,
                          WA_Borderless, TRUE, WA_SmartRefresh, TRUE, WA_NewLookMenus, TRUE,
+                         WA_BackFill, (ULONG)LAYERS_NOBACKFILL,   /* 0.6.14: never cleared before it is drawn */
                          WA_ScreenTitle, (ULONG)"GFOpenDock 0.6",
                          WA_IDCMP, IDCMP_MOUSEBUTTONS | IDCMP_MENUPICK | IDCMP_REFRESHWINDOW | IDCMP_INACTIVEWINDOW |
                                    IDCMP_ACTIVEWINDOW, TAG_DONE);
@@ -1533,12 +1554,79 @@ static void close_dock(void)
     free_bitmaps();
 }
 
-/* Settings or buttons changed: the dock opens again, so what is behind it is copied afresh. */
-static int relayout(struct Menu *menus)
+/* What is behind the dock changed (the picture on the desktop, a window that was over its place): the dock
+ * opens again, so what is behind it is copied afresh. */
+static int reopen(struct Menu *menus)
 {
     close_dock();
     Delay(5);                                      /* Workbench redraws what the dock covered */
     return open_dock(menus);
+}
+
+/* 0.6.14: the dock at its new size and place where it stands: what is behind the new place from the strip,
+ * the shelf and the buttons drawn off the screen, the window moved and sized, then one blit. 0 when it can't
+ * (no strip, another edge or thickness, no memory, the window not changed in a second): the caller reopens. */
+static int resize_in_place(void)
+{
+    int w, h, x, y, depth, tries;
+    struct BitMap *nb, *nk, *ns;
+    struct RastPort srp;
+    if (!win || !strip || !behind || !back || !shelfbm) return 0;
+    if (!icons_ok) {
+        load_icons();
+        compute_fit();
+        for (int i = 0; i < dock.n; i++) make_small(i);
+        icons_ok = 1;
+    }
+    free_pens();
+    choose_colours();
+    layout(&w, &h);
+    place_of(w, h, &x, &y);
+    if (!od_strip_holds(standing, strip_x, strip_y, strip_w, strip_h, x, y, w, h)) return 0;
+    depth = GetBitMapAttr(scr->RastPort.BitMap, BMA_DEPTH);
+    nb = AllocBitMap(w, h, depth, 0, scr->RastPort.BitMap);
+    nk = AllocBitMap(w, h, depth, 0, scr->RastPort.BitMap);
+    ns = AllocBitMap(w, h, depth, 0, scr->RastPort.BitMap);
+    if (!nb || !nk || !ns) {
+        if (nb) FreeBitMap(nb);
+        if (nk) FreeBitMap(nk);
+        if (ns) FreeBitMap(ns);
+        return 0;
+    }
+    bubble_off();
+    BltBitMap(strip, x - strip_x, y - strip_y, nb, 0, 0, w, h, 0xc0, 0xff, NULL);
+    if (win->LeftEdge != x || win->TopEdge != y || win->Width != w || win->Height != h) {
+        /* Intuition changes it at its next input event: waited for, the old dock showing meanwhile */
+        ChangeWindowBox(win, x, y, w, h);
+        for (tries = 0; tries < 50 && (win->LeftEdge != x || win->TopEdge != y || win->Width != w || win->Height != h); tries++)
+            Delay(1);
+        if (win->LeftEdge != x || win->TopEdge != y || win->Width != w || win->Height != h) {
+            WaitBlit();
+            FreeBitMap(nb); FreeBitMap(nk); FreeBitMap(ns);
+            return 0;
+        }
+    }
+    WaitBlit();
+    FreeBitMap(behind); FreeBitMap(back); FreeBitMap(shelfbm);
+    behind = nb; back = nk; shelfbm = ns;
+    behind_w = w; behind_h = h;
+    InitRastPort(&brp);
+    brp.BitMap = back;
+    SetFont(&brp, scr->RastPort.Font);
+    InitRastPort(&srp);
+    srp.BitMap = shelfbm;
+    make_shelf(&srp, w, h);
+    draw();
+    seen_sig = moving_sig = behind_sig();
+    still = 0;
+    return 1;
+}
+
+/* Settings or buttons changed: the dock at its new size where it stands, or opened again when it can't be. */
+static int relayout(struct Menu *menus)
+{
+    if (resize_in_place()) return 1;
+    return reopen(menus);
 }
 
 /* 0.6.10: whether anything a check could find has changed since the last one, so the two-second check can
@@ -1763,6 +1851,7 @@ int main(void)
         switch (wbc_take()) {
         case WBC_CLOSE:
             close_dock();
+            free_strip();
             free_icons();
             if (menus) { FreeMenus(menus); menus = NULL; }
             the_menus = NULL;
@@ -1782,6 +1871,7 @@ int main(void)
             if (open_dock(menus)) { wb_down = 0; check_running(); }
             else {                                 /* the screen isn't ready yet: try again */
                 close_dock();
+                free_strip();
                 if (menus) { FreeMenus(menus); menus = NULL; }
                 if (vi) { FreeVisualInfo(vi); vi = NULL; }
                 UnlockPubScreen(NULL, scr); scr = NULL;
@@ -1795,8 +1885,8 @@ int main(void)
             WaitIO((struct IORequest *)tr);
             due = od_wake_due(&wake, tick);
             check_hover();
-            if (behind_changed()) relayout(menus);
-            else if ((due & OD_DUE_STALE) && behind_stale()) { od_wake_stale_hold(&wake); relayout(menus); }
+            if (behind_changed()) reopen(menus);
+            else if ((due & OD_DUE_STALE) && behind_stale()) { od_wake_stale_hold(&wake); reopen(menus); }
             if ((due & OD_DUE_RUNNING) && (!dock.running || !nothing_changed())) check_running();
             timer_ask(tr, tick = od_wake_next(busy_now()));
         }
@@ -1852,6 +1942,7 @@ out:
     if (tr) DeleteIORequest((struct IORequest *)tr);
     if (tport) DeleteMsgPort(tport);
     close_dock();
+    free_strip();
     if (appport) { struct Message *m; while ((m = GetMsg(appport))) ReplyMsg(m); DeleteMsgPort(appport); }
     if (menus) FreeMenus(menus);
     if (vi) FreeVisualInfo(vi);
