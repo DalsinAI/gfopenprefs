@@ -5,6 +5,7 @@
 #   - the About button (op_about.h, about_test.c; it opens GFOpenLayout's olabout and picks no page);
 #   - Global Settings' stack size file (Global/tests/stack_test.c);
 #   - the Power page's sensors and levels (Power/tests/pw_test.c);
+#   - the Machine page's words (Machine/tests/mc_test.c);
 #   - with a stove (STOVE=, default ~/AmiCradle/stoves/os32-gcc16): the app's first $VER is GFOpenPrefs's, and its
 #     version is higher than every page's own $VER inside it and every editor's in this repository, and every
 #     page object calls the frame's lt_wait (opshift.h routes the pages' Wait and WaitPort through it, so
@@ -39,7 +40,7 @@ m = re.search(r'lt_label\[LT_N\] = \{(.*?)\};', src, re.S)
 labels = re.findall(r'"([^"]*)"', m.group(1)) if m else []
 want = {"Theme", "Screen Mode", "Pointer", "Fonts", "Colours", "Backdrops", "Workbench", "File Requesters", "Windows",
         "Title Bar", "Menus", "IControl", "Dock", "Sound", "Input", "Gamepads", "Date & Time", "Serial", "File Types",
-        "System", "Blanker", "Icons", "Printing", "Global Settings", "Power",
+        "System", "Blanker", "Icons", "Printing", "Global Settings", "Power", "Machine",
         "Display"}  # DISPLAY-PROFILES section 4 (Dale, 14 Nov 2026: "go ahead"): the display profiles page
 if set(labels) != want or len({l.lower() for l in labels}) != len(labels):
     print(f'FAIL page names: {labels}, missing {sorted(want - set(labels))}, not asked for {sorted(set(labels) - want)}')
@@ -56,6 +57,8 @@ if command -v "$HCC" >/dev/null 2>&1; then
   if "$HCC" -std=c99 -Wall -Werror -I"$P/Global/src" -o "$W/stack_test" "$P/Global/tests/stack_test.c" "$P/Global/src/gs_stack.c" && "$W/stack_test"; then :; else fail=1; fi
   # the Power page: the host's sensors' JSON (Team 5's readings of 12 November 2026) and the levels' names
   if "$HCC" -std=c99 -Wall -Werror -I"$P/Power/src" -o "$W/pw_test" "$P/Power/tests/pw_test.c" "$P/Power/src/pw_info.c" && "$W/pw_test"; then :; else fail=1; fi
+  # the Machine page: GET's answers read into its choices, and its choices as SET's words
+  if "$HCC" -std=c99 -Wall -Werror -I"$P/Machine/src" -o "$W/mc_test" "$P/Machine/tests/mc_test.c" "$P/Machine/src/mc_words.c" && "$W/mc_test"; then :; else fail=1; fi
   # the About button's words and place (op_about.h)
   if "$HCC" -std=c99 -Wall -Werror -I"$HERE/src" -o "$W/about_test" "$HERE/tests/about_test.c" && "$W/about_test"; then :; else fail=1; fi
   rm -rf "$W"
@@ -146,7 +149,7 @@ for root, _, fs in os.walk(repo):
         if f.endswith('.c'):
             for name, ver in vers(open(os.path.join(root, f), 'rb').read()):
                 if name != 'GFOpenPrefs' and ver >= top and name in ('Look', 'GFOpenLook', 'Windows', 'TitleBar', 'Menus',
-                        'GFOpenDock-Prefs', 'GFOpenSound', 'GFOpenInput', 'Gamepads', 'GFOpenDateTime', 'GFOpenSerial', 'GFOpenTypes', 'GFOpenSystem', 'GFOpenGlobal', 'GFOpenPower'):
+                        'GFOpenDock-Prefs', 'GFOpenSound', 'GFOpenInput', 'Gamepads', 'GFOpenDateTime', 'GFOpenSerial', 'GFOpenTypes', 'GFOpenSystem', 'GFOpenGlobal', 'GFOpenPower', 'GFOpenMachine'):
                     print(f'FAIL {name} {ver} ({f}) is not older than GFOpenPrefs {top}'); bad = 1
 print(f'ok   GFOpenPrefs {".".join(map(str, top))} is the first $VER and the highest' if not bad else 'FAIL versions')
 sys.exit(bad)
@@ -157,7 +160,7 @@ nowait=""
 for o in "$T/out/obj/app/"*.o; do
   if "$NM" "$o" | grep -q -E ' U _?(lt_wait|lt_waitport)$'; then :; else
     case $(basename "$o") in look.o|windows.o|titlebar.o|menus.o|appearance.o|dockprefs.o|sound.o|openinput.o|gamepads.o|\
-      opendatetime.o|openserial.o|opentypes.o|opensystem.o|blankerprefs.o|screenmode.o|icontrol.o|printing.o|globalsettings.o|power.o) nowait="$nowait $(basename "$o")" ;;
+      opendatetime.o|openserial.o|opentypes.o|opensystem.o|blankerprefs.o|screenmode.o|icontrol.o|printing.o|globalsettings.o|power.o|machine.o) nowait="$nowait $(basename "$o")" ;;
     esac
   fi
 done

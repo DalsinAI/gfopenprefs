@@ -28,6 +28,8 @@ int printing_main(int argc, char **argv); /* the Printing page (2.4): printer.pr
 int global_main(int argc, char **argv);   /* the Global Settings page (2.9): the default stack size */
 int power_main(int argc, char **argv);    /* the Power page (3.0): the host's power level (CM4 item 9) */
 int power_apply(void);                    /* GFOpenPrefs APPLY: the saved power level to the host */
+int machine_main(int argc, char **argv);  /* the Machine page: the machine's global settings (gfosdesign machine-settings) */
+int machine_apply(void);                  /* GFOpenPrefs APPLY: the saved machine settings to the board */
 
 /* A page by its name ("Date & Time", "Title Bar"), letters in either case; -1 for none (opframe.c) */
 int lt_page_named(const char *name);
