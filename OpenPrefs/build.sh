@@ -87,6 +87,9 @@ page "$P/Global/src/gs_stack.c" -I"$P/Global/src"
 # the Power page (3.0): the host's power level through accontrol.device 1.6 (CM4 item 9)
 page "$P/Power/src/power.c" -Dmain=power_main -Dversion=power_version -I"$P/Power/src"
 page "$P/Power/src/pw_info.c" -I"$P/Power/src"
+# the Machine page: the machine's global settings through accontrol.device 1.8 (gfosdesign gfos/machines/machine-settings)
+page "$P/Machine/src/machine.c" -Dmain=machine_main -Dversion=machine_version -I"$P/Machine/src"
+page "$P/Machine/src/mc_words.c" -I"$P/Machine/src"
 # the About window: GFOpenLayout's olabout and the oldraw it draws through
 mkdir -p "$O/layout"
 for f in draw/oldraw.c amiga/oldraw_amiga.c about/olabout.c amiga/olabout_amiga.c; do

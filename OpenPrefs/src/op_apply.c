@@ -44,5 +44,6 @@ int op_apply(void)
     }
     lt_args = NULL;
     if ((r = power_apply()) > RETURN_WARN && r > rc) rc = r;   /* 3.0: the saved power level (CM4 item 9) */
+    if ((r = machine_apply()) > RETURN_WARN && r > rc) rc = r;   /* the machine's saved settings (gfosdesign machine-settings) */
     return rc;
 }
