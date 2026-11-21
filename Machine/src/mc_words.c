@@ -83,20 +83,28 @@ int mc_read_get(const char *answer, mc_set *now, mc_set *global)
     return pushes;
 }
 
+/* word onto out (len so far, cap with the NUL), a space before it when out has one already */
+static int put(char *out, int cap, int len, const char *word)
+{
+    if (len && len < cap - 1) out[len++] = ' ';
+    while (*word && len < cap - 1) out[len++] = *word++;
+    out[len] = 0;
+    return len;
+}
+
 int mc_format(const mc_set *s, char *out, int cap)
 {
+    char mhz[16];
     int len = 0;
     if (cap < 1) return 0;
     out[0] = 0;
-#define ADD(...) do { if (len < cap) { int w_ = snprintf(out + len, (size_t)(cap - len), __VA_ARGS__); \
-    if (w_ > 0) len = len + w_ < cap ? len + w_ : cap - 1; } } while (0)
-    if (s->fpu != MC_NONE) ADD("%sFPU=%s", len ? " " : "", s->fpu == MC_FPU_EXTENDED ? "EXTENDED" : "DOUBLE");
-    if (s->pace == MC_PACE_HYPER) ADD("%sPACE=HYPER", len ? " " : "");
-    else if (s->pace == MC_PACE_A1200) ADD("%sPACE=A1200", len ? " " : "");
-    else if (s->pace == MC_PACE_MHZ) ADD("%sPACE=%u", len ? " " : "", s->mhz);
-    if (s->chipplane != MC_NONE) ADD("%sCHIPPLANE=%s", len ? " " : "", s->chipplane ? "ON" : "OFF");
-    if (s->refresh == MC_REFRESH_AUTO) ADD("%sREFRESH=AUTO", len ? " " : "");
-    else if (s->refresh == 50 || s->refresh == 60) ADD("%sREFRESH=%d", len ? " " : "", s->refresh);
-#undef ADD
+    if (s->fpu != MC_NONE) len = put(out, cap, len, s->fpu == MC_FPU_EXTENDED ? "FPU=EXTENDED" : "FPU=DOUBLE");
+    if (s->pace == MC_PACE_HYPER) len = put(out, cap, len, "PACE=HYPER");
+    else if (s->pace == MC_PACE_A1200) len = put(out, cap, len, "PACE=A1200");
+    else if (s->pace == MC_PACE_MHZ) { sprintf(mhz, "PACE=%u", s->mhz % 1000); len = put(out, cap, len, mhz); }
+    if (s->chipplane != MC_NONE) len = put(out, cap, len, s->chipplane ? "CHIPPLANE=ON" : "CHIPPLANE=OFF");
+    if (s->refresh == MC_REFRESH_AUTO) len = put(out, cap, len, "REFRESH=AUTO");
+    else if (s->refresh == 50) len = put(out, cap, len, "REFRESH=50");
+    else if (s->refresh == 60) len = put(out, cap, len, "REFRESH=60");
     return len;
 }
