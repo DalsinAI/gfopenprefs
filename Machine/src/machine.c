@@ -125,7 +125,7 @@ static int put_words(const mc_set *s, int save, void (*say)(const char *))
     if (err == -1 || err == ACCERR_NOMACHINE) { if (say) say("No machine settings on this machine."); return 0; }
     if (err) { if (say) say("The machine didn't answer."); return 0; }
     if (answer[0]) {
-        snprintf(line, sizeof line, "Not taken: %s", answer);
+        snprintf(line, sizeof line, "Not taken: %.150s", answer);
         if (say) say(line);
         return 0;
     }
