@@ -117,7 +117,7 @@ static const card show[] = {
     { 230, { { GROUP, "THE TOOLCHAIN" }, { LIST, "Stefan \"Bebbo\" Franke, amiga-gcc  \xB7  libnix  \xB7  Szilard Biro, libpthread" }, { LIST, "Olaf Barthel, the TCP tools" } } },
     { 260, { { GROUP, "WHAT THE OPEN FAMILY IS MADE OF" }, { LIST, "zlib  \xB7  libpng  \xB7  libjpeg  \xB7  WebP  \xB7  FreeType  \xB7  HarfBuzz  \xB7  Fontconfig" }, { LIST, "cairo  \xB7  pixman  \xB7  curl  \xB7  SQLite  \xB7  libxml2  \xB7  Expat" }, { LIST, "WebKit  \xB7  ICU  \xB7  VLC  \xB7  SDL  \xB7  Mesa  \xB7  the open MUI classes" } } },
     { 230, { { GROUP, "ARCHIVES AND PACKERS" }, { LIST, "Teemu Suutari, ancient  \xB7  Simon Howard, lhasa" }, { LIST, "Andr\xE9 Rodrigues de la Rocha and Heikki Orsila, xDMS  \xB7  libarchive" } } },
-    { 250, { { GROUP, "WHAT TAUGHT US" }, { LIST, "Thomas Harte, the 680x0 tests  \xB7  Martin Gierich, html.datatype" }, { LIST, "Damir Sijakovic, the Boxie icons  \xB7  Kevin Atkinson, SCOWL" }, { LIST, "the Document Liberation Project  \xB7  AmiSSL" } } },
+    { 250, { { GROUP, "WHAT TAUGHT US" }, { LIST, "Thomas Harte, the 680x0 tests  \xB7  Martin Gierich, html.datatype" }, { LIST, "Kevin Atkinson, SCOWL" }, { LIST, "the Document Liberation Project  \xB7  AmiSSL" } } },
     { 220, { { GROUP, "THE GAMES WE BROUGHT HOME" }, { LIST, "The Ur-Quan Masters  \xB7  Chocolate Doom  \xB7  SDLPoP" }, { LIST, "NXEngine-evo  \xB7  OpenJazz" } } },
     { 240, { { GROUP, "AND THE COMMUNITY" }, { LIST, "everyone who kept an Amiga running, recapped a board," }, { LIST, "archived a disk, or wrote the README nobody thanked them for" } } },
     { 160, { { THANKS, "Thank you." }, { RULE, "" } } },
