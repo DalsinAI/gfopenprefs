@@ -4,6 +4,9 @@
  *   - Labels: close to the picture (the default: icon.library puts the label's text the gap's rows under the
  *     picture's lowest row that shows), or below the picture's whole box, as OS 3.2.3
  *   - Label gap: 0 to 8 rows, 2 by default (close only)
+ *   - Wrap long names (0.4, Dale, 23 November 2026: "yes a switch"): a long name, or the one an icon's ICONALTNAME=
+ *     tool type gives it, on up to three lines, each centred under the picture (icon.library, GFOpenBench's desktop
+ *     and its drawers); off (the default), one line ending in "..."
  *   - Cell size: Auto (the icons' own usual size) or a size set: the standard cell of the column grid, which every
  *     icon of that size sits on (a bigger or smaller one takes its own height, a wider one widens its column)
  *   - Snap dropped icons to the grid (on); the Clean Up order (name, kind, size or date); the desktop's columns
@@ -19,7 +22,8 @@
  *     light one or none, the picture alone; and Glass, the tile see-through on a true-colour screen. icon.library reads
  *     ENV:Sys/IconTile ("dark", "light", "off", with "glass") when it makes one, so what a window opens next follows it
  *
- * Two variables, so icon.library (in the ROM) reads one word: ENV:Sys/IconLabels ("close", "close 3", "below") and
+ * Two variables, so icon.library (in the ROM) reads one word: ENV:Sys/IconLabels ("close", "close 3", "below", with
+ * "wrap" after it) and
  * ENV:Sys/IconLayout ("cell=auto snap=on order=name columns=left labelcolour=backdrop"), read by GFOpenBench and its
  * drawers, which follow a change at once (gfopengadtools' workbench/wb_grid.c reads and writes both). And (0.2) a third
  * beside them, ENV:Sys/DesktopIcons ("show" or "none"; Common/deskicons.h), which GFOpenBench alone reads. Save writes
@@ -56,7 +60,7 @@
 #include "wb_grid.h"                        /* gfopengadtools' workbench/: the two variables' words */
 #include "deskicons.h"                      /* Common/: ENV:Sys/DesktopIcons's words, shared with GFOpenBench */
 
-static const char version[] __attribute__((used)) = "$VER: IconsPage 0.3 (11.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
+static const char version[] __attribute__((used)) = "$VER: IconsPage 0.4 (23.11.2026) GFOpenPrefs, MIT, Copyright (c) 2026 AmiCradle Team";
 
 #define LABELS "Sys/IconLabels"
 #define LAYOUT "Sys/IconLayout"
@@ -160,7 +164,7 @@ static void put_back(void)
 
 /* ---- the window ------------------------------------------------------------------------------------ */
 
-enum { G_LABELS = 1, G_GAPLABEL, G_GAP, G_GAPTEXT, G_CELL, G_SNAP, G_ORDER, G_COLUMNS, G_TONE, G_NOICONS, G_TILE, G_GLASS,
+enum { G_LABELS = 1, G_GAPLABEL, G_GAP, G_GAPTEXT, G_WRAP, G_CELL, G_SNAP, G_ORDER, G_COLUMNS, G_TONE, G_NOICONS, G_TILE, G_GLASS,
        G_FONTS, G_FONTTEXT,
        G_STATUS, G_SAVE, G_USE, G_TEST, G_CANCEL, G_COUNT };
 
@@ -254,6 +258,10 @@ static int gui(void)
     G(SLIDER_KIND, G_GAP, X, row, 120, lh, NULL, 0, GTSL_Min, 0, GTSL_Max, WB_GAP_MAX,
       GTSL_Level, ip.gap, GA_RelVerify, TRUE, GA_Immediate, TRUE, GA_Disabled, !ip.close);
     G(TEXT_KIND, G_GAPTEXT, X + 128, row, W - 12 - (X + 128), lh, NULL, 0, GTTX_Text, (ULONG)gap_text);
+    row += lh + 4;
+    /* 0.4: a long name on lines, each centred ("wrap" in ENV:Sys/IconLabels) */
+    G(CHECKBOX_KIND, G_WRAP, X, row, 26, lh, "Wrap long names onto lines", PLACETEXT_RIGHT, GTCB_Checked, ip.wrap != 0,
+      GTCB_Scaled, TRUE);
     row += lh + 10;
     G(CYCLE_KIND, G_CELL, X, row, cw, lh, "Cell size", PLACETEXT_LEFT, GTCY_Labels, (ULONG)cell_names,
       GTCY_Active, cell_index(ip.cell));
@@ -302,9 +310,9 @@ static int gui(void)
                    CYCLEIDCMP | TEXTIDCMP)
 #ifdef LT_ONE
     win = lt_open(scr, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, scr->BarHeight + 20, W, row - scr->WBorTop - fh - 1,
-                  glist, IDCMP_ALL, "Icons 0.3");
+                  glist, IDCMP_ALL, "Icons 0.4");
 #else
-    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Icons", WA_ScreenTitle, (ULONG)"Icons 0.3", WA_PubScreen, (ULONG)scr,
+    win = OpenWindowTags(NULL, WA_Title, (ULONG)"Icons", WA_ScreenTitle, (ULONG)"Icons 0.4", WA_PubScreen, (ULONG)scr,
                          WA_Left, (scr->Width - W) / 2 > 0 ? (scr->Width - W) / 2 : 0, WA_Top, scr->BarHeight + 20,
                          WA_InnerWidth, W, WA_InnerHeight, row - scr->WBorTop - fh - 1,
                          WA_Gadgets, (ULONG)glist, WA_DragBar, TRUE, WA_DepthGadget, TRUE, WA_CloseGadget, TRUE, WA_Activate, TRUE,
@@ -356,6 +364,7 @@ static int gui(void)
                     break;
                 case G_CELL: ip.cell = code < NCELLS ? cell_px[code] : 0; break;
                 case G_SNAP: ip.snap = (gg->Flags & GFLG_SELECTED) != 0; break;
+                case G_WRAP: ip.wrap = (gg->Flags & GFLG_SELECTED) ? WB_LABEL_WRAP : 0; break;
                 case G_ORDER: ip.order = code < 4 ? code : 0; break;
                 case G_COLUMNS: ip.right = code == 1; break;
                 case G_TONE: ip.tone = code == 0; break;
@@ -417,19 +426,19 @@ static int word_of(const char *w, const char *const *list)
 
 /*   Icons [LABELS close|below] [GAP n] [CELL auto|px] [SNAP on|off] [ORDER name|kind|size|date]
  *         [COLUMNS left|right] [LABELCOLOUR backdrop|theme] [DESKTOP show|none] [TILE dark|light|off]
- *         [GLASS on|off] [USE] [SAVE]
+ *         [GLASS on|off] [WRAP on|off] [USE] [SAVE]
  * (GFOpenPrefs ICONS ...): the settings given over the ones in ENV:; with USE or SAVE written without a window.
  * DESKTOP (0.2): the desktop's icons shown (show, icons, on) or none at all (none, noicons, off).
- * TILE and GLASS (0.3): the default icons' tile, ENV:Sys/IconTile. */
+ * TILE and GLASS (0.3): the default icons' tile, ENV:Sys/IconTile. WRAP (0.4): long names on lines. */
 int main(int argc, char **argv)
 {
     static const char *const lb[] = { "close", "below", "on", "off", NULL }, *const onoff[] = { "on", "off", "yes", "no", NULL };
     static const char *const ord[] = { "name", "kind", "size", "date", NULL }, *const side[] = { "left", "right", NULL };
     static const char *const tone[] = { "theme", "backdrop", NULL };
     static const char *const tl[] = { "dark", "light", "off", NULL };
-    LONG args[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    LONG args[13] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     struct RDArgs *rd = argc > 0 ? ReadArgs((STRPTR)"LABELS/K,GAP/K/N,CELL/K,SNAP/K,ORDER/K,COLUMNS/K,USE/S,SAVE/S,LABELCOLOUR/K,"
-                                            "DESKTOP/K,TILE/K,GLASS/K", args, NULL) : NULL;
+                                            "DESKTOP/K,TILE/K,GLASS/K,WRAP/K", args, NULL) : NULL;
     char a[48], b[128], d[16], t[24];
     int rc, ha, hb, hd, ht, k;
     (void)argv;
@@ -458,6 +467,7 @@ int main(int argc, char **argv)
     if ((k = deskicons_word((const char *)args[9], -1)) >= 0) noicons = k;
     if ((k = word_of((const char *)args[10], tl)) >= 0) tile = k;
     if ((k = word_of((const char *)args[11], onoff)) >= 0) glass = !(k & 1);
+    if ((k = word_of((const char *)args[12], onoff)) >= 0) ip.wrap = (k & 1) ? 0 : WB_LABEL_WRAP;
     if (args[6] || args[7]) rc = put(args[7] != 0, say_shell) ? RETURN_OK : RETURN_ERROR;
     else rc = gui();
     if (rd) FreeArgs(rd);
