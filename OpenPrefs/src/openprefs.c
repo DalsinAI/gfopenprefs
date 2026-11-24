@@ -12,7 +12,8 @@
  *
  * SECTION: THEME (LOOK), SCREENMODE (OVERSCAN), POINTER, FONTS, COLOURS, BACKDROPS (WBPATTERN), WORKBENCH, ICONS,
  * FILEREQUESTERS, WINDOWS, TITLEBAR, MENUS, ICONTROL, DOCK, SOUND, INPUT (MOUSE, KEYBOARD, KEYMAP), GAMEPADS,
- * DATETIME, SERIAL, PRINTING (PRINTER, PAPER), TYPES, SYSTEM, GLOBAL, POWER, MACHINE, BLANKER; or the page's name as the list shows it ("Date & Time", "Title Bar").
+ * DATETIME, SERIAL, PRINTING (PRINTER, PAPER), TYPES, DEFACTION (DEFAULTACTIONS, DEFAULTTOOLS), SYSTEM, GLOBAL, POWER,
+ * MACHINE, BLANKER; or the page's name as the list shows it ("Date & Time", "Title Bar").
  * From Workbench, a project icon whose default tool is GFOpenPrefs (SYS:Preferences' plain-named icons, 24 October
  * 2026) opens the page its SECTION tooltype names, else the page of its name.
  *
@@ -76,6 +77,7 @@ static const struct { const char *name; int page; } sections[] = {
     { "ICONTROL", LT_ICONTROL }, { "ICONS", LT_ICONS }, { "ICONLAYOUT", LT_ICONS }, { "ICONLABELS", LT_ICONS },
     { "PRINTING", LT_PRINTING }, { "PRINTER", LT_PRINTING }, { "PAPER", LT_PRINTING },
     { "GLOBAL", LT_GLOBAL }, { "GLOBALSETTINGS", LT_GLOBAL }, { "POWER", LT_POWER }, { "MACHINE", LT_MACHINE },
+    { "DEFACTION", LT_DEFACTION }, { "DEFAULTACTIONS", LT_DEFACTION }, { "DEFAULTTOOLS", LT_DEFACTION },
     { "PROFILES", LT_DISPLAY }, { "DISPLAYPROFILES", LT_DISPLAY }, { "GFOSDISPLAY", LT_DISPLAY },
 };
 
@@ -92,6 +94,7 @@ static const struct { const char *name; int page; } old_names[] = {
     { "GFOpenColours", LT_COLOURS }, { "GFOpenBackdrops", LT_BACKDROPS }, { "GFOpenWorkbench", LT_WORKBENCH },
     { "GFOpenFileRequesters", LT_ASL }, { "GFOpenBlanker", LT_BLANKER }, { "GFOpenIControl", LT_ICONTROL },
     { "GFOpenGlobal", LT_GLOBAL }, { "GFOpenPower", LT_POWER }, { "GFOpenDisplay", LT_DISPLAY }, { "GFOpenMachine", LT_MACHINE },
+    { "GFOpenDefAction", LT_DEFACTION },   /* AC-266: icons with no default tool offered one */
 };
 
 /* A section by its word (SOUND, DATETIME) or its page's name ("Sound", "Date & Time") */
@@ -151,6 +154,7 @@ int op_page(int page, int argc, char **argv)
     case LT_GLOBAL: return global_main(argc, argv);
     case LT_POWER: return power_main(argc, argv);
     case LT_MACHINE: return machine_main(argc, argv);
+    case LT_DEFACTION: return defaction_main(argc, argv);
     case LT_DISPLAY: return display_main(argc, argv);
     }
     return RETURN_FAIL;
@@ -204,7 +208,7 @@ static int as_openprefs(void)
     if (a[2] && (page = section_of((const char *)a[2])) < 0) {
         Printf((STRPTR)"GFOpenPrefs: no section %s; the sections are THEME, SCREENMODE, POINTER, FONTS, COLOURS, BACKDROPS,\n"
                "WORKBENCH, ICONS, FILEREQUESTERS, WINDOWS, TITLEBAR, MENUS, ICONTROL, DOCK, SOUND, INPUT, GAMEPADS, DATETIME,\n"
-               "SERIAL, PRINTING, TYPES, SYSTEM, GLOBAL, POWER, MACHINE, BLANKER\n", a[2]);
+               "SERIAL, PRINTING, TYPES, DEFACTION, SYSTEM, GLOBAL, POWER, MACHINE, BLANKER\n", a[2]);
         FreeArgs(rd);
         return RETURN_ERROR;
     }

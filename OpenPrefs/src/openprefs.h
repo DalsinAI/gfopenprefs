@@ -30,6 +30,7 @@ int power_main(int argc, char **argv);    /* the Power page (3.0): the host's po
 int power_apply(void);                    /* GFOpenPrefs APPLY: the saved power level to the host */
 int machine_main(int argc, char **argv);  /* the Machine page: the machine's global settings (gfosdesign machine-settings) */
 int machine_apply(void);                  /* GFOpenPrefs APPLY: the saved machine settings to the board */
+int defaction_main(int argc, char **argv); /* the Default Actions page (AC-266): a program for icons that have none */
 
 /* A page by its name ("Date & Time", "Title Bar"), letters in either case; -1 for none (opframe.c) */
 int lt_page_named(const char *name);
