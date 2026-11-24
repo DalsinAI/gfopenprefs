@@ -35,7 +35,8 @@ default tool and offers each the program for its kind of file.
 
 - **Its own page of GFOpenPrefs, Default Actions**, after File Types (`GFOpenPrefs DEFACTION`, or `DEFAULTACTIONS`,
   `DEFAULTTOOLS`). GFOpenPrefs run as `GFOpenDefAction` opens it, with its arguments.
-- **Alone:** `DefAction/build.sh` builds `GFOpenDefAction` with the os32 stove.
+- **Alone:** `DefAction/build.sh` builds `GFOpenDefAction` with the os32 stove; `DefAction/build-page.sh` compiles
+  the page as GFOpenPrefs does, without the frame.
 
 ## The Shell
 

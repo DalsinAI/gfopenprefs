@@ -183,7 +183,7 @@ static int kind_of(const char *path, char *type, int cap)
                           ICONGETA_GetPaletteMappedIcon, FALSE, TAG_DONE);
         if (dob) FreeDiskObject(dob);       /* an icon.library that doesn't know IdentifyOnly hands the icon back */
         buf[sizeof buf - 1] = 0;
-        if (buf[0] && (g = da_group_of_type(buf)) != DA_NONE) { strncpy(type, buf, cap - 1); type[cap - 1] = 0; return g; }
+        if (buf[0] && (g = da_group_of_type(buf)) != DA_NONE) { (void)cap; strcpy(type, buf); return g; }   /* one of da_core.c's short type names */
     }
     if (DataTypesBase) {
         BPTR l = Lock((STRPTR)path, ACCESS_READ);
