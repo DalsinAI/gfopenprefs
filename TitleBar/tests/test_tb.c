@@ -7,6 +7,7 @@
 #include "tb_shapes.h"
 #include "tb_sbsync.h"
 #include "tb_owner.h"
+#include "tb_power.h"
 #include "barstrip.h"
 #define OB_DRAWN_HOST
 #include "obdrawn.h"
@@ -624,6 +625,33 @@ static void drawn_tests(void)
     CHECK(ob_hold_step(&h, 1, 0, t + 500U * 61) == OBH_GO);
 }
 
+/* 0.12.5 (AC-125): the power menu's rows, what each asks, the host's offset and what an answer says */
+static void power_tests(void)
+{
+    static const int order[TB_POWER_ROWS] = TB_POWER_ORDER;
+    const struct tb_power_ask *a;
+    CHECK(order[0] == PW_REBOOT && order[1] == PW_RESTART && order[2] == PW_AKS && order[3] == PW_OFF);
+    CHECK(!strcmp(tb_power_ask(PW_AKS)->label, "Restart into AKS..."));           /* beside Restart and Power off */
+    CHECK(!tb_power_ask(0) && !tb_power_ask(5));
+    a = tb_power_ask(PW_REBOOT);
+    CHECK(a && a->host == 0 && !a->title);                                           /* warm: nothing asked, nothing sent */
+    CHECK(tb_power_ask(PW_RESTART)->host == TB_HOST_RESTART && tb_power_ask(PW_OFF)->host == TB_HOST_OFF);
+    a = tb_power_ask(PW_AKS);
+    CHECK(a->host == 3 && !strcmp(a->buttons, "Restart|Cancel") && strstr(a->text, "Amiga Kickstart Screen") && strstr(a->text, "PC"));
+    /* Restart and Power off say what they said before 0.12.5 */
+    CHECK(!strcmp(tb_power_ask(PW_RESTART)->text, "Restart the machine from cold?\nWork not saved in open programs is lost."));
+    CHECK(!strcmp(tb_power_ask(PW_OFF)->text, "Power the machine off?\nWork not saved in open programs is lost."));
+    CHECK(!tb_power_said(TB_HOST_RESTART, 0) && !tb_power_said(TB_HOST_OFF, 0) && !tb_power_said(TB_HOST_AKS, 0));   /* taken: nothing */
+    CHECK(!strcmp(tb_power_said(TB_HOST_RESTART, TB_ERR_NOPOWER), "This machine can't be restarted from here."));
+    CHECK(!strcmp(tb_power_said(TB_HOST_RESTART, TB_ERR_OPENFAIL), "This machine can't be restarted from here."));
+    CHECK(!strcmp(tb_power_said(TB_HOST_OFF, TB_ERR_NOPOWER), "This machine can't be powered off from here."));
+    CHECK(!strcmp(tb_power_said(TB_HOST_RESTART, 45), "The host didn't restart the machine."));
+    CHECK(!strcmp(tb_power_said(TB_HOST_OFF, 45), "The host didn't power the machine off."));
+    CHECK(strstr(tb_power_said(TB_HOST_AKS, TB_ERR_BADADDR), "accontrol.device 1.10"));   /* an older device takes no 3 */
+    CHECK(strstr(tb_power_said(TB_HOST_AKS, TB_ERR_NOPOWER), "can't be restarted into the Amiga Kickstart Screen"));
+    CHECK(strstr(tb_power_said(TB_HOST_AKS, 45), "didn't restart the machine into"));
+}
+
 int main(void)
 {
     prefs_tests();
@@ -639,6 +667,7 @@ int main(void)
     strip_tests();
     sep_tests();
     drawn_tests();
-    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, icons, bar rows, system bar items, bar strip, GFOpenBench drawn)");
+    power_tests();
+    printf("%s   %d checks%s\n", failed ? "FAIL" : "ok", checks, failed ? ", some failed" : " (settings, fade, pointer, words, shapes, icons, bar rows, system bar items, bar strip, GFOpenBench drawn, power menu)");
     return failed != 0;
 }
