@@ -90,6 +90,10 @@ page "$P/Power/src/pw_info.c" -I"$P/Power/src"
 # the Machine page: the machine's global settings through accontrol.device 1.8 (gfosdesign gfos/machines/machine-settings)
 page "$P/Machine/src/machine.c" -Dmain=machine_main -Dversion=machine_version -I"$P/Machine/src"
 page "$P/Machine/src/mc_words.c" -I"$P/Machine/src"
+# the Default Actions page (AC-266): GFOpenDefAction, a program offered to icons that have none, on icon.library
+DEFA="-I$P/DefAction/src -DIconBase=defaction_IconBase -DDataTypesBase=defaction_DataTypesBase -DAslBase=defaction_AslBase -DGadToolsBase=defaction_GadToolsBase"
+page "$P/DefAction/src/defaction.c" -Dmain=defaction_main -Dversion=defaction_version $DEFA
+page "$P/DefAction/src/da_core.c" -I"$P/DefAction/src"
 # the About window: GFOpenLayout's olabout and the oldraw it draws through
 mkdir -p "$O/layout"
 for f in draw/oldraw.c amiga/oldraw_amiga.c about/olabout.c amiga/olabout_amiga.c; do
