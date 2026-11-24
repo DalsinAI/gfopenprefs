@@ -49,6 +49,7 @@
 #include <proto/asl.h>
 #include <proto/icon.h>
 #include <proto/datatypes.h>
+#include <proto/utility.h>
 
 #include <string.h>
 #include <stdio.h>
