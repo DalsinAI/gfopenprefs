@@ -166,6 +166,11 @@
  *   was starting): while GFOpenBench 0.1.71 says its desktop isn't drawn yet (Common/obdrawn.h), the bar doesn't turn
  *   see-through as GFOpenBench's strip comes, and the row isn't painted again as the bar's colours change under it; once
  *   it is drawn, the bar is looked at once. With an older GFOpenBench, or none, as before.
+ * 0.12.5 (AC-125; Dale, 23 November 2026: "add a feature to the power menu to reboot into AKS", "that gets cleared when
+ *   we do"): the power menu has "Restart into AKS..." between Restart the machine... and Power off...: asked first,
+ *   then accontrol.device 1.10's ACCMD_POWER with io_Offset 3. On the appliance the machine leaves a one-shot flag and
+ *   the boot screen opens the Amiga Kickstart Screen at the next start in place of its countdown, clearing the flag; on
+ *   a PC (no boot screen) it is a plain restart. The rows' words and the answers' are tb_power.h's (host tested).
  * MIT, Copyright (c) 2026 AmiCradle Team. */
 #include <exec/types.h>
 #include <exec/memory.h>
@@ -213,6 +218,7 @@
 #include "tb_shapes.h"
 #include "tb_sbsync.h"                     /* 0.10 */
 #include "tb_owner.h"                      /* 0.11 */
+#include "tb_power.h"                      /* 0.12.5: the power menu's rows and words */
 #include <gfopenlayout_draw.h>
 #include "om_prefs.h"
 #include "logo.h"
@@ -229,7 +235,7 @@
 #include "../../Common/traygrid.h"     /* 0.7.10: every tray icon in a TRAY_ICON box, TRAY_PAD each side */
 #include "../../Common/prefsapp.h"           /* where GFOpenPrefs is (SYS:Preferences) */
 
-const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.12.4 (17.11.2026) GFOpenPrefs, AmiCradle Team";
+const char version[] __attribute__((used)) = "$VER: GFOpenTitle 0.12.5 (24.11.2026) GFOpenPrefs, AmiCradle Team";
 
 struct IntuitionBase *IntuitionBase;
 struct GfxBase *GfxBase;
@@ -1582,9 +1588,7 @@ static void raised(oldraw *d, WORD x, WORD w, WORD h)
 
 /* 0.7.10 (Dale, 11 November 2026: "we need a reboot / power cycle option. Also ... a safe eject for USB"): the
  * cog's list ends with the power menu, and above it an "Eject" row for each USB stick mounted (usb_sticks()) */
-#define PW_REBOOT  1                           /* warm: the Amiga's own ColdReboot */
-#define PW_RESTART 2                           /* cold: the host starts the machine again (accontrol.device) */
-#define PW_OFF     3                           /* the card shuts down; on a PC the instance closes */
+/* PW_REBOOT, PW_RESTART, PW_OFF and (0.12.5) PW_AKS: tb_power.h */
 #define USB_MAX    6                           /* the sticks the list shows */
 static struct { char dev[32], name[32], label[48]; } usb[USB_MAX];
 static int usb_n;
@@ -1617,14 +1621,15 @@ static const struct { const char *label, *path, *section, *needs; int power; } c
     { NULL,            NULL, NULL,       NULL },                          /* a line */
     { "All Prefs...",  "SYS:Prefs",              NULL, NULL },
     { NULL,            NULL, NULL,       NULL },                          /* a line; then the USB sticks (0.7.10) */
-    { "Reboot",        NULL, NULL, NULL, PW_REBOOT },                     /* 0.7.10: the power menu */
-    { "Restart the machine...", NULL, NULL, NULL, PW_RESTART },
-    { "Power off...",  NULL, NULL, NULL, PW_OFF },
+    { TB_PW_REBOOT_LABEL, NULL, NULL, NULL, PW_REBOOT },                     /* 0.7.10: the power menu */
+    { TB_PW_RESTART_LABEL, NULL, NULL, NULL, PW_RESTART },
+    { TB_PW_AKS_LABEL, NULL, NULL, NULL, PW_AKS },                  /* 0.12.5 (AC-125) */
+    { TB_PW_OFF_LABEL, NULL, NULL, NULL, PW_OFF },
 };
 #define COG_SECTIONS 15                        /* the first ones: GFOpenPrefs's */
 #define COG_ITEMS (int)(sizeof cog_items / sizeof cog_items[0])
 #define COG_PAD 10
-#define COG_POWER_LINE (COG_ITEMS - 4)         /* the line before Reboot: Prefs' list ends there, Power's starts after it */
+#define COG_POWER_LINE (COG_ITEMS - 1 - TB_POWER_ROWS)   /* the line before Reboot: Prefs' list ends there, Power's starts after it */
 
 /* 0.9: the rows the commodities' menus have (and "All commodities..."), past cog_items and the USB sticks */
 #define XR_BASE 1000
@@ -2051,9 +2056,9 @@ static void usb_eject(int k)
 }
 
 #define ACC_CMD_POWER   (CMD_NONSTD + 14)      /* accontrol.device 1.5's ACCMD_POWER (amicradle-guest accontrol.h) */
-#define ACC_ERR_NOPOWER 48
 
-/* the host restarts the machine (1) or powers it off (2): accontrol.device to the bridge */
+/* the host restarts the machine (1), powers it off (2) or (0.12.5) restarts it into the Amiga Kickstart Screen (3):
+ * accontrol.device to the machine; what it said in tb_power.h's words */
 static void power_host(ULONG action)
 {
     struct MsgPort *port = CreateMsgPort();
@@ -2067,10 +2072,7 @@ static void power_host(ULONG action)
     }
     if (io) DeleteIORequest((struct IORequest *)io);
     if (port) DeleteMsgPort(port);
-    if (err == ACC_ERR_NOPOWER || err == -1 || err == IOERR_OPENFAIL)
-        ask("Power", action == 1 ? "This machine can't be restarted from here." : "This machine can't be powered off from here.", "OK");
-    else if (err)
-        ask("Power", action == 1 ? "The host didn't restart the machine." : "The host didn't power the machine off.", "OK");
+    if (tb_power_said(action, err)) ask("Power", tb_power_said(action, err), "OK");
 }
 
 static void power(int what)
@@ -2078,12 +2080,10 @@ static void power(int what)
     if (what == PW_REBOOT) {                   /* warm: the Amiga starts again, as Ctrl-Amiga-Amiga */
         Delay(TICKS_PER_SECOND);               /* the disks' last writes first */
         ColdReboot();
-    } else if (what == PW_RESTART) {
-        if (ask("Restart the machine", "Restart the machine from cold?\nWork not saved in open programs is lost.", "Restart|Cancel"))
-            power_host(1);
-    } else if (what == PW_OFF) {
-        if (ask("Power off", "Power the machine off?\nWork not saved in open programs is lost.", "Power off|Cancel"))
-            power_host(2);
+    } else {                                   /* Restart, Restart into AKS (0.12.5) and Power off: asked first */
+        const struct tb_power_ask *a = tb_power_ask(what);
+        if (a && a->host && ask(a->title, a->text, a->buttons))
+            power_host(a->host);
     }
 }
 

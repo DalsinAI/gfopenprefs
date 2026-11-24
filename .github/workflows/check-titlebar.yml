@@ -1,0 +1,23 @@
+name: TitleBar (host tests)
+
+# GFOpenTitle's host tests (TitleBar/tests/run.sh): its settings, the see-through bar's fade, the words the bar shows,
+# its shapes, the system bar's items and the power menu's rows and answers (src/tb_power.h), with the runner's cc.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/check-titlebar.yml
+      - TitleBar/**
+      - Common/**
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: TitleBar/tests/run.sh
+        run: sh TitleBar/tests/run.sh

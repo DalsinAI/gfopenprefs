@@ -119,13 +119,19 @@ built.
      such as GFOpenSpeaker and GFOpenNetwork, is shown by those). Click: show or hide its window. Menu
      button: Show, Hide, Active (ticked), Information, Remove. Hover: its title and description;
    - Prefs (the cog: GFOpenPrefs' sections, the other settings, "All commodities...", All Prefs...) and
-     Power (the USB sticks' Eject, Reboot, Restart, Power off), side by side;
+     Power (the USB sticks' Eject, Reboot, Restart, Restart into AKS, Power off), side by side;
    - the systray (with the taskspace's icons) and the Prefs and Power pair each on a shaded band of the
      bar's own colour; an item whose menu is open is a deeper shade.
    GFOpenTitle 0.12 (Dale, 16 November 2026): the memory is gone, and the time is in the title bar's centre
    again, its own window, so the right end is `systray | Prefs, Power | depth gadget`. The bar's colour is read
    from a strip that steps left of every bar window (`Common/barstrip.h`): the strip at three quarters of the
    way along had come to lie on the row, which then read its own white back and stayed white with black text.
+   GFOpenTitle 0.12.5 (AC-125; Dale, 23 November 2026: "add a feature to the power menu to reboot into AKS"):
+   Power's list has "Restart into AKS..." between Restart the machine... and Power off.... Asked first, then
+   accontrol.device 1.10's `ACCMD_POWER` with io_Offset 3: on the appliance the machine leaves a one-shot flag
+   (the instance's `state/aks-next-start`) and the boot screen (acscreen) opens the Amiga Kickstart Screen at the
+   next start in place of its F2/Del/F12 countdown, clearing the flag as it opens, so the start after is as set.
+   On a PC (no boot screen) it is a plain restart. The rows' words are `src/tb_power.h`, host tested.
 4. The text path: AA and hinting for the bar and the screen title first, then
    icon labels, window titles, menus and requesters.
 
