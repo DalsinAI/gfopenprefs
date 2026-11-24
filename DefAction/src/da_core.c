@@ -79,6 +79,16 @@ int da_group_of_gid(unsigned long gid)
     return DA_NONE;
 }
 
+int da_group_of_kind(const char *type, const char *family)
+{
+    static const char *const families[DA_NGROUPS] = { " text ", " ", " image ", " video ", " audio ", " ", " document " };
+    int g = da_group_of_type(type);
+    if (g != DA_NONE || !family || !*family) return g;
+    for (g = 0; g < DA_NGROUPS; g++)
+        if (listed(families[g], family)) return g;
+    return DA_NONE;
+}
+
 /* By the name's end (after its last dot); Amiga modules by the start ("mod.tune"); readmes by the whole name */
 static const char *const suffixes[DA_NGROUPS] = {
     " readme txt text doc asc ascii nfo diz 1st me faq man ",
