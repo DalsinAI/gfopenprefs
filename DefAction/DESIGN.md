@@ -17,8 +17,11 @@ default tool and offers each the program for its kind of file.
   `SYS:Prefs`, `SYS:Tools/Commodities`, `SYS:Apps` (GFOpenBench's `find_tool`).
 - **Its kind:** one of seven: text and readmes, AmigaGuide, pictures, movies and animations, sounds, music,
   documents (`src/da_core.c`). Asked of **icon.library** first, its identify hook (DefIcons, `ICONGETA_IdentifyBuffer`
-  with `ICONGETA_IdentifyOnly`, icon.library 47); then datatypes.library (the datatype's name, then its group);
-  then the file's name (`Nostalgia.readme`, `ReadMe`, `mod.tune`). Programs, archives, scripts and anything not
+  with `ICONGETA_IdentifyOnly`, icon.library 47); then, on an ACFS volume, what the file's own bytes say
+  (AC-270: `ACTION_ACFS_KINDS`, one packet a page of the drawer, then `ACTION_ACFS_KIND` for a file not on it; its
+  type, then its family, so one rule takes every picture); then datatypes.library (the datatype's name, then its
+  group); then the file's name (`Nostalgia.readme`, `ReadMe`, `mod.tune`). Another filesystem answers
+  `ERROR_ACTION_NOT_KNOWN` and is asked nothing more for that drawer. Programs, archives, scripts and anything not
   one of the seven are left alone.
 - **The program offered:** the kind's program on the page when one is set, else what the kind's **default icon**
   names (icon.library's `ICONGETA_GetDefaultName`: `def_<type>`, then `def_ascii`, `def_picture`, ...: the icons
@@ -57,5 +60,5 @@ Kinds: `TEXT`, `GUIDE`, `PICTURES`, `MOVIES`, `SOUNDS`, `MUSIC`, `DOCUMENTS`. Wi
 
 ## Tests
 
-`DefAction/tests/da_test.c` (63 checks, run by `OpenPrefs/tests/run.sh`): the kinds by type, datatype group and name;
+`DefAction/tests/da_test.c` (71 checks, run by `OpenPrefs/tests/run.sh`): the kinds by type, ACFS kind (type, then family), datatype group and name;
 which icons are offered one; the settings file read and written; the list of changes; the drawers' list.

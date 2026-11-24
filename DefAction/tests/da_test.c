@@ -32,6 +32,19 @@ int main(void)
     CHECK("rexx, lha and none are ours to leave", da_group_of_type("rexx") == DA_NONE && da_group_of_type("lha") == DA_NONE
           && da_group_of_type("") == DA_NONE && da_group_of_type(NULL) == DA_NONE);
 
+    /* what ACFS says a file is (AC-270): the type, then the family */
+    CHECK("ACFS png is a picture", da_group_of_kind("png", "image") == DA_PICTURE);
+    CHECK("ACFS mod is music, not a sound", da_group_of_kind("mod", "audio") == DA_MUSIC && da_group_of_kind("med", "audio") == DA_MUSIC);
+    CHECK("ACFS amigaguide is a guide, not a document", da_group_of_kind("amigaguide", "document") == DA_GUIDE);
+    CHECK("ACFS family image takes a type we don't list", da_group_of_kind("heic", "image") == DA_PICTURE);
+    CHECK("ACFS family audio, video, text, document", da_group_of_kind("opus", "audio") == DA_SOUND && da_group_of_kind("mkv", "video") == DA_MOVIE
+          && da_group_of_kind("csv", "text") == DA_TEXT && da_group_of_kind("odf", "document") == DA_DOCUMENT);
+    CHECK("ACFS archives, programs, data and drawers are left", da_group_of_kind("lha", "archive") == DA_NONE
+          && da_group_of_kind("amiga-hunk", "program") == DA_NONE && da_group_of_kind("data", "data") == DA_NONE
+          && da_group_of_kind("drawer", "drawer") == DA_NONE && da_group_of_kind("info", "icon") == DA_NONE);
+    CHECK("ACFS nothing named", da_group_of_kind("", "") == DA_NONE && da_group_of_kind(NULL, NULL) == DA_NONE);
+    CHECK("ACFS a part of a family is not the family", da_group_of_kind("x", "imag") == DA_NONE && da_group_of_kind("x", "images") == DA_NONE);
+
     /* datatypes' groups */
     CHECK("GID_TEXT", da_group_of_gid(DA_GID_TEXT) == DA_TEXT);
     CHECK("GID_PICTURE", da_group_of_gid(DA_GID_PICTURE) == DA_PICTURE);

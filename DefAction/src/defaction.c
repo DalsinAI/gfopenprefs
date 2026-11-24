@@ -15,8 +15,9 @@
  *   SYS:Utilities, SYS:Tools, SYS:System, SYS:Preferences, SYS:Prefs, SYS:Tools/Commodities, SYS:Apps).
  * - Its kind (DefAction/src/da_core.c: text and readmes, AmigaGuide, pictures, movies and animations, sounds,
  *   music, documents) is asked of icon.library first: its identify hook (DefIcons, ICONGETA_IdentifyBuffer with
- *   ICONGETA_IdentifyOnly, icon.library 47), then datatypes.library (the datatype's name, then its group), then
- *   the file's name (Nostalgia.readme, mod.tune).
+ *   ICONGETA_IdentifyOnly, icon.library 47), then ACFS (what the file's bytes say: ACTION_ACFS_KINDS a drawer,
+ *   ACTION_ACFS_KIND a file; AC-270), then datatypes.library (the datatype's name, then its group), then the
+ *   file's name (Nostalgia.readme, mod.tune).
  * - The tool offered is the kind's program on this page when one is set, else what the kind's default icon names
  *   (icon.library's ICONGETA_GetDefaultName: def_<type>, then def_ascii, def_picture...), else MultiView; only a
  *   program that is here is offered.
@@ -169,9 +170,91 @@ static const char *offer_for(int group, const char *type)
     return tool_found(FALLBACK) ? FALLBACK : "";
 }
 
-/* The kind of a file, asked of icon.library's identify hook, then datatypes.library, then its name; type gets
- * the type's name when one was found (for its default icon) */
-static int kind_of(const char *path, char *type, int cap)
+/* ---- what ACFS says a file is (AC-270) ----
+ * An ACFS volume tells a file's kind from its own bytes (ACTION_ACFS_KIND; a drawer's at once with
+ * ACTION_ACFS_KINDS, one packet a page: amicradle-guest filesystems/acfs/include/acfs.h, whose packets and records
+ * these are). The walk asks KINDS once for a drawer the first time one of its icons wants a kind, and looks each file
+ * up in what came back; a volume that can't tell (another filesystem: ERROR_ACTION_NOT_KNOWN) is asked nothing more
+ * for that drawer, and datatypes and the name decide as before. */
+#define ACTION_ACFS_KIND   0x41434B01L
+#define ACTION_ACFS_KINDS  0x41434401L
+#define ACFS_KIND_KNOWN    0x1u
+struct acfs_kind { ULONG flags, group; char type[24], family[16], mime[64]; ULONG reserved[4]; };   /* 128 bytes */
+struct acfs_kinds_record { char name[124]; struct acfs_kind kind; ULONG reserved; };                /* 256 */
+struct acfs_kinds_result { ULONG count, next; struct acfs_kinds_record r[1]; };
+
+#define KC_PAGE 16                          /* records a KINDS page */
+#define KC_MAX  2048                        /* a drawer's files kept at most; past them, KIND one at a time */
+typedef struct { char name[32]; char type[24]; char family[16]; } kc_entry;   /* names longer than 31: KIND alone */
+typedef struct { int asked, none, n, cap; kc_entry *e; } kind_cache;   /* e grows as pages come: a small drawer costs little */
+
+static struct MsgPort *lock_port(BPTR l) { return l ? ((struct FileLock *)BADDR(l))->fl_Task : NULL; }
+
+static void kc_fill(kind_cache *kc, const char *drawer)
+{
+    ULONG first = 0, bytes = sizeof(struct acfs_kinds_result) + (KC_PAGE - 1) * sizeof(struct acfs_kinds_record);
+    struct acfs_kinds_result *r;
+    BPTR l;
+    kc->asked = 1;
+    if (!(l = Lock((STRPTR)drawer, ACCESS_READ))) { kc->none = 1; return; }
+    r = AllocVec(bytes, MEMF_CLEAR);
+    if (!r || !lock_port(l)) kc->none = 1;
+    while (!kc->none) {
+        ULONG i;
+        if (!DoPkt(lock_port(l), ACTION_ACFS_KINDS, (LONG)l, (LONG)r, (LONG)bytes, (LONG)first, 0)) { if (!kc->n) kc->none = 1; break; }
+        if (kc->n + KC_PAGE > kc->cap && kc->cap < KC_MAX) {   /* room for this page */
+            int cap = kc->cap ? kc->cap * 2 : 64;
+            kc_entry *e = AllocVec((ULONG)cap * sizeof *e, MEMF_CLEAR);
+            if (!e) break;
+            if (kc->e) { CopyMem(kc->e, e, (ULONG)kc->n * sizeof *e); FreeVec(kc->e); }
+            kc->e = e; kc->cap = cap;
+        }
+        for (i = 0; i < r->count && i < KC_PAGE && kc->n < kc->cap; i++) {
+            struct acfs_kinds_record *x = &r->r[i];
+            x->name[sizeof x->name - 1] = 0;
+            if (!(x->kind.flags & ACFS_KIND_KNOWN) || strlen(x->name) >= sizeof kc->e[0].name) continue;
+            strcpy(kc->e[kc->n].name, x->name);
+            strncpy(kc->e[kc->n].type, x->kind.type, sizeof kc->e[0].type - 1);
+            strncpy(kc->e[kc->n].family, x->kind.family, sizeof kc->e[0].family - 1);
+            kc->n++;
+        }
+        if (r->next == 0xffffffffUL || r->next <= first || kc->n >= KC_MAX) break;
+        first = r->next;
+    }
+    if (r) FreeVec(r);
+    UnLock(l);
+}
+static void kc_free(kind_cache *kc) { if (kc->e) FreeVec(kc->e); kc->e = NULL; kc->n = kc->cap = kc->asked = kc->none = 0; }
+
+/* the group from ACFS: the drawer's page first, else KIND for the one file; DA_NONE when it can't tell */
+static int acfs_group(kind_cache *kc, const char *drawer, const char *path, char *type, int cap)
+{
+    const char *leaf = (const char *)FilePart((STRPTR)path);
+    struct acfs_kind k;
+    int i, g;
+    BPTR l;
+    if (kc && !kc->asked) kc_fill(kc, drawer);
+    if (kc && kc->none) return DA_NONE;     /* not ACFS, or a host that can't tell: nothing more asked */
+    for (i = 0; kc && i < kc->n; i++)
+        if (!Stricmp((STRPTR)kc->e[i].name, (STRPTR)leaf)) {
+            if ((g = da_group_of_kind(kc->e[i].type, kc->e[i].family)) != DA_NONE) { strncpy(type, kc->e[i].type, cap - 1); type[cap - 1] = 0; }
+            return g;
+        }
+    if (!(l = Lock((STRPTR)path, ACCESS_READ))) return DA_NONE;
+    memset(&k, 0, sizeof k);
+    g = DA_NONE;
+    if (lock_port(l) && DoPkt(lock_port(l), ACTION_ACFS_KIND, (LONG)l, 0, (LONG)&k, (LONG)sizeof k, 0) && (k.flags & ACFS_KIND_KNOWN)) {
+        k.type[sizeof k.type - 1] = 0; k.family[sizeof k.family - 1] = 0;
+        if ((g = da_group_of_kind(k.type, k.family)) != DA_NONE) { strncpy(type, k.type, cap - 1); type[cap - 1] = 0; }
+    }
+    UnLock(l);
+    return g;
+}
+
+/* The kind of a file, asked of icon.library's identify hook, then ACFS (what the file's bytes say), then
+ * datatypes.library, then its name; type gets the type's name when one was found (for its default icon). kc: the
+ * walk's drawer (NULL: one file alone) */
+static int kind_of(const char *path, char *type, int cap, kind_cache *kc, const char *drawer)
 {
     int g = DA_NONE;
     type[0] = 0;
@@ -185,6 +268,7 @@ static int kind_of(const char *path, char *type, int cap)
         buf[sizeof buf - 1] = 0;
         if (buf[0] && (g = da_group_of_type(buf)) != DA_NONE) { (void)cap; strcpy(type, buf); return g; }   /* one of da_core.c's short type names */
     }
+    if ((g = acfs_group(kc, drawer, path, type, cap)) != DA_NONE) return g;
     if (DataTypesBase) {
         BPTR l = Lock((STRPTR)path, ACCESS_READ);
         struct DataType *dtn;
@@ -253,8 +337,12 @@ static void walk(int depth)
     BPTR l;
     struct FileInfoBlock *fib;
     int len = strlen(walk_path);
+    kind_cache kc;                          /* this drawer's kinds from ACFS, asked the first time one is wanted */
+    char *drawer = NULL;
     if (depth > MAXDEPTH || stopped || !(l = Lock((STRPTR)walk_path, ACCESS_READ))) return;
     if (!(fib = AllocDosObject(DOS_FIB, NULL))) { UnLock(l); return; }
+    memset(&kc, 0, sizeof kc);
+    if ((drawer = AllocVec(len + 1, MEMF_ANY))) strcpy(drawer, walk_path);
     if (Examine(l, fib) && fib->fib_DirEntryType > 0) {
         while (!stopped && ExNext(l, fib)) {
             int n = strlen((char *)fib->fib_FileName);
@@ -278,7 +366,7 @@ static void walk(int depth)
                     FreeDiskObject(dob);
                     if (want) {
                         char type[64];
-                        int g = kind_of(walk_path, type, sizeof type);
+                        int g = kind_of(walk_path, type, sizeof type, drawer ? &kc : NULL, drawer);
                         if (g != DA_NONE) {
                             const char *t = offer_for(g, type);
                             if (*t) add_found(walk_path, g, t); else nnone++;
@@ -289,6 +377,8 @@ static void walk(int depth)
         }
     }
     walk_path[len] = 0;
+    kc_free(&kc);
+    if (drawer) FreeVec(drawer);
     FreeDosObject(DOS_FIB, fib);
     UnLock(l);
 }

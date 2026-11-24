@@ -44,6 +44,10 @@ const char *da_group_defname(int group);
 int da_group_of_type(const char *type);
 /* The group of a datatype's group ID (DA_GID_*); DA_NONE for system files and those not known */
 int da_group_of_gid(unsigned long gid);
+/* The group of what an ACFS volume says a file is, from the file's own bytes (AC-270; ACTION_ACFS_KIND, amicradle-guest
+ * filesystems/acfs/include/acfs.h): its type first ("png", "mod", "amigaguide"), then its family (image, audio,
+ * video, text, document), so one rule takes every picture; DA_NONE for archives, programs, data and the rest */
+int da_group_of_kind(const char *type, const char *family);
 /* The group of a file by its name alone: "Nostalgia.readme", "ReadMe", "pic.iff", "tune.mod"; DA_NONE */
 int da_group_of_name(const char *name);
 
