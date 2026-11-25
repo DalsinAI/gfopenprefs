@@ -90,7 +90,7 @@ dates, is amicradle `docs/design/Design-Time-Zones.md`.
 
 - **The places** are the tz database's `zone.tab` and UTC: 419, in
   `src/zones.h`, made by `tools/make_zones.py` from the host's
-  `/usr/share/zoneinfo` (tz database 2026c, public domain; nothing fetched).
+  `/usr/share/zoneinfo` (tz database 2026e, public domain; nothing fetched).
   Each has the POSIX rule its TZif file ends with; the few that change in ways
   a rule can't say (Morocco's Ramadan; Edmonton and Vancouver moving to one
   time all year) carry their changes from 2026, and the rule holds after.
